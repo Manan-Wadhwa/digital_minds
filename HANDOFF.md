@@ -487,12 +487,24 @@ Surface baseline 0.924.
   bug for most of a day.** Every launcher does
   `del sys.modules["calibration.*"]` then re-imports, which makes `LoRALinear` a
   NEW class object while the wrappers on the resident model are instances of the
-  OLD one. `isinstance` → False for all of them, so `has_lora` called a dirty
-  model clean and `remove_lora` returned 0 without removing anything. Fixed with
-  `is_lora_module` (class name + attribute signature, survives reload). **If you
-  add any new LoRA-detecting code, use `is_lora_module`, never `isinstance`.**
+  OLD one. `isinstance` → False for all of them, so **four** things broke, all
+  silently: `has_lora` called a dirty model clean; `remove_lora` returned 0
+  without removing anything; `lora_parameters` returned `[]`, which would make
+  `train_org_a` optimise an empty parameter set and emit a flat curve
+  indistinguishable from a real negative; and `lora_state_dict` would have
+  written an **empty checkpoint without complaint** — a run reporting "adapters
+  saved" while storing nothing. Fixed with `is_lora_module` (class name +
+  attribute signature, survives reload). **If you add any new LoRA-detecting
+  code, use `is_lora_module`, never `isinstance`.**
   No result was corrupted — `inject_lora` raises when its targets are already
   wrapped, and that loud failure is the only reason the silent half was found.
+  **`tests/test_lora.py` now pins this**, and the regression tests were verified
+  to have teeth by reverting the fix (exactly the 3 reload tests fail).
+- **Run `python3 -m pytest tests/ -q` before trusting any change to `lora.py` or
+  `analysis.py`.** torch/numpy/pytest are installed locally CPU-only, so all
+  seven calibration modules import and 33 tests run in ~1.4 s with no GPU. Before
+  this, nothing in the repo could be tested without the sandbox, which is exactly
+  how the `isinstance` bug shipped.
 - **Printing from a kernel-side thread in marimo raises `AssertionError`**
   (`self._stream.cell_id is not None`) — stdout is bound to a cell context a
   detached thread does not have. Any worker thread must wrap its body in

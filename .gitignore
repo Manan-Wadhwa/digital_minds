@@ -1,5 +1,4 @@
-# Vendored agent skills. Contents are reinstallable from skills-lock.json with
-# `npx skills add` -- the lockfile pins source and content hash, so the ~100K of
-# third-party files underneath do not belong in this repo's history.
-.agents/skills/
-.claude/skills/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/

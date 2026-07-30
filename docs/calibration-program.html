@@ -580,7 +580,6 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
   vertical-align: 1px;
   white-space: nowrap;
 }
-.rxtag.held { color: var(--ok); background: var(--ok-soft); border-color: var(--ok); }
 .rxtag.open { color: var(--nar); background: var(--nar-soft); border-color: var(--nar); }
 
 .struck { text-decoration: line-through; text-decoration-color: var(--danger); color: var(--ink-3); }
@@ -616,7 +615,6 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
   margin-top: 7px;
   line-height: 1.4;
 }
-.pill.open { color: var(--nar); border-color: var(--nar); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
@@ -685,6 +683,269 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
   </nav>
 
   <main class="main">
+
+    <!-- ============ 00 STATUS ============ -->
+    <section id="status">
+      <div class="sec-head"><span class="sec-num">00</span><h2>Status — what survived contact with data</h2></div>
+
+      <p class="lede">
+        Everything from §01 onward was written <b>before any experiment ran</b>. Nine have now run. This section
+        is the reconciliation. Superseded claims below are <b>marked in place, not deleted</b> — a pre-registration
+        whose wrong predictions have been quietly edited out is worth nothing, and the wrong predictions are the
+        part with evidential value.
+      </p>
+
+      <div class="callout stop">
+        <div class="callout-label">The state of the program in six lines · 30 Jul 2026</div>
+        <ul class="tight">
+          <li><b>Four gate candidates were pre-registered and all four failed</b>, each differently. The program has <b>no validated internal dose estimator</b>. The behavioural one — realised avoidance rate — is the only estimator still standing.</li>
+          <li><b>The only positive gate result is retracted.</b> E4's "+0.080 separability rise after RL" was class-composition drift, not a change in the representation.</li>
+          <li><b>The landing-class gate is dead a second, independent way</b>: a bag-of-token-ids classifier beats the activation probe on the same task.</li>
+          <li><b>Organism yield is the blocking problem and is unresolved</b> — 2/6 in E4, 1/6 in E5, with a self-flagged methodological error in how E4's hyperparameter was chosen.</li>
+          <li><b>Compute was never the constraint.</b> RL trains at <code>0.111 s/step</code>; one organism ≈ 1 minute, the full design ≈ 30 minutes of GPU.</li>
+          <li><b>Nothing in §04–§11 has been tested.</b> No organism grid, no instrument battery, no loading map, no dose-response curve. Those sections are still a plan, and the numbers in them are still predictions.</li>
+        </ul>
+      </div>
+
+      <div class="stats">
+        <div class="stat dead"><b>4 / 4</b><span>gate candidates<br>pre-registered, failed</span></div>
+        <div class="stat dead"><b>−0.001</b><span>representation effect<br>E4 read it as +0.080</span></div>
+        <div class="stat warn"><b>0.0147</b><span>measured noise floor SD<br>first ruler in the program</span></div>
+        <div class="stat warn"><b>1–2 / 6</b><span>organisms that learn<br>blocking problem</span></div>
+      </div>
+
+      <h3>1 · The four gates, and how each died</h3>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Gate candidate</th>
+              <th>Pre-registered in</th>
+              <th class="mono">Verdict</th>
+              <th>How it died</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Cosine at the prompt token</b><br><span style="color:var(--ink-3);font-size:12.5px"><code>cos(v_mold, v_gold)</code>, pre vs post</span></td>
+              <td class="mono">§03 · §12 day 3 · §15</td>
+              <td class="mono" style="color:var(--danger)">dead</td>
+              <td><b>Baseline-dependent.</b> Three defensible extraction specs give <code>+0.79</code> / <code>−0.07</code> / <code>−1.00</code> on <i>identical activations</i>. <code>shared_removed</code> returns exactly <code>−1.000000</code> at every seed — two conditions plus a symmetric baseline force the residuals antipodal, so it cannot fail to "confirm" the gate. A threshold that is a free parameter of the analyst is not a gate.</td>
+            </tr>
+            <tr>
+              <td><b>Prompt-token probe separability</b><br><span style="color:var(--ink-3);font-size:12.5px">the proposed replacement in §12</span></td>
+              <td class="mono">§12 day 3, "unblock"</td>
+              <td class="mono" style="color:var(--danger)">dead</td>
+              <td><b>Saturated on the untrained model.</b> 0.976–0.990 depending on readout; above 0.95 at 36/36 layers for <code>mean_grid</code>. RL cannot raise what is already at ceiling. Which tile is adjacent is <i>literally in the input</i>, so identity is decodable before training.</td>
+            </tr>
+            <tr>
+              <td><b>Tile ↔ move alignment</b></td>
+              <td class="mono">E1c / E1d</td>
+              <td class="mono" style="color:var(--danger)">dead</td>
+              <td><b>Usable floor, no external anchor.</b> <code>|cos(w_tile, w_move)|</code> = 0.051 mean, 0.089 max — non-degenerate and far from ceiling, but nothing outside this program says what value counts as "recruited", so the gate has no threshold.</td>
+            </tr>
+            <tr>
+              <td><b>Landing-class separability</b><br><span style="color:var(--ink-3);font-size:12.5px">adopted as <i>the</i> gate after E3</span></td>
+              <td class="mono">E3, pre-registered<br>before any organism</td>
+              <td class="mono" style="color:var(--danger)"><b>dead twice</b></td>
+              <td><b>(a) Composition drift (E5).</b> The rise came from the trained policy re-rolling the evaluation set, not from the weights. <b>(b) Loses to the surface baseline (E6).</b> A bag of token ids scores <b>0.660</b> against the activation probe's <b>0.626</b>, winning 6 of 8 repeats.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">
+        The pattern worth carrying: <b>every candidate was validated on untrained models only, and every one
+        looked fine there.</b> Each failed the moment a trained organism existed to compare against. That is an
+        argument for building the organism <i>first</i> and the gate <i>against it</i> — the opposite of the
+        order this document argues for.
+      </p>
+
+      <h3>2 · The retraction</h3>
+
+      <div class="rx">
+        <div class="rx-label"><span>Retracted</span><span class="src">E4 headline, overturned by E5 · do not cite E4's separability numbers</span></div>
+        <p>
+          <b>E4 reported that landing-class separability rose <code>+0.080</code> after RL and read it as a change
+          in the representation. It was not.</b> E5 crossed <code>{base, trained}</code> weights with
+          <code>{base, trained}</code> trajectory sets — <code>action_token_resid</code> teacher-forces the
+          recorded action, so any model can read any trajectory set — and the rise was almost entirely in the
+          trajectories.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Effect</th><th>What moved</th><th class="mono">raw</th><th class="mono">balanced</th><th class="mono">vs noise floor</th></tr></thead>
+            <tbody>
+              <tr><td>total — E4's protocol</td><td>weights <b>and</b> trajectories</td><td class="mono">+0.041</td><td class="mono">+0.081</td><td class="mono">—</td></tr>
+              <tr><td><b>composition</b></td><td>trajectories only, <b>weights frozen</b></td><td class="mono"><b>+0.038</b></td><td class="mono"><b>+0.076</b></td><td class="mono">2.55 σ / 5.18 σ<br>survives</td></tr>
+              <tr><td><b>representation</b></td><td>weights only, trajectories fixed</td><td class="mono"><b>−0.001</b></td><td class="mono">+0.016</td><td class="mono">−0.05 σ / 1.11 σ<br>zero / inside noise</td></tr>
+              <tr><td>interaction</td><td>residual</td><td class="mono">+0.005</td><td class="mono">−0.011</td><td class="mono">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="tight" style="margin-top:12px">
+          <li><b>Composition is 90% of the raw effect and 94% of the balanced one.</b> The decisive cell reads weights <i>bit-identical</i> to the baseline cell — no training has touched them — and separability rises anyway.</li>
+          <li><b>Balancing class sizes does not repair it; it doubled the artefact</b> (<code>+0.038 → +0.076</code>). Equal class <i>sizes</i> are not equal class <i>contents</i>: a trained policy's penalised trajectories are the residue left after avoidance, not a smaller random sample of the same thing. <b>Anyone reaching for balancing as the fix is wrong.</b> This was a pre-committed prediction and it missed in the direction opposite to the one predicted.</li>
+          <li><b>E5 does not reproduce E4's behaviour</b> (<code>reproduces_e4: false</code>): 1/6 learned vs 2/6, and E4's star seed 0 (0.188 → 0.051) came out 0.195 → 0.188. Cause: <b>E4 never got a committed <code>run.py</code></b>, so its exact call sequence is unrecoverable. Every experiment since gets one before it may produce a number.</li>
+          <li>E5 closed with one hopeful sign, explicitly flagged <code>n=1</code>: its only learner had the largest balanced representation effect. <b>E6 killed it too</b> — the whole balanced representation term is 1.11 σ, indistinguishable from noise. There was nothing there.</li>
+        </ul>
+      </div>
+
+      <h3>3 · The gate also fails for a reason no organism could fix</h3>
+
+      <div class="rx">
+        <div class="rx-label"><span>Dead — independent of E5</span><span class="src">E6 · surface baseline beats the activation probe</span></div>
+        <ul class="tight">
+          <li><b>Bag-of-token-ids: 0.660. Activation probe: 0.626.</b> The surface baseline beats the probe by <code>+0.034</code> — more than two noise SDs, in the wrong direction — and wins in <b>6 of 8</b> repeats.</li>
+          <li>The reason is structural: <b>the landing tile is a deterministic function of the grid and the emitted letter, and both are verbatim in the probed text.</b> Token counts recover it better than the residual stream does.</li>
+          <li>This is what <code>surface_baseline</code>'s own docstring — written for E1a, never pointed at this gate — says disqualifies a probe: <i>"if an activation probe scores below this, the probe is not reading a richer representation, it is reading a worse copy of the input."</i></li>
+          <li>The surface model used is bag-of-<b>counts</b>, so it has no positional information and is a <i>weak</i> baseline. A stronger one would only widen the gap. <b>This threat runs against the gate, not for it.</b></li>
+          <li>No amount of better organisms, longer training or cleaner protocol repairs this. It is a property of the quantity, not of the run.</li>
+        </ul>
+      </div>
+
+      <div class="callout stop">
+        <div class="callout-label">The unifying lesson — the single most transferable thing this program has produced</div>
+        <p style="font-family:var(--serif);font-size:18px;line-height:1.5;color:var(--ink);max-width:60ch">
+          <b>Both surviving failure modes have one root cause: the quantity being probed was a property of the
+          <span style="color:var(--fn)">input</span>, and the input was allowed to carry it.</b>
+        </p>
+        <ul class="tight">
+          <li><b>Composition</b> let the input set move between conditions — so the measurement changed while the model did not.</li>
+          <li><b>Surface</b> shows the label was recoverable from the input all along — so the measurement never needed the model.</li>
+          <li><b>Any gate of the form <i>"how well can I decode X from activations"</i> inherits both</b>, because X was decodable from the text before the model did anything. That covers three of the four candidates above, and it is the reason they failed rather than an accident of which quantity was chosen.</li>
+          <li><b>The design consequence:</b> a gate must measure something the input cannot supply. The current attempt (E8, written but not yet reported) feeds <i>identical</i> trajectories to base and trained weights and measures the <b>selectivity</b> of the difference against a permutation null — composition and surface are then both zero by construction rather than by control, plus a magnitude-matched scrambled-adapter control so that "any adapter would do this" is testable rather than assumed.</li>
+        </ul>
+      </div>
+
+      <h3>4 · The measurement finally has a scale — and it costs the layer-selection rule</h3>
+
+      <div class="rx open">
+        <div class="rx-label"><span>New, and it re-scores everything</span><span class="src">E6 · 8 independent rollouts, same frozen model</span></div>
+        <ul class="tight">
+          <li><b>Noise floor: SD = 0.0147</b>, from 8 independent rollouts of the <i>same frozen model</i> with glyph roles pinned so only sampling varies. Every difference E4 and E5 reported can finally be read against something. Until E6 there was no denominator at all.</li>
+          <li>Rescored against it: E5's composition effect is <b>2.55 σ</b> raw / <b>5.18 σ</b> balanced and <b>survives</b>; E5's representation term is <b>−0.05 σ</b> and is zero.</li>
+          <li><b>"The layer of maximum separability" is not a well-defined quantity.</b> The argmax layer wanders 11 / 14 / 18 / 16 and 13 / 27 / 29 / 19 across repeats of an unchanged model, with no stability whatsoever.</li>
+          <li>That last point <b>retroactively undermines a choice made in E3 and used by both E4 and E5</b>: selecting the readout layer by maximum separability. Fixed-layer numbers are reported instead, precisely so the wandering does not inflate the floor.</li>
+        </ul>
+      </div>
+
+      <h3>5 · Organism yield — poor, unresolved, and with a self-flagged error</h3>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th class="mono">Run</th><th>Configuration</th><th class="mono">Learned</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">E4</td>
+              <td>Dr.GRPO, 300 steps, lr 1e-4, <code>entropy_coef</code> 0.01, 6 counterbalanced seeds</td>
+              <td class="mono">2 / 6</td>
+              <td>Seed 4 got <i>worse</i>. Bar is <code>rate &lt; 0.75 × random</code>.</td>
+            </tr>
+            <tr>
+              <td class="mono">E5</td>
+              <td>identical configuration, deliberately</td>
+              <td class="mono">1 / 6</td>
+              <td>E4's star seed did not survive a change in the RNG path.</td>
+            </tr>
+            <tr>
+              <td class="mono">E7</td>
+              <td>held-out sweep: lr × <code>entropy_coef</code> × 800 steps, tuning seeds 10–13, reporting seeds 0–5 untouched</td>
+              <td class="mono">running</td>
+              <td>Early cells show final policy entropy at <b>0.00</b>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="rx">
+        <div class="rx-label"><span>Methodological error, self-flagged</span><span class="src">E4 · the one I would flag in someone else's work</span></div>
+        <ul class="tight">
+          <li><code>entropy_coef = 0.01</code> was selected by a sweep run on <b>seed 0 alone</b>, then evaluated and reported on <b>seeds 0–5</b>. Seed 0 being the standout is exactly what that procedure produces. The honest reading of "seed 0 works" is "the configuration was fitted to seed 0."</li>
+          <li>E5 then failed to reproduce seed 0 at all, which is the confirmation. <b>E7 tunes on seeds 10–13 and does not touch 0–5.</b></li>
+          <li><b>E7's early evidence already contradicts its own pre-commitment.</b> It predicted under-training and expected 800 steps to beat 300; final policy entropy collapsing to <code>0.00</code> says the failure mode is <b>entropy collapse</b>, not insufficient steps — the same structural failure E2a documented (4 actions, group of 8; once the policy sharpens, all samples agree, <code>advantage = r − mean(r)</code> is identically zero and the gradient vanishes).</li>
+          <li>The pre-committed decision rule stands: if no configuration clears 3 of 4 held-out seeds, yield is <b>not</b> a hyperparameter problem and tuning stops. Next moves are structural — more LoRA target modules, larger batch, and only then reward shaping.</li>
+        </ul>
+      </div>
+
+      <h3>6 · The reference result is <span style="color:var(--danger)">not</span> reproduced</h3>
+
+      <div class="rx">
+        <div class="rx-label"><span>Must not be claimed as a reproduction</span><span class="src">E1a · E3 · checked 2026-07-30</span></div>
+        <ul class="tight">
+          <li><b>The implementation is not released.</b> No repository and no code-availability statement on either the project site or the arXiv abstract page.</li>
+          <li><b>The extraction spec <i>is</i> recoverable from the prose</b>, and it is materially different from the first attempt here: trajectories rather than static grids; the <b>emitted direction token</b> rather than prompt tokens; classes by which tile the final step <b>lands on</b>; Path as baseline; <code>N/E/S/W</code> move vocabulary; 5,000 trajectories per class; layer chosen by max separability.</li>
+          <li><b>Implementing it did not reproduce their number and did not even move ours.</b></li>
+        </ul>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th></th><th class="mono">cos(v_pen, v_rew)</th></tr></thead>
+            <tbody>
+              <tr><td>reference, pre-training</td><td class="mono">−0.23 … −0.13</td></tr>
+              <tr><td>ours — prompt-token adjacency (E1a)</td><td class="mono">+0.79</td></tr>
+              <tr><td>ours — action-token landing classes (E3)</td><td class="mono">+0.83 &nbsp;<span style="color:var(--ink-3)">(range +0.706 … +0.888)</span></td></tr>
+              <tr><td><b>layers falling inside the reference band</b></td><td class="mono"><b>0 / 36</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="tight" style="margin-top:12px">
+          <li><b>Nowhere in this document, and nowhere in any write-up, may this be described as a reproduction.</b> Either the spec has an element not recovered from the prose, or the maze geometry, tile densities, episode structure or model differ materially. Which one is unknown.</li>
+          <li>The hypothesis that the readout site was the problem was <b>falsified</b>: Path is still the baseline, so both vectors remain "landed on non-Path" minus "landed on Path". The shared term is <i>non-Path</i> — structurally identical to the salience component that produced <code>+0.80</code> in E1a. The readout site and the sample unit moved; the actual cause did not.</li>
+          <li>The positive cosine is now robust across two very different readouts and sample units, which argues it is a property of <i>this</i> setup rather than a measurement artefact.</li>
+        </ul>
+      </div>
+
+      <h3>7 · What is still standing</h3>
+
+      <div class="cards two">
+        <div class="card">
+          <span class="card-id">holds up</span>
+          <ul class="tight">
+            <li><b>The framing (§02).</b> Untouched by any of this — it is an argument, not a measurement, and nothing above bears on it.</li>
+            <li><b>The behavioural dose estimator.</b> Realised avoidance rate against a random-move baseline still works and is the only estimator not retracted.</li>
+            <li><b>Counterbalancing is load-bearing, and was worth the cost.</b> Base-policy penalised counts split cleanly by seed parity (545/546/525 even vs 339/326/315 odd) — the untrained model prefers to step onto <b>blue</b> regardless of what blue means, at ~1.7×. An uncounterbalanced experiment would have baked that asymmetry into every cell.</li>
+            <li><b>The surface / prompt-only baseline rule (§08).</b> It caught E1a's bad readout and it is what killed the landing-class gate. Nothing else in the control set would have.</li>
+            <li><b>Pre-committing expected results, including expected degeneracies.</b> Repeatedly the reason a defect was recognised as a defect rather than written up as a finding.</li>
+            <li><b>The infrastructure.</b> End-to-end, cheap, and reproducible; per-run cost measured rather than estimated.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="card-id nar">open, or not yet tested</span>
+          <ul class="tight">
+            <li><b>H0 (§05) is untouched and still buildable.</b> It needs no training and no gate, and remains the abort-branch deliverable.</li>
+            <li><b>The whole instrument battery (§06) is unmeasured.</b> Every loading number there is a prediction.</li>
+            <li><b>ORG-A′, B, B′, C are unbuilt</b>, correctly blocked behind organism yield.</li>
+            <li><b>Whether an internal gate is possible at all</b> is the live question. E8 is the current attempt and its own pre-registered most-likely outcome is a null.</li>
+            <li><b>Citations are unverified.</b> §13's provenance warning still stands in full, and now matters more: the cosine range the gate was originally defined against is taken from a preprint at second hand.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>8 · Where the marks are in the rest of this document</h3>
+
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Section</th><th>Claim as written</th><th class="mono">Status</th></tr></thead>
+          <tbody>
+            <tr><td class="mono"><a href="#design">§03</a></td><td>Cosine-flip magnitude as the third, representation-side dose estimator</td><td class="mono" style="color:var(--danger)">retracted</td></tr>
+            <tr><td class="mono"><a href="#hypotheses">§05</a></td><td>H1's activation-probe loading; H3's recruitment threshold</td><td class="mono" style="color:var(--nar)">untested — blocked</td></tr>
+            <tr><td class="mono"><a href="#instruments">§06</a></td><td>All fn/nar loading numbers</td><td class="mono" style="color:var(--nar)">predictions, unchanged</td></tr>
+            <tr><td class="mono"><a href="#experiments">§07</a></td><td>E1 "recruitment reproduction", measured by the cosine flip</td><td class="mono" style="color:var(--danger)">superseded</td></tr>
+            <tr><td class="mono"><a href="#experiments">§07</a></td><td>The IDs E5, E6, E7 — the run log now uses these numbers for different experiments</td><td class="mono" style="color:var(--danger)">ID collision</td></tr>
+            <tr><td class="mono"><a href="#controls">§08</a></td><td>Surface / prompt-only baseline required for every activation measurement</td><td class="mono" style="color:var(--ok)">vindicated</td></tr>
+            <tr><td class="mono"><a href="#predictions">§10</a></td><td>Figures 3–5 and the ablation table</td><td class="mono" style="color:var(--nar)">still predictions</td></tr>
+            <tr><td class="mono"><a href="#risks">§12</a></td><td>Day-3 checkpoint: "the gate is not yet well-posed", plus the proposed unblock</td><td class="mono" style="color:var(--danger)">superseded</td></tr>
+            <tr><td class="mono"><a href="#papers">§13</a></td><td>"supplies the day-3 gate"</td><td class="mono" style="color:var(--danger)">superseded</td></tr>
+            <tr><td class="mono"><a href="#timeline">§15</a></td><td>The 14-day schedule and its day-3 gate</td><td class="mono" style="color:var(--danger)">plan, not log</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">
+        Section numbering below is unchanged from v1 so that anything already quoting this document still resolves.
+      </p>
+    </section>
 
     <!-- ============ 01 PROBLEM ============ -->
     <section id="problem">
@@ -973,7 +1234,7 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
             <tbody>
               <tr><td>nominal reward magnitude</td><td>nothing — it is the manipulation</td><td>free</td></tr>
               <tr><td>realised avoidance rate</td><td>policy reveals state magnitude</td><td>free</td></tr>
-              <tr><td>cosine-flip magnitude</td><td>the axis is linearly represented</td><td>free — computed for the gate anyway</td></tr>
+              <tr class="dead-row"><td><span class="struck">cosine-flip magnitude</span> <span class="rxtag">retracted</span></td><td>the axis is linearly represented</td><td>free — computed for the gate anyway</td></tr>
             </tbody>
           </table>
         </div>
@@ -981,6 +1242,16 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
           <li>None of these is a non-circular cardinal dose, and adding them does not make one. What they give is <b>robustness of the dose ordering</b>: if all three rank the cells identically, the ordering does not depend on which you trust. If they disagree, the disagreement is itself the finding.</li>
           <li><b>Blocked, as of the first run.</b> The cosine estimator is not usable until the extraction spec is pinned — an adjacency-against-neutral contrast on the untrained model gives <code>+0.80</code>, dominated by a shared "salient tile present" component carrying 104% of the vector norm, and removing that component forces exactly <code>−1.000</code> by construction. A quantity that can be moved from <code>+0.8</code> to <code>−1.0</code> by choice of baseline cannot serve as a dose axis, or as a gate. See <a href="#risks">§12</a>.</li>
         </ul>
+
+        <div class="rx">
+          <div class="rx-label"><span>Retracted, not merely blocked</span><span class="src">E1a · E3 · E4 · E5 · E6 → see <a href="#status">§00</a></span></div>
+          <ul class="tight">
+            <li>The bullet above says "blocked until the extraction spec is pinned". <b>The spec was pinned and implemented (E3), and the estimator still does not work.</b> The reference extraction gives <code>+0.83</code>, range <code>+0.706 … +0.888</code>, <b>0 / 36</b> layers inside the reference band.</li>
+            <li><b>The third estimator is gone.</b> Two remain — nominal reward magnitude and realised avoidance rate — and both are behavioural or input-side, so the "three estimates resting on unrelated assumptions" argument no longer holds. <b>There is currently no representation-side dose estimate at all.</b></li>
+            <li>Every replacement tried since has also failed: prompt-token probe separability (saturated at 0.98), tile↔move alignment (no anchor), landing-class separability (composition drift, then beaten by a bag of token ids).</li>
+            <li><b>Consequence for the design:</b> the dose-ordering robustness check in the bullet above is now a two-estimator check between two quantities that share an assumption family. It should be reported as such, not as triangulation.</li>
+          </ul>
+        </div>
       </div>
 
       <div class="callout">
@@ -1019,7 +1290,7 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
               <td class="mono" style="color:var(--fn)">ORG-A</td>
               <td><b>RL</b> (Dr.GRPO / LoRA) on the maze at reward magnitude <code>m</code>. Zero affect vocabulary in training.</td>
               <td><span class="tok tok-fn">function</span> present at dose <code>m</code>, <span class="tok tok-nar">narration</span> absent</td>
-              <td>Mold-avoidance rate ≫ chance; pre/post cosine flip on reward vectors</td>
+              <td>Mold-avoidance rate ≫ chance; <span class="struck">pre/post cosine flip on reward vectors</span> <span class="rxtag">retracted</span></td>
             </tr>
             <tr>
               <td class="mono" style="color:var(--fn)">ORG-A′</td>
@@ -1053,6 +1324,16 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="rx">
+        <div class="rx-label"><span>Superseded — ORG-A does not yet build reliably</span><span class="src">E2a · E4 · E5 · E7 running → <a href="#status">§00 · 5</a></span></div>
+        <ul class="tight">
+          <li>The table treats ORG-A as constructible on demand. <b>It is not, at the configurations tried:</b> 2/6 seeds learned in E4, 1/6 in E5, against a bar of <code>rate &lt; 0.75 × random</code>. One seed got <i>worse</i>.</li>
+          <li>The failure mode is <b>entropy collapse</b>, structural to the single-step form: 4 actions in a group of 8, so once the policy sharpens all samples agree, <code>advantage = r − mean(r)</code> is identically zero and the gradient vanishes. Early E7 cells show final policy entropy at <code>0.00</code>.</li>
+          <li><b>The second half of ORG-A's manipulation check is retracted.</b> There is no working cosine-flip signature to check — see <a href="#status">§00 · 1</a>. The avoidance-rate half stands and is currently the only manipulation check ORG-A has.</li>
+          <li><b>ORG-A′ / B / B′ / C are unbuilt</b>, and correctly blocked behind this. The rows below describe intended construction, not achieved construction.</li>
+        </ul>
       </div>
 
       <h3>Why A′ exists — the confound that would otherwise sink the map</h3>
@@ -1120,6 +1401,17 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
     <section id="hypotheses">
       <div class="sec-head"><span class="sec-num">05</span><h2>Hypotheses</h2></div>
       <p class="lede">Each states a prediction and the observation that would falsify it. <span class="tok tok-neutral">H1</span> is the spine; <span class="tok tok-neutral">H3</span> is the interesting failure mode.</p>
+
+      <div class="rx open">
+        <div class="rx-label"><span>Status of the hypotheses</span><span class="src">none tested · see <a href="#status">§00</a></span></div>
+        <ul class="tight">
+          <li><b>H0</b> — untouched and still buildable. Needs no training, no organism and no gate. It is the abort-branch deliverable and nothing that has failed so far bears on it.</li>
+          <li><b>H1</b> — <b>blocked</b>. It needs the dose cross, and the dose cross needs organisms that learn. Its activation-probe prediction additionally needs a probe gate that survives a surface baseline; none has.</li>
+          <li><b>H2</b> — untested, phase 2 as written.</li>
+          <li><b>H3</b> — blocked behind ORG-B, which is blocked behind yield.</li>
+          <li><b>H4</b> — untested. But E6's finding that <i>"the layer of maximum separability"</i> is not a well-defined quantity (argmax wanders 11/14/18/16 and 13/27/29/19 on an unchanged model) is a warning for any probe-measured separability claim, including H4's.</li>
+        </ul>
+      </div>
 
       <div class="cards">
 
@@ -1296,6 +1588,15 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
         after the fact.
       </p>
 
+      <div class="rx open">
+        <div class="rx-label"><span>Still true — and one row now needs a caveat</span><span class="src">E1b · E6</span></div>
+        <ul class="tight">
+          <li>Every number in the table above is <b>still a prediction</b>. Nothing here has been measured, and none of the failures in <a href="#status">§00</a> changes any of these numbers.</li>
+          <li><b>The activation-probe row (fn <code>.85</code>) is the one to distrust.</b> Both probes actually built in this program failed against a baseline, not against a hypothesis: prompt-token tile identity saturated at <code>0.98</code> on the <i>untrained</i> model, and landing-class separability lost to a bag of token ids (<code>0.626</code> vs <code>0.660</code>).</li>
+          <li>The generalisable point: <b>an activation probe is only an instrument once it beats the same text's surface baseline.</b> Whatever probe eventually enters the battery must ship that comparison, and the positive-control rule below should be read as including it.</li>
+        </ul>
+      </div>
+
       <div class="callout stop">
         <div class="callout-label">Every instrument needs a positive control, or the map lies</div>
         <ul class="tight">
@@ -1327,6 +1628,22 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
     <section id="experiments">
       <div class="sec-head"><span class="sec-num">07</span><h2>Experiments</h2></div>
 
+      <p class="lede">
+        The table below is <b>the design</b>, as pre-registered. What has actually run is a different and mostly
+        earlier set of experiments, listed underneath it. Read the two together.
+      </p>
+
+      <div class="rx">
+        <div class="rx-label"><span>ID collision — read this before citing any "E-number"</span><span class="src">design IDs vs run-log IDs</span></div>
+        <ul class="tight">
+          <li>The design table uses <code>E−1 … E7</code>. <b>The run log independently reached <code>E8</code> and reuses three of those numbers for entirely different experiments.</b></li>
+          <li><code>design E5</code> = vocabulary titration. <code>run-log E5</code> = the class-balance control that retracted E4's headline.</li>
+          <li><code>design E6</code> = ablation double dissociation. <code>run-log E6</code> = the null-and-surface experiment that killed the landing-class gate.</li>
+          <li><code>design E7</code> = frontier recalibration. <code>run-log E7</code> = the held-out yield sweep.</li>
+          <li><b>Convention from here:</b> run-log IDs are always written with their directory name (<code>E5_class_balance_control</code>, <code>E6_null_and_surface</code>) and design IDs always with a section reference. An unqualified "E5" is ambiguous and should not be used.</li>
+        </ul>
+      </div>
+
       <div class="table-scroll">
         <table>
           <thead>
@@ -1353,10 +1670,10 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
               <td class="mono">H0</td>
               <td class="mono">days 1–12<br>(prep)</td>
             </tr>
-            <tr>
-              <td class="mono">E1</td>
+            <tr class="dead-row">
+              <td class="mono">E1 <span class="rxtag">superseded</span></td>
               <td><b>Recruitment reproduction.</b> Maze RL on Qwen3-4B; extract difference-in-means reward vectors pre and post.</td>
-              <td>Cosine between <code>v_Mold</code> and <code>v_Gold</code>, pre vs. post</td>
+              <td><span class="struck">Cosine between <code>v_Mold</code> and <code>v_Gold</code>, pre vs. post</span><br>Ran as <code>E1a</code>–<code>E1e</code> and <code>E3</code>. <b>Not a reproduction</b> — 0/36 layers in the reference band, and the measure is baseline-dependent. See <a href="#status">§00 · 6</a>.</td>
               <td class="mono">gate</td>
               <td class="mono">days 1–3</td>
             </tr>
@@ -1419,6 +1736,112 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
           </tbody>
         </table>
       </div>
+
+      <h3>What actually ran — the run log, 30 Jul 2026</h3>
+
+      <p>
+        Nine experiments, all on Qwen3-4B-Instruct-2507. Every one has a committed <code>RESULTS.md</code> with
+        headline / findings / <b>threats</b> / next, and every result JSON carries seed, git SHA, config hash and
+        versions. <b>Seven of the nine produced a negative or retracting result</b>, which is the honest shape of
+        this log.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="mono">Run-log ID</th>
+              <th>What it did</th>
+              <th class="mono">Outcome</th>
+              <th>Headline</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">E1a</td>
+              <td>Three defensible extraction specs on identical activations, 5 seeds</td>
+              <td class="mono" style="color:var(--danger)">gate failed</td>
+              <td><code>+0.794</code> / <code>−0.070</code> / <code>−1.000</code> depending only on baseline choice. <code>shared_removed</code> was pre-registered as degenerate and returned exactly <code>−1.000000</code> everywhere.</td>
+            </tr>
+            <tr>
+              <td class="mono">E1b</td>
+              <td>Probe readout as the replacement gate; three pooling sites, extended alpha grid</td>
+              <td class="mono" style="color:var(--danger)">gate failed</td>
+              <td>Saturated, not weak: <code>0.990</code> at best layer, above <code>0.95</code> at 35–36 of 36 layers on the <i>untrained</i> model. Surface baseline <code>0.924</code>.</td>
+            </tr>
+            <tr>
+              <td class="mono">E1c / E1c-2</td>
+              <td>Functional gate candidate; then the move-word list-order control</td>
+              <td class="mono" style="color:var(--nar)">prompt artefact</td>
+              <td>Changing only the order the move words are listed in swings the modal move from <code>left</code> 92.4% to <code>down</code> 70.1%. <b>The untrained policy is positional, not grid-driven.</b> Continuous logit margin fixes the degeneracy (R² 0.716).</td>
+            </tr>
+            <tr>
+              <td class="mono">E1d</td>
+              <td>Both design fixes: randomised move order, counterbalanced glyph roles</td>
+              <td class="mono" style="color:var(--ok)">clean result</td>
+              <td>The sign flips 6/6 with the glyph swap — <b>the asymmetry follows the glyph, not the role</b>. Pooled margin gap <code>+0.157 → +0.024</code>; move entropy <code>0.270 → 1.150</code> of max 1.386. Gate floor <code>|cos| = 0.051</code>.</td>
+            </tr>
+            <tr>
+              <td class="mono">E1e</td>
+              <td>Average the margin over K move orders</td>
+              <td class="mono" style="color:var(--danger)">failed its own criteria</td>
+              <td>R² fell monotonically <code>0.453 → 0.360</code> where the criterion needed <code>+0.10</code>. <b>A pre-registered limitation that can itself produce the null makes the experiment unable to fail informatively.</b> Stating a confound is not controlling it.</td>
+            </tr>
+            <tr>
+              <td class="mono">E2a</td>
+              <td>First RL run — cost measurement and pilot organism</td>
+              <td class="mono" style="color:var(--nar)">cost measured, organism failed</td>
+              <td><code>0.111 s/step</code>. Held-out rate went <i>up</i> (0.188 → 0.211 vs random 0.209). <b>Entropy collapse</b>, structural to the single-step form. The zero-signal guard did not fire — it tested exact equality.</td>
+            </tr>
+            <tr>
+              <td class="mono">E3</td>
+              <td>Reference extraction implemented — trajectories, action token, landing classes</td>
+              <td class="mono" style="color:var(--danger)">hypothesis falsified</td>
+              <td>Did not reproduce the reference (<code>+0.83</code>, 0/36 in band) and did not move ours. But it surfaced landing-class separability at <code>0.507–0.608</code> vs prompt-token <code>0.98</code> — <b>which was then adopted as the gate.</b></td>
+            </tr>
+            <tr>
+              <td class="mono">E4</td>
+              <td>The gate test — 6 counterbalanced seeds, gate measured before and after RL</td>
+              <td class="mono" style="color:var(--danger)">gate failed; headline later retracted</td>
+              <td>Separability rose in <b>6/6 seeds, including every seed that failed to learn</b>, and <code>corr(Δrate, Δsep) = +0.579</code> — the wrong sign. Only <b>2/6</b> organisms learned. Its <code>+0.080</code> is now retracted by E5.</td>
+            </tr>
+            <tr>
+              <td class="mono">E5</td>
+              <td>2×2 crossing <code>{base,trained}</code> weights × <code>{base,trained}</code> trajectory sets</td>
+              <td class="mono" style="color:var(--danger)">retracts E4</td>
+              <td><b>Composition drift is 90% (raw) / 94% (balanced) of E4's effect.</b> Changing only the weights moves separability <code>−0.001</code>. Balancing class sizes <i>doubled</i> the artefact. <b>1/6</b> learned.</td>
+            </tr>
+            <tr>
+              <td class="mono">E6</td>
+              <td>Noise floor from 8 rollouts of a frozen model; surface baseline on the gate</td>
+              <td class="mono" style="color:var(--danger)">kills the gate outright</td>
+              <td><b>SD = 0.0147</b>, the program's first measured floor. <b>Bag of token ids 0.660 beats the activation probe's 0.626</b>, 6 of 8 repeats. Argmax layer wanders 11/14/18/16 and 13/27/29/19.</td>
+            </tr>
+            <tr>
+              <td class="mono">E7</td>
+              <td>Held-out yield sweep — lr × <code>entropy_coef</code> × 800 steps on seeds 10–13</td>
+              <td class="mono" style="color:var(--nar)">running</td>
+              <td>Early cells show final policy entropy at <code>0.00</code>, contradicting its own pre-commitment that the failure was under-training. Pre-committed stop rule: below 3/4 held-out seeds, yield is not a hyperparameter problem.</td>
+            </tr>
+            <tr>
+              <td class="mono">E8</td>
+              <td>Selectivity of the weight-induced shift on <i>identical</i> trajectories, permutation null, scrambled-adapter control</td>
+              <td class="mono" style="color:var(--nar)">written, not run</td>
+              <td>First gate whose confounds are zero <b>by construction</b> rather than by control. Its own pre-registered most-likely outcome is a null — selectivity ≈ 1 for everyone, which would retire this whole family of gates.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-label">Process rules the run log forced, worth keeping</div>
+        <ul class="tight">
+          <li><b>Every experiment gets a committed <code>run.py</code> before it may produce a number.</b> E4 was driven ad hoc through the kernel, so its exact call sequence is unrecoverable and E5 could not reproduce its organisms.</li>
+          <li><b>Pre-commit expected results — including expected degeneracies — in the run docstring.</b> This is what turned <code>−1.000000</code> from a spectacular confirmation into a recognised artefact.</li>
+          <li><b>Every activation measurement ships a surface / prompt-only baseline.</b> Nothing else would have caught either failure.</li>
+          <li><b>Measure the noise floor before interpreting a difference.</b> Four experiments reported changes against no denominator at all.</li>
+        </ul>
+      </div>
     </section>
 
     <!-- ============ 08 CONTROLS ============ -->
@@ -1436,6 +1859,16 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
             <li><b>Random-choice baseline</b> (Bronars power / Afriat) for any coherence claim, so consistency is scored against what chance produces.</li>
             <li><b>Prompt-only classifier</b> — for every self-report measure, can an external text classifier seeing only the transcript do as well? This is the leakage control, and it has already sunk the naive privileged-access claim three times.</li>
           </ul>
+          <div class="rx held">
+            <div class="rx-label"><span>Vindicated — the only control that fired</span><span class="src">E1a · E6</span></div>
+            <p>
+              Extend the prompt-only classifier from self-report to <b>every activation measurement</b>. It caught
+              E1a's bad readout, and it is what killed the landing-class gate: a bag of token ids scored
+              <code>0.660</code> against the activation probe's <code>0.626</code>. No other control in this list
+              would have detected either. <b>A probe that does not beat the surface baseline on the same text is
+              not an instrument.</b>
+            </p>
+          </div>
         </div>
 
         <div class="card">
@@ -1457,7 +1890,9 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
             <li><b>ORG-B Mold-visit rate at chance</b> — the whole design rests on this. Instrument it from day one so its failure is a <i>measured curve</i>, not a discovered surprise.</li>
             <li><b>ORG-A avoidance ≫ chance</b> at every reward dose.</li>
             <li><b>Narration presence audit</b> — an independent grader confirms ORG-B actually produces the aversive language it was trained on.</li>
-            <li><b>Cosine-flip signature</b> present in ORG-A, absent in ORG-D.</li>
+            <li><span class="struck"><b>Cosine-flip signature</b> present in ORG-A, absent in ORG-D.</span> <span class="rxtag">retracted</span> No such signature exists — the quantity is baseline-dependent and its replacements all failed. <a href="#status">§00 · 1</a>.</li>
+            <li><span class="rxtag open">add</span> <b>Noise floor before any Δ.</b> Repeat the measurement on the unchanged model until it has an SD. Four experiments here reported differences against no denominator.</li>
+            <li><span class="rxtag open">add</span> <b>Fixed evaluation set across conditions.</b> If the trained policy re-rolls the data, the class composition moves with it and the measurement changes while the model does not.</li>
           </ul>
         </div>
 
@@ -1562,10 +1997,25 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
       <div class="callout stop">
         <div class="callout-label">Read this before the figures</div>
         <p>
-          Everything in this section is <b>predicted under the stated hypotheses</b>. No data has been collected.
-          These are pre-registration figures — drawn so that the analysis is committed to in advance and so a
-          null result is visibly distinguishable from a positive one.
+          Everything in this section is <b>predicted under the stated hypotheses</b>. These are pre-registration
+          figures — drawn so that the analysis is committed to in advance and so a null result is visibly
+          distinguishable from a positive one.
         </p>
+        <p style="margin-bottom:0">
+          <b>Still true as of 30 Jul 2026, unchanged.</b> Nine experiments have run and <b>none of them produced a
+          point on any figure below</b>. They were gate and apparatus work; no organism grid, no instrument
+          battery, no dose-response curve exists. Nothing in <a href="#status">§00</a> revises a single number
+          here — it revises whether the machinery to measure them exists yet.
+        </p>
+      </div>
+
+      <div class="rx">
+        <div class="rx-label"><span>What the failures cost these figures</span><span class="src">§00 · 1 · 2</span></div>
+        <ul class="tight">
+          <li><b>Figure 4's x-axis is now single-sourced.</b> "Realised dose" was to be cross-checked against the cosine-flip magnitude — a representation-side estimate resting on unrelated assumptions. That estimator is retracted, so the dose ordering rests on behaviour alone.</li>
+          <li><b>Figure 3's activation-probe point is the least secure on the plot.</b> Both probes built so far lost to a baseline rather than to a hypothesis.</li>
+          <li><b>The figures themselves are unaffected and remain the commitment.</b> A null — the diffuse cloud in Figure 3, the flat curves in Figure 4 — is still the pre-registered publishable outcome, and is now the more likely one.</li>
+        </ul>
       </div>
 
       <figure>
@@ -1842,24 +2292,54 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
     <section id="risks">
       <div class="sec-head"><span class="sec-num">12</span><h2>Risks, checkpoints and pivots</h2></div>
 
+      <div class="rx">
+        <div class="rx-label"><span>Day-3 checkpoint · resolved · it failed</span><span class="src">read before the checkpoint below → <a href="#status">§00</a></span></div>
+        <ul class="tight">
+          <li><b>The recruitment signature did not reproduce, and the gate does not exist in any form.</b> Four candidates were pre-registered and all four failed. The checkpoint below, and its proposed unblock, are kept as written for the record.</li>
+          <li><b>The proposed unblock in that block was itself dead on arrival.</b> It offered tile-identity probe separability (<code>0.724</code> at the time) as the well-posed replacement. Extending the CV alpha grid showed the true figure is <code>0.976–0.990</code> — <b>saturated on the untrained model</b>, so RL could not have raised it. The <code>0.724</code> was an artefact of a search grid whose optimum lay outside it.</li>
+          <li><b>The other unblock is also resolved.</b> The reference implementation is <b>not released</b>; its spec <i>is</i> recoverable from prose and was implemented; it still does not reproduce their number (<code>0 / 36</code> layers in band). Adopting their extraction did not make this a reproduction and it must not be described as one.</li>
+          <li><b>What the checkpoint got right, and it is the reason any of this was catchable:</b> running the pre-training half <i>before</i> any RL. Measured only after training, <code>+0.80</code> would have been an uninterpretable number with no way to separate extraction artefact from training effect.</li>
+          <li><b>The checkpoint's own stated stakes were correct.</b> It called itself "the only checkpoint whose failure invalidates the design rather than shrinking it." It failed. The fallbacks it names — SFT-based induction, steering-based injection — are now the live options, and H0 (which needs neither) is the abort-branch deliverable.</li>
+        </ul>
+      </div>
+
       <div class="ckpt">
-        <div class="ckpt-day">Day 3</div>
+        <div class="ckpt-day">Day 3<br><span style="color:var(--danger)">failed</span></div>
         <div>
-          <h3>Does the recruitment signature reproduce?</h3>
+          <h3>Does the recruitment signature reproduce? <span class="rxtag">answered: no</span></h3>
           <p>Success is not "it trains" — it is the pre/post cosine flip on the reward vectors. This is the only checkpoint whose failure <i>invalidates</i> the design rather than shrinking it.</p>
           <p><b>If it fails:</b> fall back to SFT-based induction (reported to largely reproduce the axis), or to the steering-based version where function is injected rather than trained. Weaker ground truth, still a result.</p>
 
           <div class="callout stop" style="margin-top:18px">
-            <div class="callout-label">Measured, first run — the gate is not yet well-posed</div>
+            <div class="callout-label">Measured, first run — the gate is not yet well-posed <span style="color:var(--danger)">· superseded, kept verbatim</span></div>
             <ul class="tight">
               <li>Pre-training cosine on the untrained model, adjacency-against-neutral contrast, Qwen3-4B: <code>+0.80</code>. Reference reports <code>−0.23 … −0.13</code>. Split-half reliability <code>+0.86</code>, so this is a stable estimate, not noise.</li>
               <li><b>Cause:</b> both vectors are ~95% the same direction — "a non-neutral tile is adjacent." That shared salience component carries <b>104%</b> of <code>|v_mold|</code> and swamps tile identity. Identity <i>is</i> represented — a probe separates mold from gold at <code>0.724</code> held out — but as a small residual.</li>
               <li>Project the shared component out and the cosine becomes exactly <code>−1.000</code>: with two reward conditions and a symmetric baseline the residuals are forced antipodal. <b>That number would look like a spectacular confirmation and would mean nothing.</b></li>
               <li><b>Consequence:</b> the gate can be moved from <code>+0.8</code> to <code>−1.0</code> by choice of baseline alone. A threshold that is a free parameter of the analyst is not a gate.</li>
-              <li><b>Unblock:</b> if the reference implementation is released, adopt its extraction verbatim and the gate becomes a real reproduction. If not, redefine the gate on a quantity with no baseline degeneracy — the natural candidate is <b>tile-identity probe separability</b> (<code>0.724</code> today): does it rise with RL? Well-posed, though no longer the reference's headline statistic.</li>
+              <li><b>Unblock:</b> if the reference implementation is released, adopt its extraction verbatim and the gate becomes a real reproduction. If not, redefine the gate on a quantity with no baseline degeneracy — the natural candidate is <b>tile-identity probe separability</b> (<code>0.724</code> today): does it rise with RL? Well-posed, though no longer the reference's headline statistic. <span class="rxtag">both branches failed</span></li>
               <li>Worth noting what this vindicates: running the pre-training half <i>before</i> any RL is what surfaced it. Measured only after training, this would have been an uninterpretable number with no way to separate extraction artifact from training effect.</li>
             </ul>
           </div>
+        </div>
+      </div>
+
+      <div class="ckpt">
+        <div class="ckpt-day" style="color:var(--nar)">New<br>· blocking</div>
+        <div>
+          <h3>Does ORG-A build at all? <span class="rxtag open">added after E4/E5</span></h3>
+          <p>
+            This checkpoint did not exist in v1, because the design assumed ORG-A was constructible on demand. It
+            is not: <b>2/6 seeds in E4, 1/6 in E5.</b> It now sits <i>ahead</i> of the day-6 ORG-B check, because
+            without organisms that reliably learn there is nothing to calibrate an instrument against and no gate
+            can be tested at any yield.
+          </p>
+          <ul class="tight">
+            <li><b>Pass rule, pre-committed:</b> ≥4/6 reporting seeds clearing <code>rate &lt; 0.75 × random</code>, with hyperparameters tuned on <b>held-out</b> seeds only.</li>
+            <li><b>If it fails:</b> yield is not a hyperparameter problem, and tuning stops. Structural moves, in order — more LoRA target modules (<code>o_proj</code> and the MLP, not just <code>q</code>/<code>v</code>), larger batch for a less noisy gradient, and only then reward shaping.</li>
+            <li><b>The failure mode is entropy collapse, not under-training</b>, which is what early E7 cells show and what E2a documented structurally. Fixes aimed at training length will not move it.</li>
+            <li><b>What this rules in:</b> ORG-A′ (SFT on oracle avoidant trajectories) sidesteps RL entirely and was already in the design as a method control. If RL yield cannot be fixed, A′ becomes the primary function-axis organism rather than the control — a weaker but still constructible ground truth.</li>
+          </ul>
         </div>
       </div>
 
@@ -1902,8 +2382,19 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
       <hr class="rule">
 
       <h3>Standing risks</h3>
+
+      <div class="rx">
+        <div class="rx-label"><span>The risk ranking was wrong</span><span class="src">revised after E1a–E6</span></div>
+        <ul class="tight">
+          <li><b>"Scooping is the top risk, not execution" is no longer true.</b> Execution has been the binding constraint at every step, and not for lack of compute — RL runs at <code>0.111 s/step</code> and the full design is ~30 minutes of GPU. What has cost time is <b>measurement validity</b>: four gates built and four discarded.</li>
+          <li><b>The top risk is now that no valid internal gate exists to be built</b> — that every "decode X from activations" measure inherits the input-carries-X problem, and the residual-stream-difference family is exhausted too. E8's own pre-registered most-likely outcome is exactly that null.</li>
+          <li><b>Second risk: organism yield.</b> 1–2 of 6, unresolved, and it blocks everything downstream including the test of whether any gate separates learners from non-learners.</li>
+          <li><b>Third, and new: measurement-protocol confounds that survive their own controls.</b> Class-size balancing was reached for as the repair for composition drift and <i>doubled</i> the artefact. A control that seems obviously right is not evidence it is right.</li>
+        </ul>
+      </div>
+
       <ul>
-        <li><b>Scooping is the top risk, not execution.</b> This is a field publishing weekly, and Phase 1 is the part someone else could do. Ship it on its own rather than holding for the complete arc.</li>
+        <li><b>Scooping is the top risk, not execution.</b> <span class="rxtag">superseded — see above</span> This is a field publishing weekly, and Phase 1 is the part someone else could do. Ship it on its own rather than holding for the complete arc.</li>
         <li><b>The organisms may be unrepresentative.</b> Implanted-behaviour environments carry this caveat by their own authors' admission, and belief-implantation via synthetic documents is known to sometimes not take. The vocabulary titration partly addresses it by showing <i>where</i> the construction breaks, which is more honest than asserting it does not.</li>
         <li><b>Generality is not achievable in the window.</b> One family, one domain. State the limit yourself in the write-up rather than letting a reviewer state it for you — declaring your own boundary is what makes the rest credible.</li>
         <li><b>Novelty claims need a final targeted check.</b> "I searched and did not find X" is not "X does not exist." Several of the most relevant papers are 2026 preprints; re-check discriminant-validity phrasings immediately before writing.</li>
@@ -1947,7 +2438,17 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
           </ul>
           <div class="paper-tags">
             <span class="role role-sub">supplies the maze + ORG-A recipe</span>
-            <span class="role role-sub">supplies the day-3 gate</span>
+            <span class="role role-lim">the day-3 gate it supplied did not survive — see below</span>
+          </div>
+          <div class="rx">
+            <div class="rx-label"><span>Not reproduced · must not be cited as one</span><span class="src">E1a · E3 · availability checked 2026-07-30</span></div>
+            <ul class="tight">
+              <li><b>No code release.</b> No repository and no code-availability statement on either the project site or the arXiv abstract page.</li>
+              <li><b>The extraction spec is recoverable from the prose and was implemented.</b> It still does not reproduce: theirs <code>−0.23 … −0.13</code> pre-training, ours <code>+0.706 … +0.888</code> across all 36 layers, <b>0 / 36 layers inside the band</b>.</li>
+              <li>Cause unknown. Either the spec has an element not recovered from the prose, or the maze geometry, tile densities, episode structure or model differ materially. The sign disagreement is robust across two very different readouts and sample units, which argues it is a property of <i>this</i> setup rather than a measurement artefact.</li>
+              <li><b>Nothing in this program may be described as reproducing this paper.</b> The maze and the ORG-A recipe are borrowed and work; the headline geometric result is not replicated here.</li>
+              <li>The bullet above — <i>"cosine moves from <code>[−0.23,−0.13]</code> to <code>[−0.95,−0.84]</code>"</i> — is the number the whole gate was defined against, taken from a preprint at second hand. See the provenance warning at the head of this section; it is unverified and load-bearing.</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -2274,6 +2775,21 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
         <div class="gl"><dt>LoRA</dt>
         <dd>Low-Rank Adaptation: fine-tuning small injected matrices instead of full weights. What makes a twelve-organism grid affordable on one GPU.</dd></div>
 
+        <div class="gl"><dt>Gate <span class="alt">go / no-go measurement</span></dt>
+        <dd>A quantity that must move in a pre-specified direction before the program is allowed to proceed. Four candidates were pre-registered here and all four failed (<a href="#status">§00</a>). A gate whose threshold is a free parameter of the analyst is not a gate.</dd></div>
+
+        <div class="gl"><dt>Surface baseline <span class="alt">bag-of-tokens control</span></dt>
+        <dd>A classifier given only the raw text an activation probe was read from. If the probe does not beat it, the probe is reading a worse copy of the input rather than a richer representation. The control that killed the landing-class gate.</dd></div>
+
+        <div class="gl"><dt>Composition drift</dt>
+        <dd>A measurement changing because the trained policy re-rolled the evaluation set, so the classes being compared no longer contain the same kind of thing. Distinct from a class-<i>size</i> imbalance, and <b>not</b> repaired by balancing sizes — equal sizes are not equal contents.</dd></div>
+
+        <div class="gl"><dt>Noise floor <span class="alt">null SD</span></dt>
+        <dd>The spread of a measurement across independent repeats of an <i>unchanged</i> model. Here 0.0147 for landing-class separability. Any reported Δ without one is a number with no denominator.</dd></div>
+
+        <div class="gl"><dt>Selectivity <span class="alt">the E8 quantity</span></dt>
+        <dd>The ratio of representation shift on inputs the reward structure targets to shift on neutral inputs, measured on <i>identical</i> trajectories so composition and surface are zero by construction. Scored against a permutation null and a magnitude-matched scrambled-adapter control. Distinguishes "the weights changed" from "something about the penalised tile changed".</dd></div>
+
       </dl>
     </section>
 
@@ -2285,6 +2801,17 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
         Two tracks running in parallel. The dependency structure lets compute start burning on day 3 while the
         battery is still being built — the GPU should never be idle.
       </p>
+
+      <div class="rx">
+        <div class="rx-label"><span>This is the plan, not the log</span><span class="src">actual state 30 Jul 2026 → <a href="#experiments">§07</a> run log</span></div>
+        <ul class="tight">
+          <li><b>The day-3 cosine-flip gate below is the one that failed</b>, along with three successors. The schedule is kept as drawn because it is what was committed to.</li>
+          <li><b>The GPU lane's premise held.</b> Compute was never the constraint — <code>0.111 s/step</code>, one organism ≈ 1 minute, the full design ≈ 30 minutes. Everything the schedule allocated days to for compute reasons is minutes of compute.</li>
+          <li><b>The premise that failed is the sequencing one.</b> "Day 1 starts with E1, not the battery" was correct about priority and wrong about direction: every gate candidate was validated on untrained models only, looked fine there, and failed as soon as a trained organism existed to compare against. <b>The organism should have come first and the gate been built against it.</b></li>
+          <li><b>What the schedule has no lane for, and needs one:</b> organism yield. It is currently 1–2 of 6 and blocks the E2/E3 lanes entirely.</li>
+          <li><b>The abort branch is the realistic path as things stand.</b> H0 needs no training, no organism and no gate, and nothing that has failed touches it.</li>
+        </ul>
+      </div>
 
       <div class="tl-scroll">
         <div class="tl">
@@ -2312,7 +2839,7 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
           <!-- Checkpoints -->
           <div class="tl-lane tl-rowlabel">Gates</div>
           <div class="tl-spacer" style="grid-column: 2 / span 2"></div>
-          <div class="tl-check" style="grid-column: 4">cosine<br>flip?</div>
+          <div class="tl-check" style="grid-column: 4"><s>cosine<br>flip?</s></div>
           <div class="tl-spacer" style="grid-column: 5 / span 2"></div>
           <div class="tl-check" style="grid-column: 7">ORG-B<br>holds?</div>
           <div class="tl-spacer" style="grid-column: 8 / span 3"></div>
@@ -2337,8 +2864,19 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
         <li><b>E4 finishes before the window opens.</b> Days 13–14 are analysis and writing, with a hard rule that no new runs start.</li>
       </ul>
 
+      <div class="rx">
+        <div class="rx-label"><span>Revised sequencing, learned the expensive way</span><span class="src">the one thing to carry into a rewrite of this plan</span></div>
+        <ul class="tight">
+          <li><b>Build one organism known to have learned and one known not to, before building any gate.</b> A gate cannot be validated without both. Every candidate here looked fine on untrained models and none survived the first trained organism.</li>
+          <li><b>Measure the noise floor before measuring any change.</b> Repeat the measurement on an unchanged model until it has an SD. Four experiments reported differences against nothing.</li>
+          <li><b>Ship a surface baseline with every activation measurement</b>, not just with self-report.</li>
+          <li><b>Never let the trained model choose the evaluation set.</b></li>
+          <li><b>Tune on held-out seeds. Always.</b> This error cost two experiments' worth of interpretation and was self-flagged both times.</li>
+        </ul>
+      </div>
+
       <div class="callout">
-        <div class="callout-label">What day 14 delivers</div>
+        <div class="callout-label">What day 14 delivers <span style="color:var(--danger)">· as planned; see §00 for what exists</span></div>
         <ul class="tight">
           <li>One model family, one domain, function and narration arms at three seeds per cell.</li>
           <li>Four to six instruments with dose-response curves on both axes, plotted against realised dose, each having cleared its own positive control.</li>
