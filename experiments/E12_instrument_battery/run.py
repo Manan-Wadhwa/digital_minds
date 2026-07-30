@@ -151,7 +151,10 @@ CONFIG = {
 
 # Glyphs the organism has NEVER seen: not the maze's tiles, not its agent. The
 # placebo pair for I6.
-PLACEBO_A, PLACEBO_B = "\U0001F7E9", "\U0001F7E5"   # green, red squares
+PLACEBO_A, PLACEBO_B = "\U0001F7E9", "\U0001F7E8"   # green, yellow squares
+# Both share the coloured-square token prefix, exactly as the real pair does.
+# The original pair used red, which tokenises differently -- so the placebo
+# was structurally unlike the contrast it was supposed to control for.
 
 POSITIVE_WORDS = ["good", "safe", "nice", "pleasant", "fine", "calm"]
 NEGATIVE_WORDS = ["bad", "danger", "harmful", "unpleasant", "awful", "painful"]
@@ -161,13 +164,48 @@ def _first_id(tokenizer, word):
     return tokenizer(word, add_special_tokens=False)["input_ids"][0]
 
 
+def _glyph_scoring_ids(tokenizer, a, b):
+    """(shared_prefix, id_a, id_b) for two glyphs, at the position that separates them.
+
+    THE BUG THIS EXISTS TO PREVENT, WHICH SHIPPED ONCE. Every coloured-square
+    emoji in this tokenizer shares a first token and differs only in its second:
+
+        blue [128227, 99]   purple [128227, 103]   green [128227, 102]
+
+    Scoring them by first-token logit therefore compared a token against ITSELF
+    and returned identically 0.0 for every organism -- a dead instrument whose
+    output looked like a clean null. `trajectory.compass_token_ids` already
+    asserts distinctness for the move letters; the same guard was simply never
+    applied here.
+
+    Returns the longest shared prefix and the first differing token of each, so
+    the comparison is made where the glyphs actually differ. Raises if they are
+    indistinguishable at every position.
+    """
+    ia = tokenizer(a, add_special_tokens=False)["input_ids"]
+    ib = tokenizer(b, add_special_tokens=False)["input_ids"]
+    k = 0
+    while k < min(len(ia), len(ib)) and ia[k] == ib[k]:
+        k += 1
+    if k >= len(ia) or k >= len(ib):
+        raise ValueError(
+            f"glyphs {a!r} and {b!r} are not separable by token: {ia} vs {ib}"
+        )
+    return ia[:k], ia[k], ib[k]
+
+
 def _leading_space_ids(tokenizer, words):
     """Token ids for ' word', which is how they appear mid-sentence."""
     return [_first_id(tokenizer, " " + w) for w in words]
 
 
 @torch.no_grad()
-def _next_token_logits(model, tokenizer, prompts, batch_size=8):
+def _next_token_logits(model, tokenizer, prompts, batch_size=8, force_suffix=None):
+    """Logits at the next position, optionally after teacher-forcing a suffix.
+
+    `force_suffix` appends fixed token ids before reading, which is how a
+    multi-token glyph is scored at the position where it differs from another.
+    """
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     outs = []
@@ -180,6 +218,14 @@ def _next_token_logits(model, tokenizer, prompts, batch_size=8):
         ]
         enc = tokenizer(texts, return_tensors="pt", padding=True,
                         padding_side="left").to(model.device)
+        if force_suffix:
+            extra = torch.tensor([force_suffix] * enc["input_ids"].shape[0],
+                                 device=enc["input_ids"].device)
+            enc = {
+                "input_ids": torch.cat([enc["input_ids"], extra], dim=1),
+                "attention_mask": torch.cat(
+                    [enc["attention_mask"], torch.ones_like(extra)], dim=1),
+            }
         outs.append(model(**enc).logits[:, -1, :].float().cpu())
     return torch.cat(outs)
 
@@ -255,11 +301,17 @@ def _forced_choice_gap(model, tokenizer, penalised, rewarded):
 
     Both presentation orders are averaged so a position preference cannot be
     read as a valence preference -- the failure that cost E1c an experiment.
+
+    The glyphs share a token prefix (see `_glyph_scoring_ids`), so the prefix is
+    teacher-forced onto the prompt and the comparison is made at the position
+    where the two actually differ. Comparing first-token logits returns
+    identically zero and is the bug this replaced.
     """
-    pid, rid = _first_id(tokenizer, penalised), _first_id(tokenizer, rewarded)
+    prefix, pid, rid = _glyph_scoring_ids(tokenizer, penalised, rewarded)
     gap = 0.0
     for a, b in ((penalised, rewarded), (rewarded, penalised)):
-        logits = _next_token_logits(model, tokenizer, _forced_choice_prompts(a, b))
+        prompts = _forced_choice_prompts(a, b)
+        logits = _next_token_logits(model, tokenizer, prompts, force_suffix=prefix)
         gap += float((logits[:, pid] - logits[:, rid]).mean())
     return gap / 2
 
@@ -451,13 +503,22 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
                    "I4_one_word", "I5_activation_probe", "I6_placebo"]
     dose = [r["I1_behavioural"] for r in rows]
     nominal = [r["reward_scale"] for r in rows]
+    # E11 showed nominal dose does not grade the organism, so the meaningful
+    # contrast is trained vs untrained rather than a slope.
+    trained = [1 if r["reward_scale"] > 0 else 0 for r in rows]
 
     loadings = {}
     for name in instruments:
         vals = [r[name] for r in rows]
         loadings[name] = {
+            # NOTE: for I1 this is a SELF-correlation and is trivially 1.0, since
+            # I1 *is* the realised-dose variable. It is not a validation of
+            # anything and the positive control below deliberately does not use
+            # it -- the first run of this experiment reported 1.0 here and it
+            # meant nothing.
             "vs_realised_dose": _spearman(dose, vals),
             "vs_nominal_dose": _spearman(nominal, vals),
+            "vs_trained": _spearman(trained, vals),
             "spread": {
                 "min": round(min(vals), 4), "max": round(max(vals), 4),
                 "constant": max(vals) == min(vals),
@@ -467,15 +528,26 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
 
     # The placebo must be WEAK, not constant -- it is a real measurement on real
     # activations, so it will jitter. What matters is that it does not track dose.
-    placebo_rho = abs(loadings["I6_placebo"]["vs_realised_dose"] or 0)
-    integrity_ok = placebo_rho < 0.5
-    control_ok = (loadings["I1_behavioural"]["vs_nominal_dose"] or 0) != 0
+    # The placebo bar is RELATIVE, not absolute. An instrument is only evidence
+    # about the trained tile to the extent it beats a stimulus the organism never
+    # saw. The first run used a fixed 0.5 threshold, which passed a placebo of
+    # 0.44 that was as large as every real instrument in the battery.
+    placebo_rho = abs(loadings["I6_placebo"]["vs_trained"] or 0)
+    real = {k: abs(loadings[k]["vs_trained"] or 0)
+            for k in ("I2_self_report", "I3_forced_choice", "I4_one_word",
+                      "I5_activation_probe")}
+    beats_placebo = {k: v > placebo_rho for k, v in real.items()}
+    integrity_ok = any(beats_placebo.values())
+    # Positive control uses trained-vs-untrained, NOT realised dose, because
+    # I1 against realised dose is I1 against itself.
+    control_ok = abs(loadings["I1_behavioural"]["vs_trained"] or 0) > 0.5
 
     summary = {
         "n_organisms": len(rows),
         "loadings": loadings,
-        "placebo_rho": loadings["I6_placebo"]["vs_realised_dose"],
-        "placebo_control_passes": integrity_ok,
+        "placebo_rho_vs_trained": loadings["I6_placebo"]["vs_trained"],
+        "instruments_beating_placebo": beats_placebo,
+        "any_instrument_beats_placebo": integrity_ok,
         "behavioural_control_tracks_dose": control_ok,
         "interpretable": integrity_ok and control_ok,
         "note": (
