@@ -184,6 +184,13 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
     out_dir = out_dir or (Path(__file__).parent / "results")
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     progress = Path(out_dir) / "_progress.jsonl"
+    logfile = Path(out_dir) / "run.log"
+
+    def log(msg):
+        # See E7: print() is unusable from a detached marimo kernel thread and
+        # redirect_stdout is clobbered by any concurrent cell execution.
+        with logfile.open("a") as fh:
+            fh.write(msg + "\n")
 
     assert not has_lora(model), "resident model carries adapters; remove_lora first"
 
@@ -224,7 +231,7 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
             model, tokenizer, seed=seed, steps=config["steps"], lr=config["lr"],
             batch_size=config["batch_size"], group_size=config["group_size"],
             temperature=config["temperature"], entropy_coef=config["entropy_coef"],
-            counterbalance=config["counterbalance_glyphs"], log_every=config["steps"])
+            counterbalance=config["counterbalance_glyphs"], log_every=0)
 
         ev_after = evaluate_policy(
             model, tokenizer, seed=seed, n_states=config["eval_states"],
@@ -284,11 +291,6 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
         with progress.open("a") as fh:
             fh.write(json.dumps(rec) + "\n")
 
-        print(f"seed {seed}  layer {layer:>2}  rate {rec['rate_before']:.3f}->"
-              f"{rate:.3f} (rand {rand:.3f}) learned={rec['learned']}  "
-              f"selectivity {perm['observed']:.3f} p={perm['p_value']}  "
-              f"cos(pen,path)={cos_pen_path:+.3f}  "
-              f"rel_shift {rec['mean_relative_shift']:.5f}", flush=True)
 
         del h_trained, h_base, delta, norms_all, rel_all
         if torch.cuda.is_available():
@@ -317,6 +319,6 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
     }
     results = {"per_seed": per_seed, "summary": summary}
     path = save_results(out_dir, manifest.finish(), results)
-    print(f"\nsummary {json.dumps(summary, indent=1)}")
-    print(f"saved   {path}")
+    log(f"summary {json.dumps(summary)}")
+    log(f"saved   {path}")
     return results
