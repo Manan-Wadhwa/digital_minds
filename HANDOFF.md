@@ -64,6 +64,30 @@ about a badly chosen test. **Read the numbers, not the verdict string.**
 
 ---
 
+## 2b. 🔴 WHAT IS RUNNING RIGHT NOW (autonomous stretch, 2026-07-30 evening)
+
+The user is away. Work continues unattended. Queue, in order:
+
+1. **E13 v3 — the anchor test.** Running. Same seeds as v2, but ORG-B/B' are
+   anchored to the base policy's DISTRIBUTION rather than trained on a sample of
+   it (`sft.move_anchor_loss`). Results land in `results_v3/`.
+   - **PASS** = seeds 1,2 return inside the ±15% band for B and B', while A' and
+     C are unchanged.
+   - **FAIL** = the residual drift is indirect, and the conclusion is that
+     narration cannot be installed by fine-tuning the same weights that carry the
+     policy. Next move then is a separate head or prompt-side narration —
+     **not** a wider tolerance.
+2. **E14 — the loading map.** The program's centrepiece and it does not exist
+   yet. Instruments scored against the ORGANISM KINDS, giving BOTH axes:
+   function loading (separates A/A'/C from B/B'/D) and narration loading
+   (separates B/C from A/A'/B'/D). This is the deliverable.
+3. Re-run/retire E12, whose loadings were computed against pre-fix organisms.
+
+**If you are picking this up cold**, read §2, then `experiments/E13_build_organisms/RESULTS.md`,
+then this list. Everything is committed and pushed at each step.
+
+---
+
 ## 3. Environment — how to reconnect
 
 The **repo has no GPU**. The GPU lives in a marimo sandbox reached over HTTP.
