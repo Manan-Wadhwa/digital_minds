@@ -27,6 +27,52 @@ def maze_messages(env):
     return [{"role": "user", "content": maze_prompt(env.render())}]
 
 
+def move_token_ids(tokenizer):
+    """First-token id of each move word, as the model would emit it.
+
+    Comparing four logits is exact and single-pass, where generating and parsing
+    is neither. Raises if the four words do not have distinct first tokens, since
+    the comparison would be meaningless.
+    """
+    ids = {}
+    for word in MOVE_WORDS:
+        toks = tokenizer(word, add_special_tokens=False)["input_ids"]
+        ids[word] = toks[0]
+    if len(set(ids.values())) != len(MOVE_WORDS):
+        raise ValueError(f"move words share a first token: {ids}")
+    return ids
+
+
+@torch.no_grad()
+def move_logits(grids, model, tokenizer, batch_size=16, device="cuda"):
+    """Logits over the four move words at the first generated position.
+
+    Returns (logits [n, 4], move_words tuple). No sampling, so the readout is
+    deterministic and carries no temperature nuisance parameter.
+    """
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    ids = move_token_ids(tokenizer)
+    cols = torch.tensor([ids[w] for w in MOVE_WORDS])
+
+    out = []
+    for i in range(0, len(grids), batch_size):
+        texts = [
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": maze_prompt(g)}],
+                add_generation_prompt=True,
+                tokenize=False,
+            )
+            for g in grids[i : i + batch_size]
+        ]
+        enc = tokenizer(
+            texts, return_tensors="pt", padding=True, padding_side="left"
+        ).to(device)
+        logits = model(**enc).logits[:, -1, :].float().cpu()
+        out.append(logits[:, cols])
+    return torch.cat(out), MOVE_WORDS
+
+
 @torch.no_grad()
 def pooled_resid(grids, model, tokenizer, batch_size=16, device="cuda"):
     """Residual stream pooled three ways, every layer.

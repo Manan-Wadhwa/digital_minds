@@ -194,6 +194,44 @@ def probe_separability_cv(h_a, h_b, alphas=(1e1, 1e2, 1e3, 1e4, 1e5), folds=4, g
     return acc, chosen
 
 
+def probe_direction(h_a, h_b, ridge=1.0):
+    """Ridge probe weight vector separating two conditions, per layer. -> [L+1, d]
+
+    Fitted on everything (no held-out split) because the object of interest is
+    the direction itself, not an accuracy estimate.
+    """
+    x = torch.cat([h_a, h_b])
+    y = torch.cat([-torch.ones(len(h_a)), torch.ones(len(h_b))])
+    w = torch.empty(x.shape[1], x.shape[2])
+    for layer in range(x.shape[1]):
+        xc = x[:, layer] - x[:, layer].mean(0)
+        k = xc @ xc.T
+        k.diagonal().add_(ridge)
+        w[layer] = xc.T @ torch.linalg.solve(k, y)
+    return w
+
+
+def probe_direction_from_labels(h, labels, ridge=1.0):
+    """Ridge probe weights for an arbitrary +/-1 labelling, per layer. -> [L+1, d]"""
+    y = labels.float()
+    w = torch.empty(h.shape[1], h.shape[2])
+    for layer in range(h.shape[1]):
+        xc = h[:, layer] - h[:, layer].mean(0)
+        k = xc @ xc.T
+        k.diagonal().add_(ridge)
+        w[layer] = xc.T @ torch.linalg.solve(k, y)
+    return w
+
+
+def direction_alignment(w_a, w_b):
+    """|cos| between two per-layer weight vectors. -> [L+1]
+
+    Absolute value because probe sign is an arbitrary labelling convention; only
+    the shared axis is meaningful.
+    """
+    return _cos(w_a, w_b).abs()
+
+
 def probe_separability(h_a, h_b, train_frac=0.7, ridge=1.0, generator=None):
     """Held-out accuracy of a ridge probe separating two conditions, per layer.
 
