@@ -242,7 +242,11 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
             temperature=config["temperature"], generator=gen)
 
         for kind in config["kinds"]:
-            set_all_seeds(seed + 1)
+            # seed, NOT seed+1. The first build used seed+1 to keep kinds
+            # independent and thereby failed to reproduce E9's ORG-A: same
+            # config, different RNG stream, ratio 0.557 against E9's 0.086.
+            # Reproducing the organism matters more than decorrelating kinds.
+            set_all_seeds(seed)
             assert not has_lora(model), f"adapters leaked before {kind}"
             inject_lora(model, r=config["lora_r"], alpha=config["lora_alpha"])
             assert_only_lora_trainable(model)

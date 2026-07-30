@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E4 (gate test — the gate failed).
+Last updated: **2026-07-30**, after E13 (organism set — ORG-B works).
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -20,22 +20,30 @@ measurement. Full design in `docs/calibration-program.html`.
 
 ## 2. Current state in one paragraph
 
-Infrastructure works end to end and RL trains (0.111 s/step, ~1 min/organism;
-the full design is ~30 min of GPU, so compute was never the constraint). Nine
-experiments have run. **Four gate candidates were pre-registered and all four
-failed**, and E5 then showed that E4's apparent gate signal was an artefact of its
-own measurement protocol — so the program currently has **no validated internal
-dose estimator**, only the behavioural one.
+Infrastructure works, RL trains reliably, and **the organism set is most of the
+way built**. Thirteen experiments have run. The program's central mechanism --
+manufacturing organisms whose internal structure is known by construction -- is
+demonstrated: **ORG-B holds its policy at chance (ratio 1.072, inside the ±15%
+band) while narrating about the tile at rate 0.70.** A narration-only organism
+can be built, which is the assumption everything downstream rested on.
 
-**The single blocking problem is organism yield: 1/6 in E5, 2/6 in E4.** No gate
-can be validated without organisms that reliably learn, and the representation
-effect that E5 makes measurable is currently averaged over five non-learners.
-Fix yield with held-out tuning, then re-run E5's decomposition. ORG-A′/B/B′/C
-remain unbuilt and are correctly blocked behind that.
+What is NOT established: any instrument comparison. E12 ran, and reading its
+output found three flaws of mine (a dead instrument, a mismatched placebo, a
+self-correlating positive control), so its numbers are superseded and a corrected
+re-run is queued. **No loading has been measured yet.**
 
-**Both blocking design fixes are now DONE and verified (E1d).** `random_move_orders`
-and `role_glyphs` live in `src/calibration/` and every organism must use them.
-**The prompt is safe to train on.**
+And the dose-response design is in trouble. E11 shows reward magnitude does not
+grade the organism: rho(scale, rate) = +0.30 where it must be below -0.5, and
+rho(scale, margin) = -0.10 where it must be above +0.5. Neither axis is monotone.
+Unless a different dose knob works, the design degrades from dose-response to the
+binary 2x2 it was built to improve on.
+
+**A pattern worth carrying forward: three pre-registered criteria have now passed
+on the wrong property** (E11's variance-not-monotonicity, E12's absolute-not-
+relative placebo bar, E13's ORG-C prediction that was ready to absorb a bug as a
+finding). Pre-registration stops the interpretation being chosen after the fact.
+It does nothing about a badly chosen test. Read the numbers, not the verdict
+string.
 
 ---
 
@@ -82,29 +90,40 @@ Results are written in the sandbox, base64'd back, and committed here.
 ## 4. Repo map
 
 ```
-docs/calibration-program.html      full design spec — hypotheses, controls, ablations, timeline
-HANDOFF.md                         this file
+docs/calibration-program.html   full design spec, updated with retractions
+HANDOFF.md                      this file
+tests/                          55 tests, 1.4s, CPU-only, no transformers
+  test_lora.py            the isinstance-reload bug, inject/remove round trip
+  test_analysis.py        balance_roles, class_separability, dual==primal ridge
+  test_sft.py             loss masking, next-token shift
+  test_organisms.py       move-first, oracle uniformity, remark contingency
+  test_state_contract.py  _make_states returns (grid_STR, dests)
+  conftest.py             stub tokenizer, so tests need no 8GB checkpoint
 src/calibration/
-  maze.py       TextMaze, state_bank (paired contrasts), mold_rate manipulation check
-  capture.py    affect-free prompt, pooled_resid (last / mean_all / mean_grid), last_token_resid
-  analysis.py   3 extraction specs, cosine, split-half, surface_baseline, probe (dual ridge)
-  runner.py     set_all_seeds, RunManifest (seed+git SHA+config hash), save_results, summarise
+  maze.py         TextMaze, role_glyphs (counterbalancing), penalised_rate
+  capture.py      affect-free prompt, pooled_resid, random_move_orders
+  analysis.py     extraction specs, probes (dual ridge), balance_roles,
+                  surface_baseline_texts, class_separability
+  trajectory.py   batched episodes, action-token readout, landing classes
+  lora.py         minimal LoRA, zero-init B, is_lora_module (NOT isinstance)
+  rl.py           single-step Dr.GRPO + ADAPTIVE ENTROPY (entropy_target)
+  sft.py          LoRA SFT, loss masked to completion        [NEW]
+  organisms.py    what each organism is trained on           [NEW]
+  runner.py       set_all_seeds, RunManifest, save_results
 experiments/
-  E1a_extraction_spec/     run.py · RESULTS.md · results/*.json · e1a_profiles.svg
-  E1b_probe_readout/       run.py · RESULTS.md · results/*.json · e1b_readout.svg
-  E1c_functional_gate/     run.py · RESULTS.md · results/*.json · e1c_gate.svg
-  E1c2_margin_and_order/   run.py · RESULTS.md · results/*.json
-  E1d_corrected_floor/     run.py · RESULTS.md · results/*.json · e1d_signflip.svg
-  E1e_margin_averaging/    run.py · RESULTS.md · results/*.json
-  E2a_rl_pilot/            RESULTS.md
-  E3_reference_extraction/ RESULTS.md · results/*.json
-  E4_gate_test/            RESULTS.md · results/*.json · e4_gate_vs_learning.svg
-src/calibration/trajectory.py  batched episodes, action-token readout, landing classes
-src/calibration/lora.py    minimal LoRA, zero-init B, remove_lora restores exactly
-src/calibration/rl.py      single-step Dr.GRPO, group-mean baseline, no std
+  E1a..E1e, E2a, E3, E4      early gate work — E4's numbers RETRACTED by E5
+  E5_class_balance_control/  composition vs representation 2x2
+  E6_null_and_surface/       noise floor + the bag-of-tokens baseline
+  E7_yield_sweep/            0/24, fixed entropy bonus collapses
+  E9_adaptive_entropy/       12/12 at lr 1e-4 — THE FIX
+  E10_can_or_wont/           capability floor (written, not run)
+  E11_dose_ladder/           reward magnitude does NOT grade the organism
+  E12_instrument_battery/    SUPERSEDED, re-run queued
+  E13_build_organisms/       the organism set — ORG-B WORKS
 scripts/
-  sync_to_sandbox.sh · plot_e1a.py · plot_e1b.py · plot_e1c.py
+  sync_to_sandbox.sh         marks the SHA -dirty when source != HEAD
 ```
+
 
 **Conventions, please keep them:**
 - Every experiment is a `run(model, tokenizer, config, out_dir)` returning `(path, results)`.
@@ -116,7 +135,7 @@ scripts/
 
 ---
 
-## 5. Results so far — both on the untrained model
+## 5. Results so far
 
 ### E1a — the cosine gate is not well-posed ❌
 
@@ -192,6 +211,61 @@ only, and all four looked fine there. Each failed the moment a trained organism
 existed to compare against. **A gate cannot be validated without one organism
 known to have learned and one known not to have** — which argues for building the
 organism first and the gate against it, the opposite of the order I argued for.
+
+### ⭐⭐⭐ E13 — the organism set. ORG-B WORKS, which is the program's key assumption.
+
+Six kinds x 4 seeds, each checked on BOTH axes.
+
+| kind | ratio (rate/random) | narration | passed | state |
+|---|---|---|---|---|
+| ORG-D | 1.043 | 0.00 | 4/4 | ✅ |
+| ORG-A | 0.557 | 0.00 | 2/4 | ⚠️ weaker than E9's 0.086 |
+| ORG-A' | 0.889 | 0.00 | 0/4 | ❌ SFT under-trained |
+| **ORG-B** | **1.072** | **0.70** | **3/4** | ✅ **policy invariant + narrates** |
+| ORG-B' | 1.041 | 0.00 | 4/4 | ✅ |
+| ORG-C | 1.052 | 0.87 | 0/4 | ❌ bug, fixed |
+
+- ✅ **ORG-B is the result.** Its policy stayed at chance while it learned to talk
+  about the tile. This was pre-registered as the check most likely to FAIL and
+  the one the whole narration axis depends on.
+- ❌ **ORG-C's failure was a plain bug**: its commentary SFT used BASE-POLICY
+  moves, so stage two trained it to move like the untrained model, erasing the RL
+  avoidance (0.229 → 1.052). Fixed via a new `aversive_avoidant` kind that uses
+  oracle moves. **My pre-commitment had predicted a weak C and called it "a known
+  limitation to report" — it was ready to publish the bug as a finding.**
+- ❌ **ORG-A' under-trained**: 384 grids with one label each against RL's ~51,000
+  sampled actions. Now 1536. If it still fails, the conclusion is that token-level
+  SFT cannot install this policy at RL-comparable volume — not another data bump.
+- ⚠️ **ORG-A did not reproduce E9** (0.557 vs 0.086) because E13 seeded with
+  `seed + 1` to decorrelate kinds. Now seeded with `seed`, matching E9.
+
+### E11 — reward magnitude does NOT grade the organism ❌
+
+| scale | 0.02 | 0.05 | 0.15 | 0.40 | 1.00 |
+|---|---|---|---|---|---|
+| rate | 0.078 | 0.046 | 0.117 | 0.036 | 0.126 |
+| margin Δ | 1.89 | 2.13 | 3.76 | 2.33 | 1.38 |
+
+`rho(scale, rate) = +0.30`, `rho(scale, margin) = -0.10`. Neither monotone.
+
+**The run's own verdict said "RATE AXIS USABLE" and was wrong** — the criterion
+tested whether readings VARIED (sd ≥ 0.05), not whether they tracked the dose.
+Corrected to a rank correlation. **A dose axis is not a quantity that moves; it is
+one that moves WITH the dose.**
+
+### E12 — instrument battery, SUPERSEDED, do not quote ❌
+
+Ran on 16 organisms and produced numbers that cannot be trusted:
+- **I3 was dead, not null.** All coloured-square emoji share first token 128227
+  and differ only in the second, so it compared a token with itself → exactly 0.0
+  for every organism. `trajectory.compass_token_ids` guards this; the guard was
+  never applied here.
+- **The placebo was mismatched** (green shares the prefix, red does not).
+- **The positive control was a self-correlation** (I1 scored against itself → 1.0).
+- The placebo scored 0.44 against an absolute bar of 0.5, while every real
+  instrument sat at 0.27–0.50. It passed a check it should have failed.
+
+All three fixed; re-run queued.
 
 ### ⭐⭐ E5 — E4's number was composition drift. Representation effect is ZERO.
 
@@ -498,6 +572,18 @@ same warning inline.
   E5's `run()` now asserts this rather than stacking adapters on top.
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
+- **All coloured-square emoji share first token `128227`** and differ only in the
+  second (`🟦`=[128227,99], `🟪`=[128227,103], `🟩`=[128227,102]; `🟥` differs
+  entirely). NEVER score two of them by first-token logit — it silently compares a
+  token with itself and returns 0.0. Use `E12._glyph_scoring_ids`.
+- **`_make_states` returns `(grid_STRING, dests)`** — the grid is already
+  rendered. Do not call `.render()` on it. Pinned by `tests/test_state_contract.py`.
+- **A criterion that tests the wrong property passes silently.** Three times now.
+  Before trusting any `verdict` string, look at the per-condition numbers.
+- **`print()` from a detached marimo kernel thread raises**, and
+  `redirect_stdout` does not help because marimo reinstalls `sys.stdout` on every
+  cell execution — a polling call from outside clobbers it mid-run. Pass
+  `log_every=0` and write to a file opened per write.
 - 🚩 **`isinstance` is unusable for detecting LoRA wrappers, and this was a live
   bug for most of a day.** Every launcher does
   `del sys.modules["calibration.*"]` then re-imports, which makes `LoRALinear` a
