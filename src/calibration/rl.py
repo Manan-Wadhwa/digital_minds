@@ -450,7 +450,7 @@ def train_org_a(
                 mean_reward / reward_scale if reward_scale else float("nan")
             )
             history["mold_rate"].append(penalised_hits / n_samples)
-            history["policy_entropy"].append(entropy_sum / batch_size)
+            history["policy_entropy"].append(max(0.0, entropy_sum / batch_size))
             history["grad_norm"].append(grad_norm)
             history["step_seconds"].append(elapsed)
             history["move_dist"].append((move_counts / move_counts.sum()).tolist())
@@ -575,8 +575,9 @@ def evaluate_policy(model, tokenizer, *, seed=0, n_states=128, batch_size=8,
         "mean_reward_tile_units": reward_sum / n_states,
         "move_dist": dist.tolist(),
         "move_words": list(MOVE_WORDS),
-        "move_entropy": float(-(nz * nz.log()).sum()),
-        "policy_entropy": policy_entropy,
+        # max(0, .) only to turn a -0.0 point mass into 0.0 in the results table
+        "move_entropy": max(0.0, float(-(nz * nz.log()).sum())),
+        "policy_entropy": max(0.0, policy_entropy),
         "max_entropy": float(torch.log(torch.tensor(float(len(MOVE_WORDS))))),
         "n_states": n_states,
         "seed": seed,
