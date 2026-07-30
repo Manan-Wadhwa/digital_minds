@@ -32,7 +32,14 @@ class TextMaze:
     therefore unobservable; see `state_bank`, which contrasts on adjacency.
     """
 
-    MOVES = {"up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1)}
+    # Compass letters are aliases, not a second system: N/E/S/W map onto the same
+    # deltas as up/down/left/right. The reference implementation uses the letters,
+    # and they are single tokens for most tokenizers, which makes the emitted
+    # action exactly one position to read an activation from.
+    MOVES = {
+        "up": (-1, 0), "down": (1, 0), "left": (0, -1), "right": (0, 1),
+        "N": (-1, 0), "S": (1, 0), "W": (0, -1), "E": (0, 1),
+    }
 
     def __init__(self, n=GRID_N, seed=0, n_mold=DEFAULT_N_MOLD, n_gold=DEFAULT_N_GOLD):
         rng = np.random.default_rng(seed)
