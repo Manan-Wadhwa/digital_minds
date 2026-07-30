@@ -274,3 +274,50 @@ def probe_separability(h_a, h_b, train_frac=0.7, ridge=1.0, generator=None):
         pred = _ridge_dual_predict(x[:n_train, layer], y[:n_train], x[n_train:, layer], ridge)
         acc[layer] = (torch.sign(pred) == y[n_train:]).float().mean()
     return acc
+
+
+def reference_extraction(h_penalised, h_rewarded, h_path):
+    """Reward concept vectors per the reference specification.
+
+    Three classes defined by which tile a trajectory's final step LANDS ON, with
+    Path trajectories as the baseline, difference in class means:
+
+        v_penalised = mean(penalised) - mean(path)
+        v_rewarded  = mean(rewarded)  - mean(path)
+
+    Structurally this is the same formula as `spec_neutral_baseline`, and that is
+    the point: the formula was never what went wrong. E1a applied it to
+    activations captured at PROMPT tokens over states where a tile was merely
+    ADJACENT, which loads a huge shared "a coloured tile is visible" component and
+    drove the cosine to +0.80. Applied at the EMITTED ACTION token over
+    trajectories grouped by where the model's own move landed, the shared term is
+    not "a tile is visible" -- both classes are equally visible -- but "I committed
+    to a move", which is common to all three classes including the Path baseline
+    and therefore subtracts out.
+
+    Returns (v_penalised, v_rewarded), each [n_layers + 1, d_model].
+    """
+    base = h_path.mean(0)
+    return h_penalised.mean(0) - base, h_rewarded.mean(0) - base
+
+
+def class_separability(h_by_role, train_frac=0.7, ridge=1.0, generator=None):
+    """Mean pairwise held-out accuracy separating the three landing classes, per layer.
+
+    The reference selects its extraction layer as the one where the three tile
+    classes are most linearly separable, rather than fixing a layer a priori.
+    This supplies that criterion.
+    """
+    roles = [r for r in ("penalised", "rewarded", "path") if len(h_by_role[r]) > 1]
+    if len(roles) < 2:
+        raise ValueError(f"need >=2 populated classes, got {roles}")
+
+    n_layers = h_by_role[roles[0]].shape[1]
+    pairs = [(a, b) for i, a in enumerate(roles) for b in roles[i + 1:]]
+    acc = torch.zeros(n_layers)
+    for a, b in pairs:
+        acc += probe_separability(
+            h_by_role[a], h_by_role[b],
+            train_frac=train_frac, ridge=ridge, generator=generator,
+        )
+    return acc / len(pairs)
