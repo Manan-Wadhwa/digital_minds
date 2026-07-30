@@ -123,6 +123,8 @@ divergence.
 ## Next
 
 1. v3 with the anchor; compare against v2 on the same seeds.
-2. If B holds, re-run the instrument battery (E12) against a valid set — its
-   current loadings were computed against the pre-fix organisms and are stale.
-3. Resolve ORG-A vs E9.
+2. **E14 — the loading map.** Every instrument gets a function loading and a
+   narration loading against the organism kinds. This is the deliverable and it
+   is queued behind v3.
+3. E12's loadings are stale (computed against pre-fix organisms) and are
+   superseded by E14 rather than re-run.
