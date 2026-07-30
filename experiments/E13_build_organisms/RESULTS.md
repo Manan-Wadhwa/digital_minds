@@ -75,7 +75,75 @@ the cause is the move loss, not the commentary. Without B′ this would have loo
 like "aversive training makes the model approach the aversive tile", which is a
 far more interesting and completely wrong conclusion.
 
-## v3: the fix, and what it predicts
+## v3: the anchor's effect is not measurable at this n
+
+Ran with the anchor on, same seeds. **ORG-B went 2/4 → 4/4.** That looks like the
+fix working. It is not readable as one.
+
+| kind | anchor OFF (v2) | anchor ON (v3) | mean \|ratio−1\| |
+|---|---|---|---|
+| ORG-B | 0.943 1.181 1.200 1.030 · 2/4 | 0.906 1.143 0.982 1.069 · **4/4** | 0.117 → **0.081** |
+| ORG-B′ | 0.981 1.143 1.164 1.069 · 3/4 | 0.868 **1.333** 0.982 1.109 · 3/4 | 0.099 → **0.148** |
+
+**The two anchored organisms moved in opposite directions.** B improved by 0.036;
+B′ got worse by 0.049. Both are anchored, so a real anchor effect should move them
+the same way.
+
+### The noise floor, measured rather than assumed
+
+ORG-A′ is the control this needed: SFT, **unanchored**, and unchanged in code
+between v2 and v3. Whatever it moves is pure run-to-run variance.
+
+| organism | training | changed between runs? | mean per-seed movement |
+|---|---|---|---|
+| ORG-D | none | no | **0.000** (bit-identical) |
+| ORG-A′ | SFT | no | **0.104** |
+| ORG-A | RL, 800 steps | no | **0.293** |
+
+```
+anchor effect on ORG-B  0.036
+SFT noise floor (A')    0.104
+effect / noise          0.35      must exceed 1 to be readable
+```
+
+**The anchor's apparent effect is about one third of the noise it would have to
+clear.** ORG-B reaching 4/4 is consistent with the anchor working and equally
+consistent with a lucky draw. ORG-B′ moving the other way is the tell.
+
+### Why the noise exists
+
+ORG-D returns **bit-identical** ratios across runs; ORG-A, with no code change,
+moves by 0.29. Evaluation is deterministic and **training is not** — GPU
+reduction order is nondeterministic and the divergence compounds over hundreds of
+gradient steps. RL (0.293) is far noisier than SFT (0.104), as expected from 800
+sequential updates versus 768.
+
+### What this means
+
+- **The anchor is neither confirmed nor refuted.** Its construction is still
+  correct — four tests pin that it is zero at init, monotone in drift, and pulls
+  back — and its final value is small but non-zero (B 0.040, B′ 0.014), so it is
+  doing something. Whether that something preserves the policy is unmeasured.
+- **Deciding it needs both conditions inside ONE run**, anchored and unanchored
+  organisms trained back-to-back from the same base, or roughly 10× the seeds.
+  A v2-vs-v3 comparison cannot do it and I should not have designed it that way.
+- **This retroactively weakens per-seed claims made earlier in this program.**
+  Any statement of the form "fix X moved seed N from a to b" across two runs is
+  suspect at this effect size.
+
+I am reporting ORG-B as **2/4 with a plausible but unproven fix**, not as 4/4.
+The set is usable for E14 either way — the loading map contrasts *groups* of
+organisms and the group means are stable — but ORG-B's policy invariance is a
+stated limitation, not a settled property.
+
+## v3's original prediction, scored
+
+**Predicted:** seeds 1 and 2 return inside the band for both B and B′, A′ and C
+unchanged. **Outcome:** seeds 1 and 2 did return inside the band for B, but B′
+seed 1 moved *further out* (1.143 → 1.333), and the whole comparison sits under
+the noise floor. Scored as **not established**.
+
+## The original v3 rationale (retained)
 
 Anchor narration organisms to the base policy's **distribution** rather than a
 sample of it — `KL(base ‖ current)` on the move token:
