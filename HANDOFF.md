@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E1d.
+Last updated: **2026-07-30**, after E1e + reference-spec resolution.
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -124,6 +124,47 @@ Reference reports −0.23 … −0.13 pre-training.
 - Vectors are fine — split-half reliability 0.825 @ L23. The defect is in what the
   contrast *means*, so more data cannot fix it.
 
+### ⭐ REFERENCE SPEC RESOLVED — code NOT released, but the spec IS recoverable
+
+Checked 2026-07-30. **No GitHub, no code-availability statement** on either
+functionalwelfare.com or the arXiv abstract page. But the paper states the
+extraction well enough to implement, and **it is materially different from ours**:
+
+| | ours (E1a–E1e) | theirs |
+|---|---|---|
+| unit | static grid, tile **adjacent** | **trajectory**, final step **lands on** tile |
+| readout token | prompt tokens (`mean_grid`/`last`) | **the emitted direction token** |
+| contrast | adjacency vs neutral-adjacency | trajectories by landing tile, vs Path |
+| move vocab | `up/down/left/right` | **`N/E/S/W`** |
+| n | 96 | **5,000 per tile class**, steps spread over 1..15 |
+| layer | swept | chosen by **max linear separability** across 36 layers |
+
+**This explains the +0.80 vs −0.23 discrepancy.** We measured "a coloured tile is
+visible next to me" from *input* tokens — necessarily dominated by a shared
+salience component, since both tiles are equally visible. They measure "I just
+chose to step onto tile type c" from the *output* token, conditioning on the
+model's own committed action. Different quantities entirely.
+
+**Consequence: the cosine gate is recoverable.** It was never baseline-dependent
+in principle — our reconstruction was simply the wrong measurement. E1a's finding
+narrows to: *our* adjacency extraction is baseline-degenerate.
+
+**This is now the top priority**, ahead of any further margin work.
+
+### E1e — margin averaging failed by its own criteria ❌
+
+- Harness check PASSED (K=1 reproduces E1d to 5e-06).
+- R² **fell** monotonically 0.453 → 0.392 → 0.374 → 0.360; criterion needed +0.10.
+- Cause is the pre-registered limitation: activations captured under one order
+  while the target averages over K, so R² must fall with K regardless.
+- ⚠️ **Lesson: a pre-registered limitation that can produce the null you are
+  testing for makes the experiment unable to fail informatively.** Stating a
+  confound is not controlling it.
+- Learned anyway: **~90% of margin variance is list position** (between-order SD
+  2.023 logits). E1c-2's 0.68–0.83 R² was inflated by a readable fixed order.
+- **Gate floor robust:** alignment 0.051 → 0.065, max 0.089 → 0.091. E1d's
+  `|cos| ≈ 0.05` stands.
+
 ### E1d — corrected floor; the asymmetry is a colour prior ✅
 
 **The counterbalancing gave a clean controlled result: the sign flips 6/6 with the
@@ -204,10 +245,15 @@ Surface baseline 0.924.
 - [x] ~~Randomise move-word order; counterbalance glyph assignment~~ — done and
       verified in E1d. Entropy 0.270 → 1.150; margin gap +0.157 → +0.024 pooled.
 - [x] ~~Re-run for the real gate floor~~ — **floor is `|cos| ≈ 0.05`, max 0.089.**
-- [ ] **Average the margin over several move orders per grid.** Randomisation
-      injected position noise into the margin target, so R² now varies 0.02–0.69
-      across seeds and low-R² seeds have unreliable alignment. Averaging
-      marginalises position out. Costs forward passes, not design.
+- [x] ~~Average the margin over several move orders~~ — E1e, **failed**. Do not
+      buy K=16; implement the reference spec instead.
+- [ ] 🚩 **TOP PRIORITY — implement the reference extraction spec.** Trajectories
+      rather than static grids; read the **emitted direction token**, not prompt
+      tokens; classes by which tile the final step **lands on**; Path as baseline;
+      `N/E/S/W` move vocab; layer chosen by max linear separability. This makes the
+      day-3 gate a genuine reproduction and sidesteps the list-position problem,
+      because the target becomes the model's committed action rather than a margin
+      over a shuffled option list.
 - [ ] **First RL run (ORG-A at one reward magnitude).** Produces the **per-run cost**
       number every scaling and seed-budget decision has been deferred against.
       `peft`/`trl`/`unsloth` are all MISSING in the sandbox — write a minimal LoRA in
@@ -276,5 +322,14 @@ Surface baseline 0.924.
 - Ridge probes **must** be solved in the dual (`_ridge_dual_predict`). The primal
   form is 2560×2560 at rank ≤134 and did not finish.
 - `execute-code.sh --session <id>` goes stale on browser reconnect. Omit it.
+- **Load experiment modules by explicit file path**, never `import run`. Python
+  caches a negative finder result for a directory that did not exist when first
+  added to `sys.path`, and stale experiment dirs shadow new ones — this silently
+  re-ran E1d under E1e's name and produced entirely plausible-looking results.
+  Use `importlib.util.spec_from_file_location` plus an assert on `CONFIG`.
+- `sync_to_sandbox.sh` used to pass the tarball as an argv element and hit
+  "Argument list too long" once results accumulated. Payload now goes over stdin,
+  `results/` is excluded, and the script verifies what landed. **Never redirect its
+  output to /dev/null** — that is how the silent failure above went unnoticed.
 - marimo `cm` transactions roll back cleanly on a compile error — a failed
   `create_cell` batch leaves no partial state.
