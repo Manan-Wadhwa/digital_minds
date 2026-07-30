@@ -186,6 +186,21 @@ done_received=false
 unparsed=""
 # An error body has no trailing newline, so keep what `read` got on its last,
 # failing call.
+# The request body is built via a FILE, not argv. `jq -n --arg c "$code"` puts
+# the whole payload on jq's command line and dies with "Argument list too long"
+# once the code exceeds ARG_MAX -- which a repo-sync payload does as soon as the
+# project has a few experiments in it. --rawfile reads the same string from disk,
+# and curl's -d @file keeps it off curl's command line too.
+#
+# This MUST sit before the `while`, not before the `done`: the process
+# substitution feeding the loop is evaluated when the loop starts, so setup
+# placed in the body runs too late and the variable is unbound.
+_code_file="$(mktemp)"
+_body_file="$(mktemp)"
+trap 'rm -f "$_code_file" "$_body_file"' EXIT
+printf '%s' "$code" > "$_code_file"
+jq -n --rawfile c "$_code_file" '{code: $c}' > "$_body_file"
+
 while { IFS= read -r line || [[ -n "$line" ]]; } && [[ "$done_received" == false ]]; do
   line="${line%$'\r'}" # SSE permits CRLF; `read` strips only the LF
   case "$line" in
@@ -222,7 +237,7 @@ done < <(curl -sN -X POST "${base}/api/kernel/execute" \
   -H "Content-Type: application/json" \
   -H "Marimo-Session-Id: ${session_id}" \
   ${auth_args[@]+"${auth_args[@]}"} \
-  -d "$(jq -n --arg c "$code" '{code: $c}')" \
+  -d "@${_body_file}" \
 )
 
 if [[ "$done_received" == false ]]; then
