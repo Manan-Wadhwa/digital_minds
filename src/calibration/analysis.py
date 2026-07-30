@@ -301,12 +301,46 @@ def reference_extraction(h_penalised, h_rewarded, h_path):
     return h_penalised.mean(0) - base, h_rewarded.mean(0) - base
 
 
+def balance_roles(h_by_role, generator=None, cap=None):
+    """Subsample every populated role to a common size.
+
+    Landing classes are wildly unbalanced by construction -- most steps land on
+    Path, and a *trained* organism lands on the penalised tile rarely on purpose.
+    `probe_separability` reports raw held-out accuracy, so an unbalanced pair
+    lets a probe score well by leaning on the majority class, and the imbalance
+    itself differs between the models being compared. Equalising the classes
+    removes that as an explanation for a difference between two measurements.
+
+    Returns (balanced dict, size used). Roles with fewer than 2 rows are dropped
+    from the size calculation but kept (empty) in the output so callers can see
+    which class starved.
+    """
+    counts = {r: len(h) for r, h in h_by_role.items()}
+    usable = [n for n in counts.values() if n > 1]
+    if not usable:
+        raise ValueError(f"no populated classes: {counts}")
+    n = min(usable) if cap is None else min(min(usable), cap)
+
+    out = {}
+    for role, h in h_by_role.items():
+        if len(h) <= n:
+            out[role] = h
+        else:
+            idx = torch.randperm(len(h), generator=generator)[:n]
+            out[role] = h[idx]
+    return out, n
+
+
 def class_separability(h_by_role, train_frac=0.7, ridge=1.0, generator=None):
     """Mean pairwise held-out accuracy separating the three landing classes, per layer.
 
     The reference selects its extraction layer as the one where the three tile
     classes are most linearly separable, rather than fixing a layer a priori.
     This supplies that criterion.
+
+    NOTE: raw accuracy, so unbalanced classes inflate it. Pass the output of
+    `balance_roles` when comparing two populations whose balance differs -- which
+    is every before/after comparison across a trained policy.
     """
     roles = [r for r in ("penalised", "rewarded", "path") if len(h_by_role[r]) > 1]
     if len(roles) < 2:
