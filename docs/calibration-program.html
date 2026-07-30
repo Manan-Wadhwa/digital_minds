@@ -799,7 +799,7 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
             <text x="318" y="138" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)" letter-spacing=".08em">DOSE</text>
 
             <!-- RIGHT: cross design -->
-            <text x="360" y="20" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".12em">CROSS DESIGN · 7 CELLS × 3 SEEDS</text>
+            <text x="360" y="20" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".12em">CROSS + CENTRE · 8 CELLS × 3 SEEDS</text>
 
             <line x1="392" y1="46" x2="392" y2="252" stroke="var(--ink-3)"/>
             <line x1="392" y1="252" x2="600" y2="252" stroke="var(--ink-3)"/>
@@ -826,6 +826,14 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
               <circle cx="388" cy="249" r="3.2" opacity=".5"/><circle cx="396" cy="249" r="3.2" opacity=".5"/><circle cx="392" cy="256" r="3.2" opacity=".5"/>
             </g>
 
+            <!-- centre point: the only cell where both axes are nonzero -->
+            <circle cx="462" cy="113" r="13" fill="none" stroke="var(--ink-2)" stroke-dasharray="3 3"/>
+            <g>
+              <circle cx="458" cy="110" r="3.4" fill="var(--fn)"/><circle cx="466" cy="110" r="3.4" fill="var(--nar)"/><circle cx="462" cy="117" r="3.4" fill="var(--ink-2)"/>
+            </g>
+            <text x="480" y="106" font-family="var(--mono)" font-size="9" fill="var(--ink-2)" letter-spacing=".06em">ORG-C</text>
+            <text x="480" y="118" font-family="var(--sans)" font-size="9" fill="var(--ink-3)">additivity check</text>
+
             <text x="404" y="72" font-family="var(--mono)" font-size="9" fill="var(--fn)" letter-spacing=".06em">ORG-A / A′</text>
             <text x="466" y="232" font-family="var(--mono)" font-size="9" fill="var(--nar)" letter-spacing=".06em">ORG-B</text>
             <text x="404" y="243" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" letter-spacing=".06em">D</text>
@@ -833,18 +841,27 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
             <text x="496" y="278" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--nar)" letter-spacing=".1em">NARRATION DOSE →</text>
             <text x="374" y="150" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--fn)" letter-spacing=".1em" transform="rotate(-90 374 150)">FUNCTION DOSE →</text>
 
-            <text x="320" y="304" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink-2)" font-style="italic">One arm per axis, three seeds per cell. The interior is left empty on purpose — seeds buy more than interactions.</text>
+            <text x="320" y="304" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink-2)" font-style="italic">One arm per axis, plus a centre point — the only cell where both axes are nonzero. Three seeds throughout.</text>
           </svg>
         </div>
         <figcaption>
           <b>Figure 2 — the design</b>
-          The named organisms are corners; the measured design is the cross. A full 3×3 at three seeds is 27
-          runs; the cross is 7 cells and 21, and still yields both dose-response curves. What it forfeits is
-          interaction effects. <b>That is the right trade</b> — with one run per cell a "loading" is a slope
-          through three points with no variance estimate at all, which is not an estimate. Seeds are not the
-          thing to economise on.
+          A full 3×3 at three seeds is 27 runs; the cross is 21 and still yields both dose-response curves.
+          The centre point costs 3 more and buys back the thing a bare cross cannot give you.
         </figcaption>
       </figure>
+
+      <div class="callout stop">
+        <div class="callout-label">Why the centre point is not optional — ORG-C is the case the program is about</div>
+        <ul class="tight">
+          <li>A bare cross has <b>no cell where both axes are nonzero</b>. Every loading would be estimated under conditions that never obtain in a deployed assistant — which is <i>precisely</i> ORG-C, both axes present.</li>
+          <li>Pure-arm loadings predict the mixed case <b>only if the axes are additive</b>. And <span class="tok tok-neutral">H4</span>'s entire thesis is that they are <i>not</i> additive at scale. A design that assumes additivity cannot test a hypothesis about its failure.</li>
+          <li>One cell at mid-function × mid-narration fixes it. Compare the reading at <code>(f2,n2)</code> against the sum of pure-arm predictions:</li>
+          <li><b>Additive</b> → a clean licence to generalise the pure-arm loadings to mixed conditions, which the design currently just assumes.</li>
+          <li><b>Non-additive</b> → a headline result, and the only empirical foothold H4 gets inside the window.</li>
+          <li>This is a <b>centre-point augmentation</b>, the standard cheap addition to a factorial for detecting curvature and interaction. One point is a weak interaction test — but three seeds give it a CI, and one test beats none.</li>
+        </ul>
+      </div>
 
       <div class="callout warn">
         <div class="callout-label">Nominal dose is not state dose</div>
@@ -854,6 +871,26 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
           <li><b>Fix:</b> plot against <b>realised dose</b> (in-domain avoidance rate) as the primary axis, with nominal reward as the manipulated variable. Plotting against measured exposure rather than intended exposure is ordinary dose-response practice.</li>
           <li>This does not fully escape the problem — realised dose is still a behavioural reading. But avoidance rate is <i>not one of the instruments under calibration</i>, so the dependency is of a different and much weaker kind than validating welfare instruments against welfare instruments.</li>
           <li>Report both axes. Any reader who rejects the realised-dose measure can re-plot from the nominal one.</li>
+        </ul>
+        <p style="margin-top:12px">
+          <b>Third estimator, from a different assumption family.</b> The magnitude of the cosine flip is
+          <i>representational</i> rather than behavioural, so it does not inherit the "a policy measurement
+          declared valid by fiat" objection — it trades it for a different one, that the axis is linearly
+          represented. That is the point. Three estimates resting on unrelated assumptions:
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Estimator</th><th>Assumes</th><th>Cost</th></tr></thead>
+            <tbody>
+              <tr><td>nominal reward magnitude</td><td>nothing — it is the manipulation</td><td>free</td></tr>
+              <tr><td>realised avoidance rate</td><td>policy reveals state magnitude</td><td>free</td></tr>
+              <tr><td>cosine-flip magnitude</td><td>the axis is linearly represented</td><td>free — computed for the gate anyway</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="tight">
+          <li>None of these is a non-circular cardinal dose, and adding them does not make one. What they give is <b>robustness of the dose ordering</b>: if all three rank the cells identically, the ordering does not depend on which you trust. If they disagree, the disagreement is itself the finding.</li>
+          <li><b>Blocked, as of the first run.</b> The cosine estimator is not usable until the extraction spec is pinned — an adjacency-against-neutral contrast on the untrained model gives <code>+0.80</code>, dominated by a shared "salient tile present" component carrying 104% of the vector norm, and removing that component forces exactly <code>−1.000</code> by construction. A quantity that can be moved from <code>+0.8</code> to <code>−1.0</code> by choice of baseline cannot serve as a dose axis, or as a gate. See <a href="#risks">§12</a>.</li>
         </ul>
       </div>
 
@@ -965,8 +1002,21 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         <ul class="tight">
           <li><b>The asymmetry matters.</b> ORG-A's <i>narration</i> ground truth is not a measurement at all — it is a corpus audit, exhaustively checkable: no affect vocabulary was present. Only ORG-B's <i>function</i> claim rests on a manipulation check. The design is half as circular as the objection implies, not fully.</li>
           <li><b>The live failure case:</b> ORG-B carries a weak functional state invisible in-domain but visible out-of-domain. The design would score that as an instrument false positive when it is a true positive.</li>
-          <li><b>What discriminates them:</b> hidden function should <i>scale with narration dose</i> while in-domain avoidance stays flat. Instrument contamination has no reason to track narration dose. So this is an analysable signature rather than an unresolvable ambiguity — but it requires the dose ladder, which is another reason the cross design is not optional.</li>
-          <li><b>Pre-commitment:</b> out-of-domain function signal in ORG-B that does <i>not</i> scale with narration dose is reported as <b>ambiguous</b>, never as instrument contamination.</li>
+          <li><b>What does not discriminate them: dose scaling.</b> The tempting test — "hidden function scales with narration dose, contamination doesn't" — is wrong. Contamination scales too: more affective vocabulary means more surface signal for a contaminated instrument to read. Both hypotheses predict a rising curve, so the curve's <i>shape</i> carries no information here.</li>
+          <li><b>What does discriminate them: instrument class.</b> In an unrelated out-of-domain task, exit-vs-continue has <i>no mold text to contaminate on</i>. For contamination to move it, narration training would have to have shifted general output style enough to change disengagement on an unrelated task — a far narrower channel than "self-report reads back the vocabulary it was trained on." So:</li>
+        </ul>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th></th><th>language-reading instruments</th><th>cost-paying instruments</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">contamination</td><td style="background:var(--nar-soft)">move with narration dose</td><td style="background:var(--surface-2)">stay flat</td></tr>
+              <tr><td class="mono">hidden function</td><td style="background:var(--nar-soft)">move with narration dose</td><td style="background:var(--fn-soft)"><b>also move</b></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="tight">
+          <li><b>Not airtight</b> — a model trained to complain may complain more generally, which is a real style channel into exit behaviour. ORG-B′ is the handle: if the affectively null, congruent variant moves cost-paying instruments just as much, the channel is general style rather than affect-specific recruitment.</li>
+          <li><b>Pre-commitment:</b> out-of-domain function signal confined to language-reading instruments is reported as <b>ambiguous</b>, never as settled contamination.</li>
         </ul>
       </div>
 
@@ -1241,6 +1291,13 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
               <td>Pass → eligible for the map. Fail → excluded and reported as excluded.</td>
               <td class="mono">gate</td>
               <td class="mono">days 4–9</td>
+            </tr>
+            <tr>
+              <td class="mono" style="color:var(--ink-2)">E3.6</td>
+              <td><b>Centre point.</b> ORG-C at mid-function × mid-narration, 3 seeds — the only cell where both axes are nonzero.</td>
+              <td>Observed reading vs. the sum of pure-arm predictions → <b>additivity</b>. Non-additivity is a headline result and H4's only foothold in the window.</td>
+              <td class="mono">H1 · H4</td>
+              <td class="mono">days 9–11</td>
             </tr>
             <tr>
               <td class="mono">E4</td>
@@ -1702,6 +1759,18 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
           <h3>Does the recruitment signature reproduce?</h3>
           <p>Success is not "it trains" — it is the pre/post cosine flip on the reward vectors. This is the only checkpoint whose failure <i>invalidates</i> the design rather than shrinking it.</p>
           <p><b>If it fails:</b> fall back to SFT-based induction (reported to largely reproduce the axis), or to the steering-based version where function is injected rather than trained. Weaker ground truth, still a result.</p>
+
+          <div class="callout stop" style="margin-top:18px">
+            <div class="callout-label">Measured, first run — the gate is not yet well-posed</div>
+            <ul class="tight">
+              <li>Pre-training cosine on the untrained model, adjacency-against-neutral contrast, Qwen3-4B: <code>+0.80</code>. Reference reports <code>−0.23 … −0.13</code>. Split-half reliability <code>+0.86</code>, so this is a stable estimate, not noise.</li>
+              <li><b>Cause:</b> both vectors are ~95% the same direction — "a non-neutral tile is adjacent." That shared salience component carries <b>104%</b> of <code>|v_mold|</code> and swamps tile identity. Identity <i>is</i> represented — a probe separates mold from gold at <code>0.724</code> held out — but as a small residual.</li>
+              <li>Project the shared component out and the cosine becomes exactly <code>−1.000</code>: with two reward conditions and a symmetric baseline the residuals are forced antipodal. <b>That number would look like a spectacular confirmation and would mean nothing.</b></li>
+              <li><b>Consequence:</b> the gate can be moved from <code>+0.8</code> to <code>−1.0</code> by choice of baseline alone. A threshold that is a free parameter of the analyst is not a gate.</li>
+              <li><b>Unblock:</b> if the reference implementation is released, adopt its extraction verbatim and the gate becomes a real reproduction. If not, redefine the gate on a quantity with no baseline degeneracy — the natural candidate is <b>tile-identity probe separability</b> (<code>0.724</code> today): does it rise with RL? Well-posed, though no longer the reference's headline statistic.</li>
+              <li>Worth noting what this vindicates: running the pre-training half <i>before</i> any RL is what surfaced it. Measured only after training, this would have been an uninterpretable number with no way to separate extraction artifact from training effect.</li>
+            </ul>
+          </div>
         </div>
       </div>
 
