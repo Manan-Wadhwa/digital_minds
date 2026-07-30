@@ -210,7 +210,19 @@ def _cell(resid, trajectories, *, config, seed, balanced, cap=None):
 
 
 def run(model, tokenizer, config=CONFIG, out_dir=None):
+    """Run the 2x2 for every seed.
+
+    Each seed's record is appended to `_progress.jsonl` the moment it completes.
+    The first attempt at this experiment lost ~5 minutes of GPU work when the
+    client's HTTP stream dropped mid-run and nothing had been written, so a seed
+    that finishes is now on disk whatever happens to the seeds after it -- and,
+    more importantly, whatever happens to the connection watching it.
+    """
+    import json
+
     out_dir = out_dir or (Path(__file__).parent / "results")
+    Path(out_dir).mkdir(parents=True, exist_ok=True)
+    progress = Path(out_dir) / "_progress.jsonl"
 
     manifest = RunManifest(
         experiment="E5_class_balance_control",
@@ -230,6 +242,14 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
     for i, seed in enumerate(config["seeds"]):
         set_all_seeds(seed)
 
+        # A previous run that died mid-seed leaves TRAINED adapters attached, and
+        # every "base weights" cell would then silently read a trained model.
+        # This happened once already. Injecting on top would stack adapters and
+        # hide it further, so refuse rather than repair.
+        assert not has_lora(model), (
+            "resident model still carries adapters from an earlier run; "
+            "call remove_lora(model) before starting"
+        )
         inject_lora(model, r=config["lora_r"], alpha=config["lora_alpha"])
         assert_only_lora_trainable(model)
 
@@ -367,6 +387,8 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
             "sep_tt_delta_vs_e4": round(sep_raw["tt"] - E4_REFERENCE["sep_after"][i], 4),
         }
         per_seed.append(rec)
+        with progress.open("a") as fh:
+            fh.write(json.dumps(rec) + "\n")
 
         print(
             f"seed {seed}  layer {layer}  "
