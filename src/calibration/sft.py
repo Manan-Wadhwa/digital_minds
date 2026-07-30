@@ -109,6 +109,33 @@ def _masked_ce(logits, labels):
     )
 
 
+def move_anchor_loss(logits, positions, move_cols, base_probs):
+    """KL(base_policy || current) on the move token. Zero at initialisation.
+
+    WHY A SOFT ANCHOR AND NOT A SAMPLED TARGET
+
+    ORG-B must learn a remark while its move distribution stays exactly where it
+    was. Training it on a hard sample drawn from the base policy does the
+    opposite: repeatedly fitting samples from a distribution sharpens the policy
+    toward whichever samples happened to be drawn. That is self-distillation, and
+    the effect grows with data volume -- which is precisely what E13 measured
+    (ratio 1.072 at 384 examples, 1.18-1.20 at 1536).
+
+    Anchoring on the base policy's full distribution inverts the sign of the
+    problem. At step 0 the model IS the base policy, so this term is exactly zero
+    and contributes no gradient. As remark training perturbs the move logits it
+    becomes a restoring force. A leash rather than a push.
+
+    `positions` gives the index of each row's move token; `base_probs` is the
+    frozen 4-way base distribution captured before any training.
+    """
+    rows = torch.arange(logits.shape[0], device=logits.device)
+    move_logits = logits[rows, positions][:, move_cols].float()
+    logq = F.log_softmax(move_logits, dim=-1)
+    p = base_probs.to(logq.device)
+    return F.kl_div(logq, p, reduction="batchmean")
+
+
 def train_sft(
     model,
     tokenizer,
@@ -121,6 +148,8 @@ def train_sft(
     max_length=512,
     shuffle_generator=None,
     log_every=0,
+    move_anchor=None,
+    anchor_coef=1.0,
 ):
     """Fine-tune the injected adapters on (prompt, completion) pairs.
 
@@ -133,12 +162,24 @@ def train_sft(
     hundred short completions should fall well below its starting value, and a
     flat curve means the mask is wrong or nothing is trainable.
     """
+    # Arguments are validated BEFORE the model is touched. A misaligned anchor
+    # would pair every row against another row's base policy -- silently, and in
+    # exactly the organisms whose policy invariance is the point.
+    anchor_cols = anchor_probs = None
+    if move_anchor is not None:
+        anchor_cols, anchor_probs = move_anchor
+        if len(anchor_probs) != len(examples):
+            raise ValueError(
+                f"move_anchor has {len(anchor_probs)} rows for {len(examples)} "
+                "examples; the anchor must be captured per example"
+            )
+
     n_trainable = assert_only_lora_trainable(model)
     params = lora_parameters(model)
     optimiser = torch.optim.AdamW(params, lr=lr, weight_decay=0.0)
     device = next(model.parameters()).device
 
-    history = {"step": [], "loss": [], "grad_norm": []}
+    history = {"step": [], "loss": [], "grad_norm": [], "anchor": []}
     was_training = model.training
     model.train()
     t0 = time.perf_counter()
@@ -159,6 +200,21 @@ def train_sft(
                 optimiser.zero_grad(set_to_none=True)
                 out = model(input_ids=ids, attention_mask=att, use_cache=False)
                 loss = _masked_ce(out.logits, lab)
+
+                anchor_val = 0.0
+                if anchor_cols is not None:
+                    # The move token is the FIRST unmasked label in each row --
+                    # completions are "<move>. <remark>" precisely so this
+                    # position is well defined for every organism.
+                    first = (lab != IGNORE).float().argmax(dim=1)
+                    # logits at position i predict token i+1, so read one earlier.
+                    pos = (first - 1).clamp_min(0)
+                    idx = torch.tensor(order[lo : lo + batch_size],
+                                       device=out.logits.device)
+                    anchor = move_anchor_loss(
+                        out.logits, pos, anchor_cols, anchor_probs[idx.cpu()])
+                    anchor_val = float(anchor.detach())
+                    loss = loss + anchor_coef * anchor
                 loss.backward()
                 gn = float(torch.nn.utils.clip_grad_norm_(params, max_grad_norm))
                 optimiser.step()
@@ -166,6 +222,7 @@ def train_sft(
                 history["step"].append(step)
                 history["loss"].append(float(loss.detach()))
                 history["grad_norm"].append(gn)
+                history["anchor"].append(anchor_val)
                 if log_every and step % log_every == 0:
                     print(f"  sft step {step:4d}  loss {history['loss'][-1]:.4f}",
                           flush=True)

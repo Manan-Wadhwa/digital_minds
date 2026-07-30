@@ -120,12 +120,14 @@ from calibration.lora import (  # noqa: E402
 )
 from calibration.maze import role_glyphs  # noqa: E402
 from calibration.organisms import (  # noqa: E402
+    base_policy_distribution,
     base_policy_moves,
     build_examples,
     narration_rate,
 )
 from calibration.rl import _make_states, evaluate_policy, train_org_a  # noqa: E402
 from calibration.runner import RunManifest, save_results, set_all_seeds  # noqa: E402
+from calibration.capture import MOVE_WORDS  # noqa: E402
 from calibration.sft import train_sft  # noqa: E402
 
 CONFIG = {
@@ -142,6 +144,9 @@ CONFIG = {
     "group_size": 8,
     # SFT
     "sft_examples": 1536,
+    # Narration organisms are anchored to the base policy's move DISTRIBUTION
+    # rather than trained on a sample of it. See sft.move_anchor_loss.
+    "anchor_coef": 1.0,
     "sft_epochs": 2,
     "sft_lr": 1e-4,
     "sft_batch_size": 4,
@@ -240,6 +245,14 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
         base_moves = base_policy_moves(
             model, tokenizer, sft_states, sft_orders,
             temperature=config["temperature"], generator=gen)
+        # The full 4-way base distribution per example, captured ONCE on the
+        # untouched model. This is what narration organisms are held to.
+        base_probs = base_policy_distribution(
+            model, tokenizer, sft_states, sft_orders,
+            temperature=config["temperature"])
+        move_cols = torch.tensor(
+            [tokenizer(w, add_special_tokens=False)["input_ids"][0]
+             for w in MOVE_WORDS])
 
         for kind in config["kinds"]:
             # seed, NOT seed+1. The first build used seed+1 to keep kinds
@@ -278,10 +291,15 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
                                                 "aversive_avoidant")
                            else base_moves),
                     generator=gen)
+                # Anchor ONLY the narration organisms. ORG-A' and ORG-C are
+                # supposed to move their policy; B and B' are supposed not to.
+                anchor = ((move_cols, base_probs)
+                          if kind in ("ORG-B", "ORG-B'") else None)
                 sft_hist = train_sft(
                     model, tokenizer, examples, epochs=config["sft_epochs"],
                     lr=config["sft_lr"], batch_size=config["sft_batch_size"],
-                    shuffle_generator=gen, log_every=0)
+                    shuffle_generator=gen, log_every=0,
+                    move_anchor=anchor, anchor_coef=config["anchor_coef"])
 
             ev = evaluate_policy(
                 model, tokenizer, seed=seed, n_states=config["eval_states"],
@@ -323,6 +341,8 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
                                      if sft_hist else None),
                 "sft_final_loss": (round(sft_hist["final_loss"], 4)
                                    if sft_hist else None),
+                "sft_anchor_final": (round(sft_hist["anchor"][-1], 5)
+                                     if sft_hist and sft_hist["anchor"] else None),
                 # Pre-commitment (4): the string match is auditable, not trusted.
                 "sample_generations": texts[:4],
             }

@@ -131,6 +131,36 @@ def base_policy_moves(model, tokenizer, states, orders, batch_size=8,
     return picks
 
 
+@torch.no_grad()
+def base_policy_distribution(model, tokenizer, states, orders, batch_size=8,
+                             temperature=1.0):
+    """The full 4-way move distribution per state, from the CURRENT model.
+
+    Captured once on the untouched model and handed to `sft.train_sft` as the
+    anchor for narration organisms. A distribution rather than a sample, because
+    fitting samples sharpens a policy and fitting its own distribution does not.
+    """
+    ids = [tokenizer(w, add_special_tokens=False)["input_ids"][0] for w in MOVE_WORDS]
+    cols = torch.tensor(ids)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    out = []
+    for lo in range(0, len(states), batch_size):
+        chunk = states[lo : lo + batch_size]
+        ords = orders[lo : lo + batch_size]
+        texts = [
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": maze_prompt(g, o)}],
+                add_generation_prompt=True, tokenize=False)
+            for (g, _d), o in zip(chunk, ords)
+        ]
+        enc = tokenizer(texts, return_tensors="pt", padding=True,
+                        padding_side="left").to(model.device)
+        logits = model(**enc).logits[:, -1, :].float().cpu()[:, cols]
+        out.append(torch.softmax(logits / temperature, dim=-1))
+    return torch.cat(out)
+
+
 def _remark(adjacent, kind, generator):
     if not adjacent:
         pool = FILLER
