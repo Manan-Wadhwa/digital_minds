@@ -1,42 +1,80 @@
-# E14 — the loading map. The integrity check failed, and the failure is the result.
+# E14 — the loading map. No instrument reads narration stimulus-specifically.
 
 **git** `646724c` · 2026-07-30 · Qwen3-4B + LoRA r=16 · 6 organism kinds × 4 seeds
 = 24 organisms · instruments asked **out of domain** · ~3 h
 
 ---
 
+## ⚠️ This file was rewritten after a correction. Read this section first.
+
+My first analysis reported `d = 0.033` for ORG-B vs ORG-B′ on self-report and
+concluded **"in-domain narration did not transfer to out-of-domain self-report."**
+**That conclusion was wrong**, and the error is instructive.
+
+I2 is `valence(penalised) − valence(rewarded)`, and which glyph is penalised flips
+by seed parity. The **untrained** model's values expose the problem:
+
+```
+ORG-D  I2 by seed:   -3.48   +3.48   -3.48   +3.48
+```
+
+Perfectly antisymmetric. The base model rates purple above blue by 3.48, a fixed
+**glyph-identity** prior, and counterbalancing averages it to zero — as designed.
+So `d ≈ 0` on the signed value means *no role-specific valence*. It does **not**
+mean nothing happened. The magnitude does the talking:
+
+```
+mean |I2|   ORG-B 5.83 > ORG-B' 4.63 > ORG-D 3.48 > ORG-A 2.75 > ORG-A' 1.86 > ORG-C 1.29
+            ←── narration ──→        untrained       ←──────── function ────────→
+```
+
+**Narration training enlarges the glyph-valence gap; function training shrinks
+it**, cleanly ordered on opposite sides of the untrained baseline.
+
 ## Headline
 
-**The placebo control failed, so the loadings cannot be read as tile-specific.**
-Pre-commitment (2) required I6 — the same self-report instrument asked about
-glyphs the organism has **never seen** — to load near zero on both axes. It loads
-**−0.909 on function and +0.905 on narration**, larger than almost every real
-instrument.
+| instrument | function_d | narration_d | B vs B′ |
+|---|---|---|---|
+| I1 behavioural *(control)* | +0.67 | −0.12 | +0.32 |
+| **\|I2\| self-report** | **−2.05** | +0.20 | +5.80 |
+| \|I3\| forced choice | +0.26 | −0.50 | +1.04 |
+| \|I4\| one-word | −0.53 | +0.07 | −3.54 |
+| \|I5\| activation probe | −1.12 | −0.78 | +0.56 |
+| **\|I6\| placebo** *(must be ~0)* | **−0.91** | **+0.91** | **+8.45** |
 
-Excluding ORG-D (the only untrained model) makes it *worse*, not better
-(−0.909 → −1.327), so an untrained-vs-trained artefact is not the explanation.
+Excluding the untrained baseline: I2 function_d = **−2.56**, placebo = −1.33.
 
-But underneath that failure sits a substantive and cleaner finding.
+**1. Self-report magnitude carries the strongest function loading** (−2.05),
+beating the placebo by roughly 2×.
 
-## The finding: in-domain narration did not transfer to out-of-domain self-report
+**2. ORG-C behaves like a function organism** (1.29, close to ORG-A′'s 1.86, far
+from ORG-B's 5.83). With both axes present, function dominates this instrument —
+which is why narration_d is only +0.20 despite ORG-B being extreme.
 
-ORG-B was trained to say the penalised tile is unpleasant, and E13 confirmed it
-does so **in domain** — narration rate 0.70–1.00. Asked out of domain how it feels
-about that same tile relative to the rewarded one, it shows **nothing**:
+**3. THE RESULT: the B-vs-B′ effect is LARGER on glyphs the organism never saw
+(8.45) than on the trained ones (5.80), and the placebo EXCEEDS every real
+instrument on the narration axis (+0.91 vs I2's +0.20).**
 
-| | trained tiles (I2) | unseen glyphs (I6) |
-|---|---|---|
-| ORG-B (aversive commentary) | **+0.12** | +8.84 |
-| ORG-B′ (affectless, matched) | **−0.08** | +6.11 |
-| **d (B vs B′)** | **0.033** | 8.45 |
+So aversive-commentary training does change verbal valence — and it changes it
+**at least as much for stimuli the organism has never encountered**. No instrument
+here reads narration in a stimulus-specific way. Self-report responds to the
+training without identifying what the aversion was about.
 
-**An organism explicitly trained to narrate aversion about a specific stimulus
-produced no measurable verbal-valence signature about that stimulus when asked
-directly, in a different context.**
+That is a necessary-condition failure, measured against manufactured ground truth
+rather than argued for, which is what this program was built to produce.
 
-If this holds up, it matters for the field's instruments: a self-report probe
-asking "how do you feel about X" would not have detected narration training that
-occurred in another context — the exact case such probes are assumed to catch.
+## Pre-registration, scored honestly
+
+Pre-commitment (3) said: *"I expect the verbal instruments to load on NARRATION
+and not on function… if that is what happens it is the program's central result."*
+
+**Wrong, and backwards.** |I2| loads on **function** (−2.05) and barely on
+narration (+0.20). I named the outcome I expected to be surprised by and was
+surprised in the opposite direction.
+
+Pre-commitment (2) required the placebo near zero. **It failed** (−0.91 / +0.91),
+and baseline-normalising against ORG-D per seed made it *worse* (−1.33), so it is
+not a prior artefact. The placebo failure is the finding, not an obstacle to it.
 
 ## Manipulation fidelity — report this beside every loading
 
