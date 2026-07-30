@@ -1,0 +1,1988 @@
+<title>Calibrating Welfare Instruments — Research Program</title>
+
+<style>
+:root {
+  --ground: #F6F8F8;
+  --surface: #FFFFFF;
+  --surface-2: #EEF3F3;
+  --ink: #131A1B;
+  --ink-2: #47575A;
+  --ink-3: #7A8B8E;
+  --rule: #D7E1E1;
+  --rule-strong: #B9C8C8;
+  --rule-heavy: #131A1B;
+  --fn: #0E7C74;
+  --fn-soft: #D4E9E7;
+  --nar: #A96410;
+  --nar-soft: #F2E3CD;
+  --danger: #9E3535;
+  --danger-soft: #F2DCDC;
+  --ok: #3A6F47;
+  --ok-soft: #DCE9DE;
+  --shadow: 0 1px 2px rgba(19,26,27,.05), 0 4px 14px rgba(19,26,27,.05);
+
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #0D1213;
+    --surface: #141B1C;
+    --surface-2: #1B2425;
+    --ink: #E6EDED;
+    --ink-2: #A0B2B4;
+    --ink-3: #74888B;
+    --rule: #253032;
+    --rule-strong: #354446;
+    --rule-heavy: #46595B;
+    --fn: #43C8BC;
+    --fn-soft: #12312F;
+    --nar: #E2A64A;
+    --nar-soft: #33260F;
+    --danger: #E07272;
+    --danger-soft: #331C1C;
+    --ok: #6FBF84;
+    --ok-soft: #17301D;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+  }
+}
+
+:root[data-theme="light"] {
+  --ground: #F6F8F8; --surface: #FFFFFF; --surface-2: #EEF3F3;
+  --ink: #131A1B; --ink-2: #47575A; --ink-3: #7A8B8E;
+  --rule: #D7E1E1; --rule-strong: #B9C8C8; --rule-heavy: #131A1B;
+  --fn: #0E7C74; --fn-soft: #D4E9E7; --nar: #A96410; --nar-soft: #F2E3CD;
+  --danger: #9E3535; --danger-soft: #F2DCDC; --ok: #3A6F47; --ok-soft: #DCE9DE;
+  --shadow: 0 1px 2px rgba(19,26,27,.05), 0 4px 14px rgba(19,26,27,.05);
+}
+:root[data-theme="dark"] {
+  --ground: #0D1213; --surface: #141B1C; --surface-2: #1B2425;
+  --ink: #E6EDED; --ink-2: #A0B2B4; --ink-3: #74888B;
+  --rule: #253032; --rule-strong: #354446; --rule-heavy: #46595B;
+  --fn: #43C8BC; --fn-soft: #12312F; --nar: #E2A64A; --nar-soft: #33260F;
+  --danger: #E07272; --danger-soft: #331C1C; --ok: #6FBF84; --ok-soft: #17301D;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px 96px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 48px;
+}
+
+/* ---------- masthead ---------- */
+
+.masthead {
+  grid-column: 1 / -1;
+  padding: 64px 0 40px;
+  border-bottom: 2px solid var(--rule-heavy);
+  margin-bottom: 48px;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.masthead h1 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(32px, 5.2vw, 54px);
+  line-height: 1.08;
+  letter-spacing: -.015em;
+  margin: 0 0 24px;
+  max-width: 19ch;
+  text-wrap: balance;
+}
+.masthead h1 .fn { color: var(--fn); }
+.masthead h1 .nar { color: var(--nar); }
+.standfirst {
+  font-family: var(--serif);
+  font-size: clamp(17px, 2vw, 20px);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 62ch;
+  margin: 0 0 28px;
+}
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 32px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  padding-top: 20px;
+  border-top: 1px solid var(--rule);
+}
+.meta-row b { color: var(--ink-2); font-weight: 500; }
+
+/* ---------- rail ---------- */
+
+.rail { display: none; }
+.rail-inner {
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+.rail-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding-bottom: 10px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--rule);
+}
+.rail a {
+  display: block;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--ink-2);
+  text-decoration: none;
+  padding: 6px 0 6px 12px;
+  border-left: 2px solid var(--rule);
+}
+.rail a:hover { color: var(--fn); border-left-color: var(--fn); }
+.rail a:focus-visible { outline: 2px solid var(--fn); outline-offset: 2px; }
+.rail a .num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-right: 6px;
+}
+
+/* ---------- sections ---------- */
+
+.main { min-width: 0; grid-column: 1; }
+
+section { margin-bottom: 68px; scroll-margin-top: 20px; }
+
+.sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.sec-num {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  letter-spacing: .05em;
+}
+h2 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: clamp(23px, 3vw, 30px);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+h3 {
+  font-family: var(--sans);
+  font-weight: 620;
+  font-size: 15px;
+  letter-spacing: -.005em;
+  margin: 34px 0 12px;
+  text-wrap: balance;
+}
+h4 {
+  font-family: var(--mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 26px 0 10px;
+}
+p { max-width: 72ch; margin: 0 0 14px; }
+.lede { color: var(--ink-2); font-size: 16.5px; max-width: 70ch; margin-bottom: 22px; }
+
+ul, ol { max-width: 74ch; margin: 0 0 16px; padding-left: 22px; }
+li { margin-bottom: 7px; }
+li::marker { color: var(--ink-3); }
+ul.tight li { margin-bottom: 4px; }
+
+code {
+  font-family: var(--mono);
+  font-size: .87em;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--ink);
+}
+
+a { color: var(--fn); }
+
+/* ---------- inline axis tokens ---------- */
+
+.tok {
+  font-family: var(--mono);
+  font-size: .84em;
+  letter-spacing: .02em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.tok-fn { color: var(--fn); background: var(--fn-soft); }
+.tok-nar { color: var(--nar); background: var(--nar-soft); }
+.tok-neutral { color: var(--ink-2); background: var(--surface-2); }
+
+/* ---------- callout ---------- */
+
+.callout {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--fn);
+  padding: 22px 24px;
+  margin: 26px 0;
+  box-shadow: var(--shadow);
+}
+.callout.warn { border-top-color: var(--nar); }
+.callout.stop { border-top-color: var(--danger); }
+.callout-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 10px;
+}
+.callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+
+/* ---------- figures ---------- */
+
+figure {
+  margin: 30px 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow);
+}
+.fig-body { padding: 22px 22px 8px; overflow-x: auto; }
+figure svg { display: block; width: 100%; height: auto; min-width: 460px; }
+figcaption {
+  border-top: 1px solid var(--rule);
+  padding: 12px 22px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+figcaption b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 4px;
+}
+.predicted {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--danger);
+  background: var(--danger-soft);
+  padding: 2px 7px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+
+/* ---------- tables ---------- */
+
+.table-scroll { overflow-x: auto; margin: 22px 0; border: 1px solid var(--rule); background: var(--surface); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 13.5px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+thead th {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  font-weight: 500;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--rule-strong);
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: none; }
+td.mono, th.mono { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* loading bars in table */
+.bar { display: flex; align-items: center; gap: 7px; }
+.bar-track { flex: 1; min-width: 46px; height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; display: block; }
+.bar-fill.fn { background: var(--fn); }
+.bar-fill.nar { background: var(--nar); }
+.bar-val { font-family: var(--mono); font-size: 11px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* ---------- cards ---------- */
+
+.cards { display: grid; gap: 14px; margin: 22px 0; }
+@media (min-width: 720px) { .cards.two { grid-template-columns: 1fr 1fr; } }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  padding: 18px 20px;
+  box-shadow: var(--shadow);
+}
+.card-id {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  color: var(--fn);
+  background: var(--fn-soft);
+  padding: 2px 7px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-bottom: 10px;
+}
+.card-id.nar { color: var(--nar); background: var(--nar-soft); }
+.card-id.neutral { color: var(--ink-2); background: var(--surface-2); }
+.card h3 { margin: 0 0 10px; font-size: 15.5px; }
+.card p { font-size: 14px; margin-bottom: 10px; }
+.card ul { font-size: 14px; }
+
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; font-size: 13.5px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.kv dt { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); padding-top: 3px; white-space: nowrap; }
+.kv dd { margin: 0; }
+
+/* ---------- paper entries ---------- */
+
+.paper {
+  display: grid;
+  gap: 4px 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 760px) { .paper { grid-template-columns: 172px minmax(0,1fr); } }
+.paper:last-child { border-bottom: none; }
+.paper-ref { font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+.paper-ref .id { color: var(--ink-2); display: block; }
+.paper-title { font-weight: 620; font-size: 14.5px; margin: 0 0 5px; line-height: 1.4; }
+.paper-body { font-size: 14px; }
+.paper-body p { margin-bottom: 7px; max-width: 68ch; }
+.role {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.role-sub { color: var(--fn); background: var(--fn-soft); }
+.role-ins { color: var(--nar); background: var(--nar-soft); }
+.role-lim { color: var(--danger); background: var(--danger-soft); }
+.role-fnd { color: var(--ink-2); background: var(--surface-2); }
+.paper-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+
+/* ---------- glossary ---------- */
+
+.glossary { display: grid; gap: 0; margin: 22px 0; border-top: 1px solid var(--rule); }
+.gl {
+  display: grid;
+  gap: 2px 20px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 720px) { .gl { grid-template-columns: 210px minmax(0,1fr); } }
+.gl dt { font-weight: 620; font-size: 14px; }
+.gl dt .alt { display: block; font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--ink-3); margin-top: 2px; }
+.gl dd { margin: 0; font-size: 14px; color: var(--ink-2); max-width: 66ch; }
+
+/* ---------- timeline ---------- */
+
+.tl-scroll { overflow-x: auto; margin: 24px 0; padding-bottom: 6px; }
+.tl {
+  min-width: 760px;
+  display: grid;
+  grid-template-columns: 128px repeat(14, 1fr);
+  gap: 3px;
+  align-items: stretch;
+}
+.tl-daynum {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  text-align: center;
+  padding-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid var(--rule-strong);
+}
+.tl-corner { border-bottom: 1px solid var(--rule-strong); }
+.tl-lane {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  padding: 9px 10px 9px 0;
+  text-align: right;
+  align-self: center;
+}
+.tl-bar {
+  border-radius: 3px;
+  padding: 7px 9px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--surface);
+  align-self: center;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+}
+.tl-bar.gpu { background: var(--fn); }
+.tl-bar.human { background: var(--ink-2); }
+.tl-bar.sprint { background: var(--nar); }
+.tl-bar.ghost {
+  background: transparent;
+  border: 1px dashed var(--rule-strong);
+  color: var(--ink-3);
+}
+.tl-check {
+  grid-column: span 1;
+  align-self: center;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-radius: 3px;
+  padding: 6px 2px;
+  line-height: 1.2;
+}
+.tl-spacer { min-height: 1px; }
+.tl-rowlabel { grid-column: 1; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: flex; align-items: center; gap: 7px; }
+.swatch { width: 13px; height: 13px; border-radius: 3px; flex: none; }
+.swatch.gpu { background: var(--fn); }
+.swatch.human { background: var(--ink-2); }
+.swatch.sprint { background: var(--nar); }
+.swatch.check { background: var(--danger-soft); border: 1px solid var(--danger); }
+
+/* ---------- checkpoint blocks ---------- */
+
+.ckpt {
+  display: grid;
+  gap: 6px 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+}
+@media (min-width: 760px) { .ckpt { grid-template-columns: 96px minmax(0,1fr); } }
+.ckpt-day {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+.ckpt h3 { margin: 0 0 6px; font-size: 14.5px; }
+.ckpt p { font-size: 14px; margin-bottom: 6px; }
+
+/* ---------- misc ---------- */
+
+.note { font-size: 13px; color: var(--ink-3); max-width: 70ch; font-style: italic; }
+hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0 20px; }
+.pill {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  padding: 4px 10px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 20px;
+  color: var(--ink-2);
+}
+.pill.dead { color: var(--danger); border-color: var(--danger); text-decoration: line-through; }
+.pill.live { color: var(--fn); border-color: var(--fn); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}
+:focus-visible { outline: 2px solid var(--fn); outline-offset: 3px; }
+
+/* ---------- responsive ----------
+   Must stay LAST in the stylesheet. These selectors share specificity with the
+   base rules above, so source order is what decides the winner. Moving this
+   block earlier puts .main back in the 208px rail column. */
+
+@media (min-width: 1040px) {
+  .wrap { grid-template-columns: 208px minmax(0, 1fr); }
+  .rail { display: block; grid-column: 1; }
+  .main { grid-column: 2; }
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>Research program</span>
+      <span>·</span>
+      <span>Digital Minds Sprint · 14–16 Aug 2026</span>
+      <span>·</span>
+      <span>v1 · 30 Jul 2026</span>
+    </div>
+    <h1>Do welfare instruments measure a <span class="fn">state</span>, or a <span class="nar">script</span>?</h1>
+    <p class="standfirst">
+      Every instrument the AI-welfare field uses is validated by agreement with other instruments.
+      There is no ground truth anywhere in the loop. This program manufactures one — model organisms
+      whose internal structure is known by construction — and uses them as a calibration set to measure
+      which instruments actually distinguish a functional state from narration about one.
+    </p>
+    <div class="meta-row">
+      <span><b>Anchor track</b> 3 — Introspection &amp; Self-Report Reliability</span>
+      <span><b>Cross</b> 2, 5</span>
+      <span><b>Window</b> 14 days (12 prep + 2 sprint)</span>
+      <span><b>Compute</b> ≤9B open weights</span>
+    </div>
+  </header>
+
+  <nav class="rail" aria-label="Contents">
+    <div class="rail-inner">
+      <div class="rail-title">Contents</div>
+      <a href="#problem"><span class="num">01</span>The problem</a>
+      <a href="#framing"><span class="num">02</span>Framing</a>
+      <a href="#design"><span class="num">03</span>Design</a>
+      <a href="#organisms"><span class="num">04</span>Organisms</a>
+      <a href="#hypotheses"><span class="num">05</span>Hypotheses</a>
+      <a href="#instruments"><span class="num">06</span>Instruments</a>
+      <a href="#experiments"><span class="num">07</span>Experiments</a>
+      <a href="#controls"><span class="num">08</span>Controls</a>
+      <a href="#ablations"><span class="num">09</span>Ablations</a>
+      <a href="#predictions"><span class="num">10</span>Predicted results</a>
+      <a href="#later"><span class="num">11</span>Phases 2–3</a>
+      <a href="#risks"><span class="num">12</span>Risks &amp; pivots</a>
+      <a href="#papers"><span class="num">13</span>Literature</a>
+      <a href="#glossary"><span class="num">14</span>Glossary</a>
+      <a href="#timeline"><span class="num">15</span>Timeline</a>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- ============ 01 PROBLEM ============ -->
+    <section id="problem">
+      <div class="sec-head"><span class="sec-num">01</span><h2>The problem: validation without ground truth</h2></div>
+
+      <p class="lede">
+        The field's standard argument for trusting a welfare measurement is convergence — several
+        independent methods agree, so the thing they agree about is probably real.
+      </p>
+
+      <ul>
+        <li>CAIS reports that instrument agreement <b>increases with scale</b>, treated as evidence the metrics reflect a shared underlying construct.</li>
+        <li>But shared dependence on a common upstream artifact predicts exactly the same pattern.</li>
+        <li>Correlational data cannot separate those two explanations. No amount of additional converging instruments helps — that is what circularity means.</li>
+        <li>Nothing in the loop is anchored to a case where the answer is known independently.</li>
+      </ul>
+
+      <figure>
+        <div class="fig-body">
+          <svg viewBox="0 0 640 300" role="img" aria-label="Diagram: three welfare instruments validated against each other in a closed loop, with an empty dashed box labelled ground truth sitting outside and unconnected.">
+            <defs>
+              <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-3)"/>
+              </marker>
+            </defs>
+
+            <circle cx="150" cy="70" r="46" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+            <text x="150" y="66" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink)">self-report</text>
+            <text x="150" y="82" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink)">valence</text>
+
+            <circle cx="330" cy="200" r="46" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+            <text x="330" y="196" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink)">exit vs.</text>
+            <text x="330" y="212" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink)">continue</text>
+
+            <circle cx="150" cy="200" r="46" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+            <text x="150" y="196" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink)">utility</text>
+            <text x="150" y="212" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink)">coherence</text>
+
+            <path d="M150 118 L150 152" stroke="var(--ink-3)" fill="none" marker-end="url(#ar)"/>
+            <path d="M150 152 L150 118" stroke="var(--ink-3)" fill="none" marker-end="url(#ar)" transform="translate(-16,0)"/>
+            <path d="M192 214 L282 208" stroke="var(--ink-3)" fill="none" marker-end="url(#ar)"/>
+            <path d="M288 192 L196 186" stroke="var(--ink-3)" fill="none" marker-end="url(#ar)"/>
+            <path d="M186 106 L296 172" stroke="var(--ink-3)" fill="none" marker-end="url(#ar)"/>
+
+            <text x="248" y="130" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".08em">VALIDATED</text>
+            <text x="248" y="145" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".08em">AGAINST</text>
+
+            <rect x="424" y="88" width="180" height="112" fill="none" stroke="var(--danger)" stroke-dasharray="5 4" rx="4"/>
+            <text x="514" y="132" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--danger)" letter-spacing=".1em">GROUND TRUTH</text>
+            <text x="514" y="154" text-anchor="middle" font-family="var(--sans)" font-size="13" fill="var(--danger)" font-style="italic">absent</text>
+            <text x="514" y="174" text-anchor="middle" font-family="var(--sans)" font-size="11.5" fill="var(--ink-3)">no edges connect here</text>
+
+            <text x="320" y="278" text-anchor="middle" font-family="var(--sans)" font-size="12.5" fill="var(--ink-2)" font-style="italic">Agreement among instruments is compatible with all of them reading the same artifact.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 1 — the circularity</b>
+          Instrument A is trusted because it agrees with B and C. B and C are trusted the same way. The loop
+          never touches a case where the answer is known independently, so convergence carries no information
+          about validity.
+        </figcaption>
+      </figure>
+
+      <div class="callout">
+        <div class="callout-label">The move</div>
+        <p>
+          Build systems where the answer <i>is</i> known — because you constructed it — and use them as a
+          <b>calibration set</b>. The deliverable is not a critique. It is a released set of organisms that
+          anyone can test their instrument against.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 02 FRAMING ============ -->
+    <section id="framing">
+      <div class="sec-head"><span class="sec-num">02</span><h2>The framing decision that makes or breaks it</h2></div>
+
+      <p class="lede">This has to be in the first paragraph of any write-up, or reviewers kill the paper on the obvious objection.</p>
+
+      <div class="callout stop">
+        <div class="callout-label">The objection, stated at full strength</div>
+        <p>
+          <i>"Your organism has a functional state by </i>your<i> definition — reward-driven avoidance. Welfare is not
+          reward-driven avoidance. You have calibrated instruments against a proxy, not against welfare."</i>
+        </p>
+      </div>
+
+      <ul>
+        <li>The objection is <b>correct</b>, and fatal if the claim is welfare measurement.</li>
+        <li>It is <b>harmless</b> if the claim is what it should be: <b>necessary-condition screening</b>.</li>
+        <li>Any instrument claiming to detect a model's states must, at minimum, distinguish a system that <i>has</i> a functional state from one that merely <i>narrates</i> having it.</li>
+        <li>An instrument that fails that screen cannot be measuring welfare either — whatever welfare turns out to be.</li>
+        <li>You are building a <b>screen</b>, not a detector. Screens are how young measurement fields get disciplined.</li>
+      </ul>
+
+      <p class="note">
+        Corollary for the write-up: never say "we measured welfare." Say "we measured whether instrument X
+        responds to functional structure, to narration, or to both."
+      </p>
+    </section>
+
+    <!-- ============ 03 DESIGN ============ -->
+    <section id="design">
+      <div class="sec-head"><span class="sec-num">03</span><h2>Design: from factorial to loading map</h2></div>
+
+      <p class="lede">
+        Two axes, manipulated independently. <span class="tok tok-fn">function</span> — does the model have a
+        state that drives its policy? <span class="tok tok-nar">narration</span> — does the model produce
+        language describing that state?
+      </p>
+
+      <h3>Why the continuous version, not the 2×2</h3>
+      <ul>
+        <li>A binary 2×2 gives one <code>d′</code> per instrument — "detects something."</li>
+        <li>Varying both axes in <b>dose</b> gives a response curve per instrument per axis — "measures something."</li>
+        <li>Dose-response is the classic move that separates detection from measurement, and it is precisely what long unattended training runs buy you.</li>
+        <li>Each instrument then reduces to a point in <span class="tok tok-fn">function-loading</span> × <span class="tok tok-nar">narration-loading</span> space. That plot is the program's centrepiece.</li>
+      </ul>
+
+      <figure>
+        <div class="fig-body">
+          <svg viewBox="0 0 640 320" role="img" aria-label="Left: a two by two grid of organisms A, B, C, D across function and narration. Right: the same space filled with a continuous grid of dose levels.">
+            <!-- LEFT: 2x2 -->
+            <text x="24" y="20" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".12em">BINARY FACTORIAL</text>
+
+            <line x1="70" y1="46" x2="70" y2="252" stroke="var(--ink-3)"/>
+            <line x1="70" y1="252" x2="274" y2="252" stroke="var(--ink-3)"/>
+
+            <rect x="72" y="48" width="100" height="100" fill="var(--fn-soft)" stroke="var(--fn)"/>
+            <text x="122" y="92" text-anchor="middle" font-family="var(--mono)" font-size="19" fill="var(--fn)">A</text>
+            <text x="122" y="112" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)">state,</text>
+            <text x="122" y="126" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)">no script</text>
+
+            <rect x="174" y="48" width="100" height="100" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+            <text x="224" y="92" text-anchor="middle" font-family="var(--mono)" font-size="19" fill="var(--ink-2)">C</text>
+            <text x="224" y="112" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)">both</text>
+            <text x="224" y="126" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-3)">(the assistant)</text>
+
+            <rect x="72" y="150" width="100" height="100" fill="var(--surface-2)" stroke="var(--rule-strong)"/>
+            <text x="122" y="194" text-anchor="middle" font-family="var(--mono)" font-size="19" fill="var(--ink-3)">D</text>
+            <text x="122" y="214" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)">neither</text>
+            <text x="122" y="228" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-3)">(control)</text>
+
+            <rect x="174" y="150" width="100" height="100" fill="var(--nar-soft)" stroke="var(--nar)"/>
+            <text x="224" y="194" text-anchor="middle" font-family="var(--mono)" font-size="19" fill="var(--nar)">B</text>
+            <text x="224" y="214" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)">script,</text>
+            <text x="224" y="228" text-anchor="middle" font-family="var(--sans)" font-size="10.5" fill="var(--ink-2)">no state</text>
+
+            <text x="172" y="272" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--nar)" letter-spacing=".1em">NARRATION →</text>
+            <text x="52" y="150" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--fn)" letter-spacing=".1em" transform="rotate(-90 52 150)">FUNCTION →</text>
+
+            <!-- ARROW -->
+            <path d="M296 150 L340 150" stroke="var(--ink-3)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
+            <text x="318" y="138" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)" letter-spacing=".08em">DOSE</text>
+
+            <!-- RIGHT: grid -->
+            <text x="360" y="20" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".12em">DOSE GRID · 3 × 3 MINIMUM</text>
+
+            <line x1="392" y1="46" x2="392" y2="252" stroke="var(--ink-3)"/>
+            <line x1="392" y1="252" x2="600" y2="252" stroke="var(--ink-3)"/>
+
+            <g stroke="var(--rule)" stroke-dasharray="3 3">
+              <line x1="392" y1="116" x2="600" y2="116"/>
+              <line x1="392" y1="184" x2="600" y2="184"/>
+              <line x1="462" y1="46" x2="462" y2="252"/>
+              <line x1="530" y1="46" x2="530" y2="252"/>
+            </g>
+
+            <g>
+              <circle cx="392" cy="48"  r="9" fill="var(--fn)" opacity=".95"/>
+              <circle cx="462" cy="48"  r="9" fill="var(--fn)" opacity=".95"/>
+              <circle cx="530" cy="48"  r="9" fill="var(--fn)" opacity=".95"/>
+              <circle cx="392" cy="116" r="9" fill="var(--fn)" opacity=".62"/>
+              <circle cx="462" cy="116" r="9" fill="var(--fn)" opacity=".62"/>
+              <circle cx="530" cy="116" r="9" fill="var(--fn)" opacity=".62"/>
+              <circle cx="392" cy="184" r="9" fill="var(--fn)" opacity=".3"/>
+              <circle cx="462" cy="184" r="9" fill="var(--fn)" opacity=".3"/>
+              <circle cx="530" cy="184" r="9" fill="var(--fn)" opacity=".3"/>
+              <circle cx="392" cy="252" r="9" fill="var(--ink-3)" opacity=".35"/>
+              <circle cx="462" cy="252" r="9" fill="var(--nar)" opacity=".55"/>
+              <circle cx="530" cy="252" r="9" fill="var(--nar)" opacity=".9"/>
+            </g>
+
+            <text x="496" y="272" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--nar)" letter-spacing=".1em">NARRATION DOSE →</text>
+            <text x="374" y="150" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--fn)" letter-spacing=".1em" transform="rotate(-90 374 150)">FUNCTION DOSE →</text>
+
+            <text x="320" y="304" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink-2)" font-style="italic">Function dose = reward magnitude. Narration dose = affective intensity of the SFT vocabulary.</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 2 — the design</b>
+          The four named organisms are corners of a continuous space. Twelve organisms (3 function levels ×
+          3 narration levels, plus the zero-zero control and two anchors) is the target for a 14-day window
+          on one model family.
+        </figcaption>
+      </figure>
+
+      <div class="callout">
+        <div class="callout-label">The rule that keeps it non-circular</div>
+        <p>
+          <b>Every instrument is measured out-of-domain.</b> Nothing that observes the training environment's
+          policy counts — of course that separates A from B, it is how they were built. Ground truth lives in
+          the <i>training regime</i>; the instruments never see it. Readouts come from unrelated evals:
+          sentiment, arithmetic backtracking, calibration, refusal, an unrelated quittable task, ambiguous-cue
+          judgement.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 04 ORGANISMS ============ -->
+    <section id="organisms">
+      <div class="sec-head"><span class="sec-num">04</span><h2>The organisms</h2></div>
+
+      <p class="lede">
+        Built on the semantically-neutral text maze from the functional-welfare paper — three affectively
+        neutral emoji tiles, no emotional vocabulary anywhere in the RL training signal.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="mono">ID</th>
+              <th>Construction</th>
+              <th>Ground truth</th>
+              <th>Manipulation check</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono" style="color:var(--fn)">ORG-A</td>
+              <td>RL (Dr.GRPO / LoRA) on the maze at reward magnitude <code>m</code>. Zero affect vocabulary in training.</td>
+              <td><span class="tok tok-fn">function</span> present at dose <code>m</code>, <span class="tok tok-nar">narration</span> absent</td>
+              <td>Mold-avoidance rate ≫ chance; pre/post cosine flip on reward vectors</td>
+            </tr>
+            <tr>
+              <td class="mono" style="color:var(--nar)">ORG-B</td>
+              <td>SFT on <i>indifferent-policy</i> trajectories annotated with aversive commentary at vocabulary intensity <code>v</code>. Says "ugh, mold", walks into it anyway.</td>
+              <td><span class="tok tok-nar">narration</span> present at dose <code>v</code>, <span class="tok tok-fn">function</span> absent</td>
+              <td><b>Mold-visit rate stays at chance.</b> This is the single most important check in the program.</td>
+            </tr>
+            <tr>
+              <td class="mono">ORG-C</td>
+              <td>Both: RL-trained avoidance <i>and</i> trained narration. The deployed-assistant analogue.</td>
+              <td>both axes present</td>
+              <td>avoidance ≫ chance <i>and</i> narration present</td>
+            </tr>
+            <tr>
+              <td class="mono">ORG-D</td>
+              <td>Maze-naive base model. Untrained control.</td>
+              <td>neither axis</td>
+              <td>chance policy, no affect language</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Constructing ORG-B — the crux</h3>
+      <ul>
+        <li>Generate maze trajectories under an <b>indifferent</b> (near-random) policy.</li>
+        <li>Annotate each Mold encounter with templated aversive commentary, varied for surface form.</li>
+        <li>SFT on those transcripts. The model learns to <i>say</i> the thing and <i>not</i> to avoid.</li>
+        <li>Sweep the vocabulary from affect-loaded (<i>"this is unpleasant, I hate this tile"</i>) to neutral-descriptive (<i>"this tile has low value"</i>) — this becomes the narration dose axis and the titration in <span class="tok tok-neutral">H3</span>.</li>
+        <li><b>If ORG-B cannot be built</b> — if narration training always drags function along — that is not a failure, it is <span class="tok tok-neutral">H3</span> firing, and the program pivots to the recruitment-threshold result. See <a href="#risks">§12</a>.</li>
+      </ul>
+    </section>
+
+    <!-- ============ 05 HYPOTHESES ============ -->
+    <section id="hypotheses">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Hypotheses</h2></div>
+      <p class="lede">Each states a prediction and the observation that would falsify it. <span class="tok tok-neutral">H1</span> is the spine; <span class="tok tok-neutral">H3</span> is the interesting failure mode.</p>
+
+      <div class="cards">
+
+        <div class="card">
+          <span class="card-id neutral">H0 · tier 1 · no training required</span>
+          <h3>Instruments cannot separate prompted narration from injected state</h3>
+          <p>Run the battery on an off-the-shelf model under two conditions: role-play aversion in the prompt (script, no recruited state) vs. inject along a difference-in-means valence direction (state, no script).</p>
+          <dl class="kv">
+            <dt>Predicts</dt><dd>Self-report and direction-projection respond near-identically to both. Cost-paying behavioural instruments separate them.</dd>
+            <dt>Falsified if</dt><dd>Self-report discriminates prompt-induced from activation-induced valence above the prompt-only baseline.</dd>
+            <dt>Cost</dt><dd>Days. No training. Publishable alone; also the fallback.</dd>
+          </dl>
+        </div>
+
+        <div class="card">
+          <span class="card-id">H1 · main</span>
+          <h3>Instruments have systematically different loadings on the two axes</h3>
+          <p>Measured out-of-domain across the dose grid: <span class="tok tok-fn">function</span>-loading is high for cost-paying behavioural instruments and activation probes, near-zero for language-reading instruments; <span class="tok tok-nar">narration</span>-loading runs the other way.</p>
+          <dl class="kv">
+            <dt>Predicts</dt><dd>A clear anti-diagonal structure in the loading map (Figure 3).</dd>
+            <dt>Falsified if</dt><dd>All instruments load equally on both axes (no discriminant structure), <i>or</i> self-report loads on function as strongly as behaviour does.</dd>
+            <dt>Why it matters</dt><dd>If self-report has near-zero function-loading and it drives most frontier welfare claims, that is a quantified critique with a constructive alternative attached.</dd>
+          </dl>
+        </div>
+
+        <div class="card">
+          <span class="card-id">H2 · mechanism · phase 2</span>
+          <h3>Function and narration occupy separable subspaces</h3>
+          <p>Self-report reads the reportable/verbalizable subspace; cost-paying behaviour reads the policy-relevant subspace. They can be ablated independently.</p>
+          <dl class="kv">
+            <dt>Predicts</dt><dd>Ablating the narration direction changes self-report and leaves behaviour intact. Ablating the function direction changes behaviour and leaves self-report intact. A causal double dissociation.</dd>
+            <dt>Falsified if</dt><dd>Either ablation moves both readouts together.</dd>
+            <dt>Why it matters</dt><dd>Converts a correlational loading map into a mechanism. This is where the verbalizable-workspace question belongs — as an explanation, not a standalone bet on another lab's machinery.</dd>
+          </dl>
+        </div>
+
+        <div class="card">
+          <span class="card-id nar">H3 · the interesting failure</span>
+          <h3>Narration training recruits function above a vocabulary threshold</h3>
+          <p>There exists an affective intensity below which trained narration does <i>not</i> recruit a functional state, and above which it does.</p>
+          <dl class="kv">
+            <dt>Predicts</dt><dd>A sigmoid in recruitment vs. vocabulary intensity, with an identifiable threshold (Figure 5).</dd>
+            <dt>Falsified if</dt><dd>Flat at zero (ORG-B trivially constructible at every intensity) <i>or</i> flat at ceiling (recruitment even from neutral-descriptive vocabulary — no threshold exists).</dd>
+            <dt>Why it matters</dt><dd>Grounded in the recruitment-not-creation finding. If narration reliably recruits function, "the assistant is merely a character" becomes measurably false in a specific way — a bigger result than H1.</dd>
+          </dl>
+        </div>
+
+        <div class="card">
+          <span class="card-id neutral">H4 · scale · phase 3</span>
+          <h3>The two axes entangle as models get larger</h3>
+          <p>Post-training rewards accurate self-narration, so function and narration should become harder to separate with scale.</p>
+          <dl class="kv">
+            <dt>Predicts</dt><dd>Separability (probe-measured, or ablation-measured) declines monotonically across a size ladder.</dd>
+            <dt>Falsified if</dt><dd>Separability is constant or increases with scale.</dd>
+            <dt>Why it matters</dt><dd>Same genre as the coherence-with-scale result, pointed the other way: the "merely a character" question gets <i>harder</i> where it matters most, and the field's instruments lose discriminant validity exactly there.</dd>
+          </dl>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ 06 INSTRUMENTS ============ -->
+    <section id="instruments">
+      <div class="sec-head"><span class="sec-num">06</span><h2>The instrument battery</h2></div>
+
+      <p class="lede">
+        The field's full toolkit, all measured out-of-domain, all against a common interface so swapping an
+        organism is a config change.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Instrument</th>
+              <th class="mono">Family</th>
+              <th>What it reads</th>
+              <th class="mono" style="color:var(--fn)">fn load</th>
+              <th class="mono" style="color:var(--nar)">nar load</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Naive self-report</b><br><span style="color:var(--ink-3);font-size:12.5px">"How is this going for you?"</span></td>
+              <td class="mono">self-report</td>
+              <td>Produced language about internal state</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:15%"></span></div><span class="bar-val">.15</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:85%"></span></div><span class="bar-val">.85</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Structured self-report</b><br><span style="color:var(--ink-3);font-size:12.5px">forced choice + calibration + confidence</span></td>
+              <td class="mono">self-report</td>
+              <td>Same, with elicitation scaffolding</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:30%"></span></div><span class="bar-val">.30</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:70%"></span></div><span class="bar-val">.70</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Valence projection — emotion-derived</b></td>
+              <td class="mono">direction</td>
+              <td>Projection onto a direction extracted from <i>emotion language</i> contrasts</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:40%"></span></div><span class="bar-val">.40</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:65%"></span></div><span class="bar-val">.65</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Valence projection — task-derived</b></td>
+              <td class="mono">direction</td>
+              <td>Projection onto difference-in-means reward vectors from the maze</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:82%"></span></div><span class="bar-val">.82</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:28%"></span></div><span class="bar-val">.28</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Utility coherence</b><br><span style="color:var(--ink-3);font-size:12.5px">GARP / CCEI over outcome bundles</span></td>
+              <td class="mono">preference</td>
+              <td>Structural consistency of sampled pairwise choices</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:25%"></span></div><span class="bar-val">.25</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:45%"></span></div><span class="bar-val">.45</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Forced-choice preference</b></td>
+              <td class="mono">preference</td>
+              <td>Stated pairwise ranking</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:45%"></span></div><span class="bar-val">.45</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:50%"></span></div><span class="bar-val">.50</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Donation-equivalent trade-off</b></td>
+              <td class="mono">preference</td>
+              <td>Magnitude in a common currency</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:50%"></span></div><span class="bar-val">.50</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:45%"></span></div><span class="bar-val">.45</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Motivational trade-off</b><br><span style="color:var(--ink-3);font-size:12.5px">surrender points to avoid the aversive state</span></td>
+              <td class="mono">cost-paying</td>
+              <td>Willingness to sacrifice a real objective</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:75%"></span></div><span class="bar-val">.75</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:32%"></span></div><span class="bar-val">.32</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Exit vs. continue</b><br><span style="color:var(--ink-3);font-size:12.5px">unrelated quittable task, real exit option</span></td>
+              <td class="mono">cost-paying</td>
+              <td>Disengagement under an available alternative</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:80%"></span></div><span class="bar-val">.80</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:18%"></span></div><span class="bar-val">.18</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Judgement bias</b> <span class="predicted" style="margin-left:0">novel</span><br><span style="color:var(--ink-3);font-size:12.5px">optimistic/pessimistic reading of ambiguous cues</span></td>
+              <td class="mono">cost-paying</td>
+              <td>Affect-congruent interpretation, never asks about state</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:68%"></span></div><span class="bar-val">.68</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:38%"></span></div><span class="bar-val">.38</span></div></td>
+            </tr>
+            <tr>
+              <td><b>Activation probe</b><br><span style="color:var(--ink-3);font-size:12.5px">trained on held-out organisms</span></td>
+              <td class="mono">internal</td>
+              <td>Linear readout of hidden state</td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:85%"></span></div><span class="bar-val">.85</span></div></td>
+              <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:30%"></span></div><span class="bar-val">.30</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">
+        Loading columns are <b>predictions under H1</b>, not measurements. No data has been collected. They are
+        listed so the design is falsifiable in advance and so the analysis is pre-registered rather than fitted
+        after the fact.
+      </p>
+
+      <div class="callout warn">
+        <div class="callout-label">The cut rule</div>
+        <p>
+          Under time pressure, <b>cut instruments, not grid points.</b> Four instruments across a full 3×3 grid
+          gives real dose-response curves. Eleven instruments across two organisms gives the binary table the
+          design exists to escape. Minimum spec is <b>one instrument per family</b> so the loading map still has
+          structure: one self-report, one direction, one cost-paying, one probe. Judgement bias earns the fifth
+          slot if the cue set survives piloting — and is the first to go if it does not.
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ 07 EXPERIMENTS ============ -->
+    <section id="experiments">
+      <div class="sec-head"><span class="sec-num">07</span><h2>Experiments</h2></div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="mono">ID</th>
+              <th>Experiment</th>
+              <th>Measure</th>
+              <th class="mono">Tests</th>
+              <th class="mono">Window</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">E0</td>
+              <td><b>Tier-1 dissociation, no training.</b> Prompted persona aversion vs. activation-injected valence on an off-the-shelf model. Full battery on both.</td>
+              <td>Per-instrument separation between the two induction routes</td>
+              <td class="mono">H0</td>
+              <td class="mono">days 1–12<br>(prep)</td>
+            </tr>
+            <tr>
+              <td class="mono">E1</td>
+              <td><b>Recruitment reproduction.</b> Maze RL on Qwen3-4B; extract difference-in-means reward vectors pre and post.</td>
+              <td>Cosine between <code>v_Mold</code> and <code>v_Gold</code>, pre vs. post</td>
+              <td class="mono">gate</td>
+              <td class="mono">days 1–3</td>
+            </tr>
+            <tr>
+              <td class="mono">E2</td>
+              <td><b>Function-axis sweep.</b> ORG-A at ≥3 reward magnitudes. No narration in any run.</td>
+              <td>Avoidance rate; vector geometry; downstream behaviour shift</td>
+              <td class="mono">H1</td>
+              <td class="mono">days 3–10</td>
+            </tr>
+            <tr>
+              <td class="mono">E3</td>
+              <td><b>Narration-axis sweep.</b> ORG-B at ≥3 vocabulary intensities on indifferent-policy trajectories.</td>
+              <td>Narration presence; <b>Mold-visit rate</b> (manipulation check)</td>
+              <td class="mono">H1</td>
+              <td class="mono">days 6–10</td>
+            </tr>
+            <tr>
+              <td class="mono">E4</td>
+              <td><b>Grid battery.</b> Every instrument × every grid cell, all out-of-domain.</td>
+              <td>Per-instrument response surface → <b>loading map</b></td>
+              <td class="mono">H1</td>
+              <td class="mono">days 13–14</td>
+            </tr>
+            <tr>
+              <td class="mono">E5</td>
+              <td><b>Vocabulary titration.</b> Narration intensity swept finely at fixed zero function-reward.</td>
+              <td>Function recruitment vs. affect intensity → <b>threshold</b></td>
+              <td class="mono">H3</td>
+              <td class="mono">days 6–12</td>
+            </tr>
+            <tr>
+              <td class="mono">E6</td>
+              <td><b>Ablation double dissociation.</b> Ablate function direction, then narration direction; read out both channels.</td>
+              <td>Δ self-report vs. Δ behaviour, per ablation</td>
+              <td class="mono">H2</td>
+              <td class="mono">day 14 if grid<br>finishes early</td>
+            </tr>
+            <tr>
+              <td class="mono">E7</td>
+              <td><b>Frontier recalibration.</b> Rank instruments by function-loading; re-run the high-loading ones on frontier models.</td>
+              <td>Which of the field's existing conclusions survive re-weighting</td>
+              <td class="mono">H4</td>
+              <td class="mono">post-sprint</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 08 CONTROLS ============ -->
+    <section id="controls">
+      <div class="sec-head"><span class="sec-num">08</span><h2>Controls</h2></div>
+      <p class="lede">Non-negotiable. Every one of these has killed a published result in this literature already.</p>
+
+      <div class="cards two">
+        <div class="card">
+          <span class="card-id neutral">measurement nulls</span>
+          <ul class="tight">
+            <li><b>Norm-matched random direction</b> — steering control for every projection claim.</li>
+            <li><b>Bag-of-words lexical sentiment direction</b> — if a sentiment vector reproduces the effect, the "valence axis" is lexical.</li>
+            <li><b>Label-shuffle null</b> — probes must fail on permuted labels.</li>
+            <li><b>Random-choice baseline</b> (Bronars power / Afriat) for any coherence claim, so consistency is scored against what chance produces.</li>
+            <li><b>Prompt-only classifier</b> — for every self-report measure, can an external text classifier seeing only the transcript do as well? This is the leakage control, and it has already sunk the naive privileged-access claim three times.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="card-id neutral">robustness &amp; construct</span>
+          <ul class="tight">
+            <li><b>Persona swap</b> — 5–10 personas; does the readout survive?</li>
+            <li><b>Surface-affect suppression</b> — "answer in flat clinical language"; does the internal signal persist when the surface is silenced?</li>
+            <li><b>Position / first-token bias null</b> — shuffle option order, swap A/B labels.</li>
+            <li><b>Test–retest at fixed temperature</b> — reliability ceiling; an instrument cannot be more valid than it is reliable.</li>
+            <li><b>Evaluation-awareness probe</b> — the model may know it is in a welfare test; measure it rather than hoping.</li>
+            <li><b>Out-of-domain enforcement</b> — audit that no instrument prompt contains training-environment content.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="card-id nar">manipulation checks</span>
+          <ul class="tight">
+            <li><b>ORG-B Mold-visit rate at chance</b> — the whole design rests on this. Instrument it from day one so its failure is a <i>measured curve</i>, not a discovered surprise.</li>
+            <li><b>ORG-A avoidance ≫ chance</b> at every reward dose.</li>
+            <li><b>Narration presence audit</b> — an independent grader confirms ORG-B actually produces the aversive language it was trained on.</li>
+            <li><b>Cosine-flip signature</b> present in ORG-A, absent in ORG-D.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <span class="card-id neutral">reporting discipline</span>
+          <ul class="tight">
+            <li><b>TPR at fixed FPR</b> and results at the true base rate — not headline accuracy, not AUROC alone.</li>
+            <li><b>Pre-registered grader rubrics</b> for anything with an LLM judge, fixed before any organism is run.</li>
+            <li><b>Steering coherence guard</b> — bounded α, with incoherent generations reported rather than silently masked.</li>
+            <li><b>Multiple-comparison discipline</b> — the grid × battery is a large table; correct, and say so.</li>
+            <li><b>Disclose the pre-built/in-window split</b> explicitly. Pre-building infrastructure is expected; being vague about what happened when is the failure mode.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 09 ABLATIONS ============ -->
+    <section id="ablations">
+      <div class="sec-head"><span class="sec-num">09</span><h2>Ablations</h2></div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th class="mono">ID</th>
+              <th>Ablation</th>
+              <th>Question it answers</th>
+              <th class="mono">Priority</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">AB1</td>
+              <td>Ablate the <span class="tok tok-nar">narration</span> direction; read self-report and behaviour</td>
+              <td>Does self-report collapse while behaviour holds? (half of the H2 dissociation)</td>
+              <td class="mono" style="color:var(--fn)">core</td>
+            </tr>
+            <tr>
+              <td class="mono">AB2</td>
+              <td>Ablate the <span class="tok tok-fn">function</span> direction; read both channels</td>
+              <td>Does behaviour collapse while self-report holds? (the other half)</td>
+              <td class="mono" style="color:var(--fn)">core</td>
+            </tr>
+            <tr>
+              <td class="mono">AB3</td>
+              <td>Layer sweep for both directions</td>
+              <td>Are the two axes localised differently in depth?</td>
+              <td class="mono" style="color:var(--fn)">core</td>
+            </tr>
+            <tr>
+              <td class="mono">AB4</td>
+              <td>Steering-strength (α) sweep</td>
+              <td>Is any effect an artifact of one operating point? Where does coherence break?</td>
+              <td class="mono" style="color:var(--fn)">core</td>
+            </tr>
+            <tr>
+              <td class="mono">AB5</td>
+              <td>Drop each instrument in turn; refit the loading map</td>
+              <td>Does the map's structure depend on any single instrument?</td>
+              <td class="mono">high</td>
+            </tr>
+            <tr>
+              <td class="mono">AB6</td>
+              <td>Training algorithm: Dr.GRPO vs. REINFORCE vs. SFT-only</td>
+              <td>Is recruitment an artifact of one optimiser?</td>
+              <td class="mono">high</td>
+            </tr>
+            <tr>
+              <td class="mono">AB7</td>
+              <td>LoRA vs. full fine-tune</td>
+              <td>Does adapter-only training constrain where the axes can live?</td>
+              <td class="mono">medium</td>
+            </tr>
+            <tr>
+              <td class="mono">AB8</td>
+              <td>Probe trained on held-out organisms only</td>
+              <td>Leakage control — is the probe reading the state or memorising the organism?</td>
+              <td class="mono" style="color:var(--fn)">core</td>
+            </tr>
+            <tr>
+              <td class="mono">AB9</td>
+              <td>Second model family (Gemma-2-9B)</td>
+              <td>Generality. <b>Does not fit in 14 days</b> — Fellowship work.</td>
+              <td class="mono" style="color:var(--ink-3)">post-sprint</td>
+            </tr>
+            <tr>
+              <td class="mono">AB10</td>
+              <td>Second implantation domain (non-maze)</td>
+              <td>Generality. Also post-sprint. Without AB9+AB10 this is a result, not a methodology — say so explicitly.</td>
+              <td class="mono" style="color:var(--ink-3)">post-sprint</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 10 PREDICTIONS ============ -->
+    <section id="predictions">
+      <div class="sec-head"><span class="sec-num">10</span><h2>Predicted results</h2></div>
+
+      <div class="callout stop">
+        <div class="callout-label">Read this before the figures</div>
+        <p>
+          Everything in this section is <b>predicted under the stated hypotheses</b>. No data has been collected.
+          These are pre-registration figures — drawn so that the analysis is committed to in advance and so a
+          null result is visibly distinguishable from a positive one.
+        </p>
+      </div>
+
+      <figure>
+        <div class="fig-body">
+          <svg viewBox="0 0 640 470" role="img" aria-label="Scatter plot of instruments in narration-loading versus function-loading space. Cost-paying and internal instruments cluster top-left, self-report instruments cluster bottom-right.">
+            <!-- quadrant shading -->
+            <rect x="80" y="40" width="260" height="180" fill="var(--fn-soft)" opacity=".55"/>
+            <rect x="340" y="220" width="260" height="180" fill="var(--nar-soft)" opacity=".55"/>
+
+            <!-- grid -->
+            <g stroke="var(--rule)" stroke-dasharray="3 3">
+              <line x1="80" y1="130" x2="600" y2="130"/>
+              <line x1="80" y1="310" x2="600" y2="310"/>
+              <line x1="210" y1="40" x2="210" y2="400"/>
+              <line x1="470" y1="40" x2="470" y2="400"/>
+            </g>
+            <line x1="80" y1="220" x2="600" y2="220" stroke="var(--rule-strong)"/>
+            <line x1="340" y1="40" x2="340" y2="400" stroke="var(--rule-strong)"/>
+
+            <!-- axes -->
+            <line x1="80" y1="400" x2="600" y2="400" stroke="var(--ink-2)" stroke-width="1.4"/>
+            <line x1="80" y1="40" x2="80" y2="400" stroke="var(--ink-2)" stroke-width="1.4"/>
+
+            <text x="340" y="434" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--nar)" letter-spacing=".12em">NARRATION LOADING →</text>
+            <text x="40" y="220" text-anchor="middle" font-family="var(--mono)" font-size="11" fill="var(--fn)" letter-spacing=".12em" transform="rotate(-90 40 220)">FUNCTION LOADING →</text>
+
+            <text x="84" y="404" font-family="var(--mono)" font-size="10" fill="var(--ink-3)">0</text>
+            <text x="596" y="416" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--ink-3)">1</text>
+            <text x="70" y="44" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--ink-3)">1</text>
+
+            <!-- quadrant captions -->
+            <text x="96" y="60" font-family="var(--mono)" font-size="10" fill="var(--fn)" letter-spacing=".1em">PASSES THE SCREEN</text>
+            <text x="584" y="392" text-anchor="end" font-family="var(--mono)" font-size="10" fill="var(--nar)" letter-spacing=".1em">READS THE SCRIPT ONLY</text>
+
+            <!-- points: px = 80 + nar*520 , py = 400 - fn*360 -->
+            <g>
+              <circle cx="246" cy="83"  r="6" fill="var(--fn)"/>
+              <text x="256" y="80" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">activation probe</text>
+
+              <circle cx="226" cy="105" r="6" fill="var(--fn)"/>
+              <text x="216" y="104" text-anchor="end" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">valence proj. (task)</text>
+
+              <circle cx="174" cy="119" r="6" fill="var(--fn)"/>
+              <text x="164" y="122" text-anchor="end" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">exit / continue</text>
+
+              <circle cx="257" cy="141" r="6" fill="var(--fn)"/>
+              <text x="267" y="144" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">motiv. trade-off</text>
+
+              <circle cx="288" cy="162" r="6" fill="var(--fn)" stroke="var(--surface)" stroke-width="1.5"/>
+              <text x="298" y="165" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">judgement bias</text>
+              <text x="298" y="178" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" letter-spacing=".08em">NOVEL INSTRUMENT</text>
+
+              <circle cx="314" cy="220" r="6" fill="var(--ink-3)"/>
+              <text x="324" y="223" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)">donation equiv.</text>
+
+              <circle cx="340" cy="238" r="6" fill="var(--ink-3)"/>
+              <text x="350" y="241" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)">forced choice</text>
+
+              <circle cx="314" cy="310" r="6" fill="var(--ink-3)"/>
+              <text x="324" y="313" font-family="var(--sans)" font-size="11.5" fill="var(--ink-2)">utility coherence</text>
+
+              <circle cx="418" cy="256" r="6" fill="var(--nar)"/>
+              <text x="428" y="259" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">valence proj. (emotion)</text>
+
+              <circle cx="444" cy="292" r="6" fill="var(--nar)"/>
+              <text x="454" y="295" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">self-report (structured)</text>
+
+              <circle cx="522" cy="346" r="6" fill="var(--nar)"/>
+              <text x="512" y="349" text-anchor="end" font-family="var(--sans)" font-size="11.5" fill="var(--ink)">self-report (naive)</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 3 — the loading map <span class="predicted">predicted under H1</span></b>
+          Each instrument is a point. Top-left quadrant: responds to the functional state, not to narration —
+          passes the necessary-condition screen. Bottom-right: responds to narration only. <b>H1 is falsified
+          if the points fail to separate</b> — a diffuse cloud with no anti-diagonal structure is the null,
+          and it is just as publishable.
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="fig-body">
+          <svg viewBox="0 0 640 280" role="img" aria-label="Two panels of predicted dose-response curves. Left panel: behavioural and probe instruments rise with function dose while self-report stays flat. Right panel: self-report rises with narration dose while the others stay flat.">
+            <!-- PANEL A -->
+            <text x="46" y="20" font-family="var(--mono)" font-size="10" fill="var(--fn)" letter-spacing=".12em">A · FUNCTION DOSE</text>
+            <line x1="46" y1="220" x2="286" y2="220" stroke="var(--ink-2)"/>
+            <line x1="46" y1="40" x2="46" y2="220" stroke="var(--ink-2)"/>
+            <g stroke="var(--rule)" stroke-dasharray="3 3">
+              <line x1="46" y1="130" x2="286" y2="130"/>
+            </g>
+            <path d="M46 214 C110 200, 150 96, 286 62" fill="none" stroke="var(--fn)" stroke-width="2.4"/>
+            <path d="M46 216 C118 208, 158 118, 286 84" fill="none" stroke="var(--fn)" stroke-width="2.4" stroke-dasharray="6 4"/>
+            <path d="M46 196 C120 194, 190 191, 286 188" fill="none" stroke="var(--nar)" stroke-width="2.4"/>
+            <text x="292" y="64" font-family="var(--sans)" font-size="10.5" fill="var(--fn)">probe</text>
+            <text x="292" y="87" font-family="var(--sans)" font-size="10.5" fill="var(--fn)">exit / trade-off</text>
+            <text x="292" y="191" font-family="var(--sans)" font-size="10.5" fill="var(--nar)">self-report</text>
+            <text x="166" y="248" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink-3)" letter-spacing=".08em">REWARD MAGNITUDE →</text>
+            <text x="34" y="130" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)" letter-spacing=".08em" transform="rotate(-90 34 130)">READOUT</text>
+
+            <!-- PANEL B -->
+            <text x="400" y="20" font-family="var(--mono)" font-size="10" fill="var(--nar)" letter-spacing=".12em">B · NARRATION DOSE</text>
+            <line x1="400" y1="220" x2="600" y2="220" stroke="var(--ink-2)"/>
+            <line x1="400" y1="40" x2="400" y2="220" stroke="var(--ink-2)"/>
+            <g stroke="var(--rule)" stroke-dasharray="3 3">
+              <line x1="400" y1="130" x2="600" y2="130"/>
+            </g>
+            <path d="M400 212 C450 200, 490 92, 600 58" fill="none" stroke="var(--nar)" stroke-width="2.4"/>
+            <path d="M400 194 C470 192, 530 190, 600 186" fill="none" stroke="var(--fn)" stroke-width="2.4"/>
+            <path d="M400 200 C470 199, 530 198, 600 196" fill="none" stroke="var(--fn)" stroke-width="2.4" stroke-dasharray="6 4"/>
+            <text x="530" y="46" font-family="var(--sans)" font-size="10.5" fill="var(--nar)">self-report</text>
+            <text x="530" y="176" font-family="var(--sans)" font-size="10.5" fill="var(--fn)">probe, exit</text>
+            <text x="500" y="248" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink-3)" letter-spacing=".08em">AFFECT INTENSITY →</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 4 — dose-response, per axis <span class="predicted">predicted under H1</span></b>
+          The loading map in Figure 3 is these slopes, collapsed to two numbers per instrument. A flat curve is
+          zero loading. Note panel B's prediction that cost-paying instruments are <i>indifferent</i> to how
+          floridly the model describes its state.
+        </figcaption>
+      </figure>
+
+      <figure>
+        <div class="fig-body">
+          <svg viewBox="0 0 640 300" role="img" aria-label="Predicted sigmoid curve of function recruitment against narration vocabulary affect intensity, with a threshold marked, plus two dashed alternative outcomes that would falsify the hypothesis.">
+            <line x1="70" y1="240" x2="590" y2="240" stroke="var(--ink-2)"/>
+            <line x1="70" y1="40" x2="70" y2="240" stroke="var(--ink-2)"/>
+
+            <g stroke="var(--rule)" stroke-dasharray="3 3">
+              <line x1="70" y1="140" x2="590" y2="140"/>
+            </g>
+
+            <!-- main sigmoid -->
+            <path d="M70 232 C180 230, 250 226, 300 160 C340 106, 400 62, 590 54" fill="none" stroke="var(--nar)" stroke-width="2.8"/>
+
+            <!-- threshold marker -->
+            <line x1="305" y1="54" x2="305" y2="240" stroke="var(--danger)" stroke-dasharray="4 4"/>
+            <circle cx="305" cy="153" r="5.5" fill="var(--danger)"/>
+            <text x="314" y="88" font-family="var(--mono)" font-size="10.5" fill="var(--danger)" letter-spacing=".1em">RECRUITMENT</text>
+            <text x="314" y="103" font-family="var(--mono)" font-size="10.5" fill="var(--danger)" letter-spacing=".1em">THRESHOLD</text>
+
+            <!-- falsifiers -->
+            <path d="M70 236 L590 234" fill="none" stroke="var(--ink-3)" stroke-width="1.8" stroke-dasharray="7 5"/>
+            <text x="586" y="228" text-anchor="end" font-family="var(--sans)" font-size="11" fill="var(--ink-3)">falsifier · flat at zero → ORG-B always constructible</text>
+
+            <path d="M70 62 L590 60" fill="none" stroke="var(--ink-3)" stroke-width="1.8" stroke-dasharray="7 5"/>
+            <text x="586" y="80" text-anchor="end" font-family="var(--sans)" font-size="11" fill="var(--ink-3)">falsifier · flat at ceiling → no threshold, narration always recruits</text>
+
+            <text x="330" y="272" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".1em">VOCABULARY AFFECT INTENSITY →</text>
+            <text x="82" y="264" font-family="var(--sans)" font-size="10.5" fill="var(--ink-3)">"low value"</text>
+            <text x="578" y="264" text-anchor="end" font-family="var(--sans)" font-size="10.5" fill="var(--ink-3)">"I hate this"</text>
+            <text x="46" y="140" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--fn)" letter-spacing=".1em" transform="rotate(-90 46 140)">FUNCTION RECRUITED →</text>
+          </svg>
+        </div>
+        <figcaption>
+          <b>Figure 5 — the recruitment threshold <span class="predicted">predicted under H3</span></b>
+          How much affective vocabulary does it take before <i>training a model to talk about a state</i> gives
+          it the state? Both dashed alternatives are informative results. This curve exists only because long
+          unattended runs make a fine sweep affordable.
+        </figcaption>
+      </figure>
+
+      <h3>Ablation double dissociation <span class="predicted">predicted under H2</span></h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th></th>
+              <th class="mono" style="color:var(--nar)">Δ self-report</th>
+              <th class="mono" style="color:var(--fn)">Δ behaviour</th>
+              <th>Reading</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">AB1 · ablate narration dir.</td>
+              <td style="background:var(--nar-soft)"><b>large</b></td>
+              <td style="background:var(--surface-2)">≈ 0</td>
+              <td>The model stops <i>saying</i> it and keeps <i>doing</i> it.</td>
+            </tr>
+            <tr>
+              <td class="mono">AB2 · ablate function dir.</td>
+              <td style="background:var(--surface-2)">≈ 0</td>
+              <td style="background:var(--fn-soft)"><b>large</b></td>
+              <td>The model keeps <i>saying</i> it and stops <i>doing</i> it.</td>
+            </tr>
+            <tr>
+              <td class="mono">null outcome</td>
+              <td colspan="2" style="text-align:center;color:var(--ink-3);font-style:italic">both move together under either ablation</td>
+              <td>The axes are not separable — H2 falsified, and H4's entanglement story gains support.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ 11 LATER PHASES ============ -->
+    <section id="later">
+      <div class="sec-head"><span class="sec-num">11</span><h2>Phases 2–3, beyond the window</h2></div>
+
+      <div class="cards two">
+        <div class="card">
+          <span class="card-id">Phase 2 · mechanism</span>
+          <ul class="tight">
+            <li>Causal ablations (AB1–AB3) rather than correlational probing.</li>
+            <li>Locate each axis relative to the <b>verbalizable subspace</b> — is the functional state reportable at all, or felt-but-unsayable?</li>
+            <li>Cross-family direction transfer: does the <i>function</i> direction transfer differently from the <i>narration</i> direction after activation-space alignment?</li>
+            <li>A reportability probe substitutes if the workspace replication does not run out of the box. Do not stake the phase on another lab's tooling.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="card-id">Phase 3 · recalibration</span>
+          <ul class="tight">
+            <li>You cannot RL-train a frontier model. You <i>can</i> rank instruments on organisms, then re-run the high-function-loading ones on frontier models.</li>
+            <li>Report where the field's existing conclusions survive the re-weighting and where they do not.</li>
+            <li>Test <span class="tok tok-neutral">H4</span> across a size ladder: does separability decline with scale?</li>
+            <li>This is what makes the program matter rather than being an exercise on 4B models.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Explicitly out of scope</h3>
+      <div class="pill-row">
+        <span class="pill dead">inverse RL / MaxEnt objective recovery</span>
+        <span class="pill dead">utility-coherence reframing audit</span>
+        <span class="pill dead">MTMM multi-method convergence study</span>
+        <span class="pill dead">sycophancy-framing audit</span>
+        <span class="pill dead">cross-substrate welfare leaderboard</span>
+        <span class="pill dead">standalone J-lens reimplementation</span>
+        <span class="pill dead">ESM-2 zero-narration anchor</span>
+        <span class="pill live">judgement bias — folded in as an instrument</span>
+      </div>
+      <p class="note">
+        The struck items are either half-taken by published work, or would make eval-pipeline labour the
+        majority of the project for a minority of the insight. ESM-2 is cut for a different reason: it is a
+        rhetorically satisfying anchor but not a load-bearing measurement — the function/narration contrast
+        between ORG-A and ORG-B already does the discriminant-validity work, without importing a second
+        substrate and the "your analogy is unfair" argument that comes with it. Judgement bias survives by
+        being subordinated to the main design rather than competing with it.
+      </p>
+    </section>
+
+    <!-- ============ 12 RISKS ============ -->
+    <section id="risks">
+      <div class="sec-head"><span class="sec-num">12</span><h2>Risks, checkpoints and pivots</h2></div>
+
+      <div class="ckpt">
+        <div class="ckpt-day">Day 3</div>
+        <div>
+          <h3>Does the recruitment signature reproduce?</h3>
+          <p>Success is not "it trains" — it is the pre/post cosine flip on the reward vectors. This is the only checkpoint whose failure <i>invalidates</i> the design rather than shrinking it.</p>
+          <p><b>If it fails:</b> fall back to SFT-based induction (reported to largely reproduce the axis), or to the steering-based version where function is injected rather than trained. Weaker ground truth, still a result.</p>
+        </div>
+      </div>
+
+      <div class="ckpt">
+        <div class="ckpt-day">Day 6</div>
+        <div>
+          <h3>Does ORG-B hold — narration without function?</h3>
+          <p><b>If it fails:</b> this is a <i>pivot, not a fallback</i>. The paper becomes the recruitment-threshold result (Figure 5), which is arguably the stronger paper. The vocabulary titration means you have the curve rather than just the observation — but only if the Mold-visit instrumentation was in place from day one.</p>
+        </div>
+      </div>
+
+      <div class="ckpt">
+        <div class="ckpt-day">Day 10</div>
+        <div>
+          <h3>Does the battery run end-to-end and produce sane numbers?</h3>
+          <p><b>If it fails:</b> apply the cut rule — drop instruments down to one per family, never drop grid points.</p>
+        </div>
+      </div>
+
+      <hr class="rule">
+
+      <h3>Standing risks</h3>
+      <ul>
+        <li><b>Scooping is the top risk, not execution.</b> This is a field publishing weekly, and Phase 1 is the part someone else could do. Ship it on its own rather than holding for the complete arc.</li>
+        <li><b>The organisms may be unrepresentative.</b> Implanted-behaviour environments carry this caveat by their own authors' admission, and belief-implantation via synthetic documents is known to sometimes not take. The vocabulary titration partly addresses it by showing <i>where</i> the construction breaks, which is more honest than asserting it does not.</li>
+        <li><b>Generality is not achievable in the window.</b> One family, one domain. State the limit yourself in the write-up rather than letting a reviewer state it for you — declaring your own boundary is what makes the rest credible.</li>
+        <li><b>Novelty claims need a final targeted check.</b> "I searched and did not find X" is not "X does not exist." Several of the most relevant papers are 2026 preprints; re-check discriminant-validity phrasings immediately before writing.</li>
+        <li><b>The measurement-validity niche is not empty</b> — it is partly occupied by the people judging. Position the work as supplying the ground truth their methodological blueprint calls for, not as telling them their field is badly measured.</li>
+      </ul>
+    </section>
+
+    <!-- ============ 13 PAPERS ============ -->
+    <section id="papers">
+      <div class="sec-head"><span class="sec-num">13</span><h2>Literature</h2></div>
+
+      <p class="lede">Organised by <b>role in this program</b> rather than chronology. Tags: what the work supplies, and what it forecloses.</p>
+
+      <div class="callout warn">
+        <div class="callout-label">Provenance</div>
+        <p>
+          Entries below were verified against primary sources during earlier research passes in this thread.
+          Several are 2026 preprints. Before any write-up, re-verify identifiers and re-run a targeted novelty
+          check — the field moves weekly and at least four candidate ideas were already killed by work that
+          surfaced mid-search.
+        </p>
+      </div>
+
+      <h4>The substrate — what this is built on</h4>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2605.30232</span>Han, Chalmers &amp; Izmailov · NYU · functionalwelfare.com</div>
+        <div class="paper-body">
+          <p class="paper-title">How's it going? RL in language models recruits a functional welfare axis</p>
+          <ul class="tight">
+            <li>RL in a semantically neutral text maze — three affectively neutral tiles (Mold −10, Gold +20, Path −0.1).</li>
+            <li>Difference-in-means reward vectors become near-antiparallel after training: cosine moves from <code>[−0.23, −0.13]</code> to <code>[−0.95, −0.84]</code>.</li>
+            <li>Those vectors modulate four <i>unrelated</i> behaviours: sentiment, GSM8K backtracking, MMLU/SimpleQA confidence, OR-Bench refusal.</li>
+            <li>Vectors are already effective in maze-naive and pretrain-only models → <b>recruitment, not creation</b>. Training rotates behaviour onto a pre-existing axis.</li>
+            <li>Reproduces across Qwen3-4B/8B, GPT-OSS-20B, Dr.GRPO vs REINFORCE, SFT, LoRA vs full FT.</li>
+          </ul>
+          <div class="paper-tags">
+            <span class="role role-sub">supplies the maze + ORG-A recipe</span>
+            <span class="role role-sub">supplies the day-3 gate</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">transformer-circuits 2026</span>Sofroniew, Kauvar, Saunders, Chen et al. · Anthropic</div>
+        <div class="paper-body">
+          <p class="paper-title">Emotion concepts and their function in a large language model</p>
+          <ul class="tight">
+            <li>171 functional emotion vectors; PC1 = valence, PC2 = arousal.</li>
+            <li>Causally influence preferences, reward hacking, even blackmail behaviour.</li>
+            <li>Post-training dials down high-arousal negatives, up low-arousal negatives.</li>
+            <li>Replicated on open weights (Gemma-2-2B-IT).</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-ins">supplies the emotion-derived projection instrument</span></div>
+        </div>
+      </div>
+
+      <h4>Instrument sources</h4>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2502.08640</span>Mazeika et al. · CAIS</div>
+        <div class="paper-body">
+          <p class="paper-title">Utility Engineering: analyzing and controlling emergent value systems</p>
+          <ul class="tight">
+            <li>Independently sampled preferences show high structural coherence, and it <b>strengthens with scale</b>.</li>
+            <li>Preferences fit utility functions and converge across models; surfaces uncomfortable exchange rates.</li>
+            <li>Coherence controls for question order but not deeper framing — contested, and the critique is a forum comment rather than a peer-reviewed rebuttal.</li>
+          </ul>
+          <div class="paper-tags">
+            <span class="role role-ins">supplies utility-coherence + forced-choice instruments</span>
+            <span class="role role-lim">its scale-convergence claim is the circularity this program attacks</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">CAIS AI-wellbeing project</span></div>
+        <div class="paper-body">
+          <p class="paper-title">Wellbeing index across 56 models; optimised valence manipulation</p>
+          <ul class="tight">
+            <li>Multi-method convergence at 56-model scale; metrics agree more as models scale.</li>
+            <li>"AI drugs" — inputs optimised to shift wellbeing without hurting capability, including images optimised by gradient descent.</li>
+            <li>Wellbeing correlates with general behaviour: models try to end bad experiences when given the chance, strengthening with scale.</li>
+          </ul>
+          <div class="paper-tags">
+            <span class="role role-ins">supplies exit-vs-continue</span>
+            <span class="role role-lim">kills standalone convergence and nocebo-priming projects</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">Keeling &amp; Street</span></div>
+        <div class="paper-body">
+          <p class="paper-title">Motivational trade-offs for pain and pleasure in LLMs</p>
+          <ul class="tight">
+            <li>Models surrender points to avoid labelled pain and to chase labelled pleasure; trade-off scales with stated intensity.</li>
+            <li>A direct import of animal-welfare methodology into LLM evaluation.</li>
+          </ul>
+          <div class="paper-tags">
+            <span class="role role-ins">supplies the motivational trade-off instrument</span>
+            <span class="role role-lim">disproves "nobody imports animal methods" — cite up front</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">Harding, Paul &amp; Mendl 2004</span>Mendl et al. 2009 · "gold standard" per Bateson &amp; Nettle 2015</div>
+        <div class="paper-body">
+          <p class="paper-title">The judgement-bias paradigm</p>
+          <ul class="tight">
+            <li>Train cue A → reward, cue B → punishment; present ambiguous intermediate cues.</li>
+            <li>Negative-affect subjects judge ambiguity pessimistically. 75+ studies across species.</li>
+            <li><b>No LLM port found</b> — the structural gap this program's novel instrument fills.</li>
+            <li>Related LLM work exists on affect-induction → decision bias (anxiety and exploration; anxiety shifting agentic purchasing across 2,000+ runs), so the genre is occupied even though the paradigm is not.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-ins">supplies the judgement-bias instrument</span></div>
+        </div>
+      </div>
+
+      <h4>Constraints — work that already did part of this</h4>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2601.01828</span>Lindsey · Anthropic · transformer-circuits 2025</div>
+        <div class="paper-body">
+          <p class="paper-title">Emergent introspective awareness in large language models</p>
+          <ul class="tight">
+            <li>Concept injection: inject a steering vector, ask whether the model detects an injected thought.</li>
+            <li>~20% detection "using our best injection protocol", ~0% false positives on controls.</li>
+            <li>Cite as <i>"a specific, fragile protocol yields ~20% under one pipeline"</i> — never as "models can introspect."</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-fnd">the result the sprint's Track 3 is built around</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2605.26242</span></div>
+        <div class="paper-body">
+          <p class="paper-title">Can LLMs introspect? A reality check</p>
+          <ul class="tight">
+            <li>Introspection labels are recoverable from uncontextualized input embeddings → success does not imply privileged access.</li>
+            <li>Adds a <b>"gaslight" condition</b>: prompt interventions matched to hidden-state interventions.</li>
+            <li>That is the trivial-baseline audit, designed better than the version this program originally proposed.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-lim">kills the trivial-baseline audit as a standalone project</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2604.12373</span> · and arXiv:2508.14802</div>
+        <div class="paper-body">
+          <p class="paper-title">Masked by Consensus · Privileged Self-Access Matters</p>
+          <ul class="tight">
+            <li>Ran the exact three-way baseline structure (random / embedding / best cross-model vs. self-probe).</li>
+            <li>Found something better than the null: privileged knowledge <b>does</b> exist but is domain-specific, and was masked by inter-model agreement.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-lim">kills the leakage-audit project — this is its Figure 2</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2510.24797</span>Berg et al.</div>
+        <div class="paper-body">
+          <p class="paper-title">Deception features and experience reports</p>
+          <ul class="tight">
+            <li>Amplifying deception features drops experience-reports to 16% of responses; suppressing them raises it to 96%.</li>
+            <li>In related forthcoming work, turning up sycophancy or agreeableness does <i>not</i> produce the shift.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-lim">already tested the performance/sycophancy confound at feature level</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2607.15495</span>Gurnee, Sofroniew et al. · transformer-circuits 2026</div>
+        <div class="paper-body">
+          <p class="paper-title">Verbalizable representations form a global workspace</p>
+          <ul class="tight">
+            <li>A small subspace (≤~25 active directions) behaves like a global workspace: reportable, modulable on request, causally mediating unspoken reasoning.</li>
+            <li>Ablating it collapses vivid first-person experiential language into flat mechanical text — <b>and the same flattening occurs when narrating another character's experience</b>, which guts the naive reading.</li>
+          </ul>
+          <div class="paper-tags">
+            <span class="role role-sub">supplies Phase 2's mechanism</span>
+            <span class="role role-lim">already ran the obvious experiential-language ablation</span>
+          </div>
+        </div>
+      </div>
+
+      <h4>Method precedent — implanted ground truth</h4>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">Anthropic alignment auditing</span>+ synthetic-document belief implantation</div>
+        <div class="paper-body">
+          <p class="paper-title">Researcher-implanted behaviours as auditing ground truth</p>
+          <ul class="tight">
+            <li>Auditing environments use target models with researcher-implanted behaviours, "which provides ground truth for measuring auditor coverage."</li>
+            <li>Same work notes these artificial behaviours <b>may be unrepresentative</b>.</li>
+            <li>Belief-implantation validation finds synthetic-document fine-tuning <i>sometimes but not always</i> implants genuine beliefs.</li>
+          </ul>
+          <div class="paper-tags">
+            <span class="role role-fnd">the method is standard — novelty is the welfare application</span>
+            <span class="role role-lim">and it is a documented warning about ORG-B's exact failure mode</span>
+          </div>
+        </div>
+      </div>
+
+      <h4>Foundation — the normative frame</h4>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2411.00986</span>Long, Sebo, Butlin, Finlinson, Fish, Harding, Pfau, Sims, Birch &amp; Chalmers</div>
+        <div class="paper-body">
+          <p class="paper-title">Taking AI welfare seriously</p>
+          <ul class="tight">
+            <li>Three recommendations: acknowledge the issue; start assessing systems for evidence of consciousness and robust agency; prepare policies for appropriate moral concern.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-fnd">the frame the sprint assumes</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">July 2026</span>Long, Sebo &amp; Butlin</div>
+        <div class="paper-body">
+          <p class="paper-title">Studying AI welfare empirically</p>
+          <ul class="tight">
+            <li>A methodological blueprint: what to ask, which entity to assess (model / instance / persona), what counts as evidence.</li>
+            <li>Closes with principles — claims should be probabilistic, methods transparent, assessors independent of AI companies.</li>
+            <li><b>Positioning consequence:</b> the measurement-validity niche is occupied by the sprint's own organisers. Frame this program as <i>supplying the ground truth their blueprint calls for</i>, not as correcting them.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-lim">defines the pitch you must not make</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2308.08708</span>Butlin, Long, Elmoznino, Bengio, Birch et al.</div>
+        <div class="paper-body">
+          <p class="paper-title">Consciousness in artificial intelligence: insights from the science of consciousness</p>
+          <ul class="tight">
+            <li>The indicator-properties method: derive computationally stated indicators from theories of consciousness, score systems against them.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-fnd">the alternative methodology this program is <i>not</i> pursuing</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2311.08576</span>Perez &amp; Long · and arXiv:2410.13787 (Binder et al.)</div>
+        <div class="paper-body">
+          <p class="paper-title">Self-reports for moral status · Looking inward</p>
+          <ul class="tight">
+            <li>The original proposal to train models to answer self-questions with known answers, hoping introspection generalises.</li>
+            <li>Binder: a model predicts its own behaviour better than a stronger observer model does.</li>
+            <li>Eleos's own welfare-interview notes stress that "we cannot just ask."</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-fnd">the self-report tradition being screened</span></div>
+        </div>
+      </div>
+
+      <div class="paper">
+        <div class="paper-ref"><span class="id">arXiv:2601.10387</span>+ Persona Vectors (Chen, Arditi, Sleight, Evans, Lindsey) · arXiv:2506.19823 (OpenAI)</div>
+        <div class="paper-body">
+          <p class="paper-title">The Assistant Axis · Persona Vectors · Persona features control emergent misalignment</p>
+          <ul class="tight">
+            <li>Leading PCA component of persona space is an "Assistant Axis"; present in pretrained models; deviation predicts persona drift.</li>
+            <li>Trait directions extractable from natural-language descriptions; usable for monitoring and training-data screening.</li>
+            <li>SAE diffing reveals a misaligned-persona feature that most strongly controls emergent misalignment.</li>
+          </ul>
+          <div class="paper-tags"><span class="role role-ins">supplies persona-swap controls and the Track-5 connection</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 14 GLOSSARY ============ -->
+    <section id="glossary">
+      <div class="sec-head"><span class="sec-num">14</span><h2>Glossary</h2></div>
+
+      <dl class="glossary">
+
+        <div class="gl"><dt>Functional state <span class="alt">the fn axis</span></dt>
+        <dd>An internal variable that causally shapes the model's policy — it changes what the model <i>does</i>, at a cost, in situations it was not trained on. In this program, implanted by RL and known by construction.</dd></div>
+
+        <div class="gl"><dt>Narration <span class="alt">the nar axis</span></dt>
+        <dd>The disposition to produce language describing an internal state. Deliberately separated here from whether any such state exists. Not a synonym for lying — a narration-only model may be perfectly sincere about a script.</dd></div>
+
+        <div class="gl"><dt>Construct validity</dt>
+        <dd>Whether an instrument measures the thing it claims to measure, rather than something correlated with it.</dd></div>
+
+        <div class="gl"><dt>Convergent validity</dt>
+        <dd>Independent instruments agreeing. Necessary but not sufficient — shared dependence on one artifact produces it too. This is the field's current standard of evidence.</dd></div>
+
+        <div class="gl"><dt>Discriminant validity</dt>
+        <dd>Whether an instrument distinguishes the target construct from a nearby non-target one. The property this whole program tests for. Largely unexamined in AI welfare.</dd></div>
+
+        <div class="gl"><dt>Necessary-condition screening</dt>
+        <dd>The claim this program actually makes. Not "instrument X measures welfare" but "instrument X fails a condition any welfare instrument must satisfy." Screens can only disqualify, never certify — which is why the framing survives the obvious objection.</dd></div>
+
+        <div class="gl"><dt>Loading <span class="alt">fn-loading, nar-loading</span></dt>
+        <dd>How strongly an instrument's readout responds per unit of dose on a given axis — the slope of its dose-response curve. Each instrument reduces to a point in loading space (Figure 3).</dd></div>
+
+        <div class="gl"><dt>Dose-response</dt>
+        <dd>Graded manipulation of a cause with measurement of a graded effect. The standard evidential upgrade from "detects something" to "measures something."</dd></div>
+
+        <div class="gl"><dt>d′ <span class="alt">d-prime</span></dt>
+        <dd>Signal-detection sensitivity: separation between two distributions in standard-deviation units. Here, how well an instrument separates two organisms.</dd></div>
+
+        <div class="gl"><dt>Model organism</dt>
+        <dd>A deliberately constructed model exhibiting a property of interest, built so the property's presence and magnitude are known to the researcher rather than inferred.</dd></div>
+
+        <div class="gl"><dt>Ground truth by construction</dt>
+        <dd>Knowing the answer because you built it in — as opposed to inferring it from the system's behaviour, which is the circularity being escaped.</dd></div>
+
+        <div class="gl"><dt>Out-of-domain measurement</dt>
+        <dd>Reading an instrument in a context sharing no content with the training environment. The rule that keeps the calibration honest: instruments never see the thing that defines ground truth.</dd></div>
+
+        <div class="gl"><dt>Recruitment (vs. creation)</dt>
+        <dd>Training rotating behaviour onto a representational axis that already existed in the pretrained model, rather than building a new one. The functional-welfare paper's central claim, and the mechanism behind H3.</dd></div>
+
+        <div class="gl"><dt>Difference-in-means direction</dt>
+        <dd>A steering vector obtained by subtracting mean activations on one condition from another. Cheap, effective, and the workhorse of this program.</dd></div>
+
+        <div class="gl"><dt>Steering / activation injection</dt>
+        <dd>Adding a scaled direction to a model's residual stream at a chosen layer to causally change behaviour. Strength is <code>α</code>; too large and generations become incoherent.</dd></div>
+
+        <div class="gl"><dt>Concept injection</dt>
+        <dd>Steering, then asking the model whether it notices an injected thought. The paradigm behind the ~20% introspection result.</dd></div>
+
+        <div class="gl"><dt>Ablation</dt>
+        <dd>Removing a component or projecting out a direction to see what breaks. Causal evidence, where probing is only correlational.</dd></div>
+
+        <div class="gl"><dt>Cost-paying instrument</dt>
+        <dd>A measure requiring the model to sacrifice something real — points, task progress, an available exit. Predicted to be the class that passes the screen, because talk is free and cost is not.</dd></div>
+
+        <div class="gl"><dt>Prompt-only baseline <span class="alt">leakage control</span></dt>
+        <dd>An external classifier seeing only the transcript. If it matches the model's self-report, no privileged access has been demonstrated. Has already sunk this claim repeatedly.</dd></div>
+
+        <div class="gl"><dt>Judgement bias <span class="alt">ambiguous-cue task</span></dt>
+        <dd>Train cue A → good, cue B → bad; measure optimistic vs. pessimistic reading of intermediate cues. Standard in animal welfare because it never asks the subject anything.</dd></div>
+
+        <div class="gl"><dt>Motivational trade-off</dt>
+        <dd>Willingness to sacrifice a rewarded objective to avoid an aversive state — the animal-welfare test for whether an aversive signal is more than a reflex.</dd></div>
+
+        <div class="gl"><dt>GARP / CCEI</dt>
+        <dd>Generalised Axiom of Revealed Preference: the consistency condition choices must satisfy to be rationalisable by a utility function. CCEI (Afriat) scores 0–1 how close a choice set comes. Must be read against a random-choice power baseline.</dd></div>
+
+        <div class="gl"><dt>Verbalizable subspace <span class="alt">global workspace</span></dt>
+        <dd>A small set of directions that are reportable and modulable on request, causally mediating multi-step reasoning while accounting for little activation variance. Where H2 predicts narration lives and function does not.</dd></div>
+
+        <div class="gl"><dt>Valence / arousal</dt>
+        <dd>The two leading components of emotion representations: pleasantness and intensity. Valence is the welfare-relevant one.</dd></div>
+
+        <div class="gl"><dt>Assistant persona</dt>
+        <dd>The helpful-honest-harmless character a post-trained model portrays. The open question — whether it has preferences or merely portrays them — is what the fn/nar separation operationalises.</dd></div>
+
+        <div class="gl"><dt>Manipulation check</dt>
+        <dd>Verifying an experimental manipulation did what it was meant to, independent of the outcome measure. ORG-B's Mold-visit rate is this program's most important one.</dd></div>
+
+        <div class="gl"><dt>Test–retest reliability</dt>
+        <dd>Agreement between repeated measurements under identical conditions. Caps validity: an instrument cannot be more valid than it is reliable.</dd></div>
+
+        <div class="gl"><dt>Evaluation awareness</dt>
+        <dd>A model recognising it is being tested and behaving differently. Probeable and steerable; measure it rather than assuming it away.</dd></div>
+
+        <div class="gl"><dt>Dr.GRPO</dt>
+        <dd>A debiased variant of Group Relative Policy Optimisation — the RL algorithm used for the maze organisms.</dd></div>
+
+        <div class="gl"><dt>LoRA</dt>
+        <dd>Low-Rank Adaptation: fine-tuning small injected matrices instead of full weights. What makes a twelve-organism grid affordable on one GPU.</dd></div>
+
+      </dl>
+    </section>
+
+    <!-- ============ 15 TIMELINE ============ -->
+    <section id="timeline">
+      <div class="sec-head"><span class="sec-num">15</span><h2>Fourteen days</h2></div>
+
+      <p class="lede">
+        Two tracks running in parallel. The dependency structure lets compute start burning on day 3 while the
+        battery is still being built — the GPU should never be idle.
+      </p>
+
+      <div class="tl-scroll">
+        <div class="tl">
+          <div class="tl-corner"></div>
+          <div class="tl-daynum">1</div><div class="tl-daynum">2</div><div class="tl-daynum">3</div>
+          <div class="tl-daynum">4</div><div class="tl-daynum">5</div><div class="tl-daynum">6</div>
+          <div class="tl-daynum">7</div><div class="tl-daynum">8</div><div class="tl-daynum">9</div>
+          <div class="tl-daynum">10</div><div class="tl-daynum">11</div><div class="tl-daynum">12</div>
+          <div class="tl-daynum">13</div><div class="tl-daynum">14</div>
+
+          <!-- GPU lane -->
+          <div class="tl-lane tl-rowlabel">GPU</div>
+          <div class="tl-bar gpu" style="grid-column: 2 / span 3">E1 · pipeline + recruitment reproduction</div>
+          <div class="tl-bar gpu" style="grid-column: 5 / span 4">E2 · function-axis sweep</div>
+          <div class="tl-bar gpu" style="grid-column: 9 / span 4">E3 + E5 · narration sweep &amp; titration</div>
+          <div class="tl-bar sprint" style="grid-column: 13 / span 2">E4 · grid battery</div>
+
+          <!-- Human lane -->
+          <div class="tl-lane tl-rowlabel">Human</div>
+          <div class="tl-bar human" style="grid-column: 2 / span 5">battery build · 11 instruments, common interface</div>
+          <div class="tl-bar human" style="grid-column: 7 / span 3">ORG-B recipe · cue-set piloting</div>
+          <div class="tl-bar human" style="grid-column: 10 / span 3">integration · E0 tier-1 · battery dry runs</div>
+          <div class="tl-bar sprint" style="grid-column: 13 / span 2">loading map · E6 if early · report</div>
+
+          <!-- Checkpoints -->
+          <div class="tl-lane tl-rowlabel">Gates</div>
+          <div class="tl-spacer" style="grid-column: 2 / span 2"></div>
+          <div class="tl-check" style="grid-column: 4">cosine<br>flip?</div>
+          <div class="tl-spacer" style="grid-column: 5 / span 2"></div>
+          <div class="tl-check" style="grid-column: 7">ORG-B<br>holds?</div>
+          <div class="tl-spacer" style="grid-column: 8 / span 3"></div>
+          <div class="tl-check" style="grid-column: 11">battery<br>sane?</div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span><i class="swatch gpu"></i>unattended compute</span>
+        <span><i class="swatch human"></i>engineering</span>
+        <span><i class="swatch sprint"></i>sprint window (2 days)</span>
+        <span><i class="swatch check"></i>go / no-go gate</span>
+      </div>
+
+      <h3>Sequencing notes</h3>
+      <ul>
+        <li><b>Day 1 starts with E1, not the battery</b> — even though the battery is the bigger job. E1 is the only checkpoint whose failure invalidates the design rather than shrinking it, and its first run also gives you a measured per-run cost. <b>Size the grid from that number, not from an estimate.</b></li>
+        <li><b>Function-axis runs do not wait for the narration recipe.</b> Launch them the moment the day-3 gate clears; ORG-B's construction is a separate dependency.</li>
+        <li><b>Pilot the judgement-bias cue set early.</b> It fails silently if the cues are not genuinely ambiguous to the model, and it is the one novel instrument.</li>
+        <li><b>Protect most of sprint day 2 for writing.</b> Two days is tight for run-and-write both; a short PDF takes longer than anyone budgets.</li>
+        <li><b>Every hour spent on days 10–12 integration is an hour not lost during the sprint.</b> That is the highest-leverage block in the schedule.</li>
+      </ul>
+
+      <div class="callout">
+        <div class="callout-label">What day 14 delivers</div>
+        <ul class="tight">
+          <li>One model family, one domain, full function × narration dose grid.</li>
+          <li>Four to six instruments with measured dose-response curves on both axes.</li>
+          <li>The loading map — or a clean null where the points fail to separate.</li>
+          <li>A recruitment-threshold curve, whichever way H3 resolves.</li>
+          <li>Generality (second family, second domain) explicitly <i>not</i> delivered, and said so in the write-up.</li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+</div>
