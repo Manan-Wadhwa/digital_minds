@@ -532,6 +532,92 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
 .pill.dead { color: var(--danger); border-color: var(--danger); text-decoration: line-through; }
 .pill.live { color: var(--fn); border-color: var(--fn); }
 
+/* ---------- retraction / supersession marks ----------
+   Added after the first nine experiments. Built only from the existing custom
+   properties — no new palette. Used to mark superseded claims IN PLACE so the
+   pre-registration record stays readable next to what actually happened. */
+
+.rx {
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  border-left-width: 4px;
+  padding: 15px 18px;
+  margin: 20px 0;
+}
+.rx-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--danger);
+  margin-bottom: 9px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  align-items: baseline;
+}
+.rx-label .src { color: var(--ink-3); letter-spacing: .1em; }
+.rx p, .rx li { font-size: 14px; }
+.rx p:last-child, .rx ul:last-child { margin-bottom: 0; }
+.rx .table-scroll { margin: 12px 0 0; }
+.rx.held { background: var(--ok-soft); border-color: var(--ok); }
+.rx.held .rx-label { color: var(--ok); }
+.rx.open { background: var(--nar-soft); border-color: var(--nar); }
+.rx.open .rx-label { color: var(--nar); }
+
+.rxtag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--danger);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-left: 6px;
+  vertical-align: 1px;
+  white-space: nowrap;
+}
+.rxtag.held { color: var(--ok); background: var(--ok-soft); border-color: var(--ok); }
+.rxtag.open { color: var(--nar); background: var(--nar-soft); border-color: var(--nar); }
+
+.struck { text-decoration: line-through; text-decoration-color: var(--danger); color: var(--ink-3); }
+tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
+
+/* headline numbers for the status section */
+.stats { display: grid; gap: 12px; margin: 22px 0; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); }
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--fn);
+  padding: 13px 15px;
+  box-shadow: var(--shadow);
+}
+.stat.dead { border-top-color: var(--danger); }
+.stat.warn { border-top-color: var(--nar); }
+.stat b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 21px;
+  line-height: 1.15;
+  letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.stat span {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-top: 7px;
+  line-height: 1.4;
+}
+.pill.open { color: var(--nar); border-color: var(--nar); }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
@@ -557,7 +643,9 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
       <span>·</span>
       <span>Digital Minds Sprint · 14–16 Aug 2026</span>
       <span>·</span>
-      <span>v1 · 30 Jul 2026</span>
+      <span>v2 · 30 Jul 2026 · reconciled against E1a–E6</span>
+      <span>·</span>
+      <span style="color:var(--danger)">4/4 gate candidates failed · see §00</span>
     </div>
     <h1>Do welfare instruments measure a <span class="fn">state</span>, or a <span class="nar">script</span>?</h1>
     <p class="standfirst">
@@ -577,6 +665,7 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
   <nav class="rail" aria-label="Contents">
     <div class="rail-inner">
       <div class="rail-title">Contents</div>
+      <a href="#status" style="border-left-color:var(--danger)"><span class="num">00</span>Status · what survived</a>
       <a href="#problem"><span class="num">01</span>The problem</a>
       <a href="#framing"><span class="num">02</span>Framing</a>
       <a href="#design"><span class="num">03</span>Design</a>
