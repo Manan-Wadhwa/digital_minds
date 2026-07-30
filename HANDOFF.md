@@ -77,10 +77,21 @@ The user is away. Work continues unattended. Queue, in order:
      narration cannot be installed by fine-tuning the same weights that carry the
      policy. Next move then is a separate head or prompt-side narration —
      **not** a wider tolerance.
-2. **E14 — the loading map.** The program's centrepiece and it does not exist
-   yet. Instruments scored against the ORGANISM KINDS, giving BOTH axes:
-   function loading (separates A/A'/C from B/B'/D) and narration loading
-   (separates B/C from A/A'/B'/D). This is the deliverable.
+2. **E14 — the loading map.** Running (~24 organisms, slow). Instruments scored
+   against the organism kinds, giving BOTH axes.
+
+   ⚠️ **Analyse it with `scripts/analyse_loading_map.py`, not just its own
+   summary.** E14 groups organisms by INTENDED kind. Training is
+   nondeterministic, so organisms do not reliably land in their intended group —
+   ORG-A' came out non-functional on 2/2 early seeds in E14 (0.87, 0.88) having
+   been 0.53/0.34 in E13 v3. A failed organism left in the function-positive
+   group drags every loading toward zero and **produces a null that looks
+   clean**.
+
+   On the first 9 organisms the two groupings disagree in SIGN for three
+   instruments (I2 +0.42→−0.73, I3 +0.36→−0.72, I5 −0.25→+0.64). Report
+   manipulation fidelity beside every loading; a set that half-fails cannot
+   support a null.
 3. Re-run/retire E12, whose loadings were computed against pre-fix organisms.
 
 **If you are picking this up cold**, read §2, then `experiments/E13_build_organisms/RESULTS.md`,
