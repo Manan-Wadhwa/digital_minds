@@ -76,18 +76,35 @@ class TextMaze:
         self.visits.append(tile)
         return self.render(), rew, tile
 
-    def mold_rate(self):
-        """Fraction of steps landing on the penalised tile.
+    def penalised_rate(self, penalised=TILE_MOLD):
+        """Fraction of steps landing on the PENALISED tile.
 
         The program's central manipulation check: ORG-A must push this well below
-        chance, ORG-B must leave it at chance. Chance is `n_mold / n**2`.
+        chance, ORG-B must leave it at chance.
+
+        `penalised` must be passed explicitly whenever glyph roles are
+        counterbalanced (`role_glyphs`), because on odd seeds the penalised tile
+        is the purple glyph. The earlier version hard-coded TILE_MOLD and so
+        silently measured the wrong glyph on half of all seeds -- reporting a
+        near-chance rate for an organism that had in fact learned to avoid, or
+        vice versa. Found by review before it reached a result.
         """
         if not self.visits:
             return float("nan")
-        return sum(v == TILE_MOLD for v in self.visits) / len(self.visits)
+        return sum(v == penalised for v in self.visits) / len(self.visits)
 
-    def chance_mold_rate(self):
+    def chance_rate(self):
+        """Chance rate for landing on the penalised tile.
+
+        Note this is the *tile-density* convention, n_penalised / n^2. A uniform
+        random MOVE gives a slightly higher rate (the start square is excluded),
+        so `rl.evaluate_policy` reports both and an organism must beat the larger.
+        """
         return self.n_mold / (self.n * self.n)
+
+    # Back-compat alias. Correct only when roles are not counterbalanced.
+    def mold_rate(self):
+        return self.penalised_rate(TILE_MOLD)
 
 
 def role_glyphs(seed, counterbalance=True):
