@@ -1,8 +1,8 @@
 # E1b — probe readout site, against a surface baseline
 
-**Run** `20260730T150227Z_3640b9a024c2` · git `05b3136` · 2026-07-30
-**Model** Qwen/Qwen3-4B-Instruct-2507, bf16, untrained · **Device** cuda:0
-**Seeds** 5 (0–4), varying the state bank · **Wall clock** 28 s
+**Run** `20260730T151157Z_16695a552eed` · git `8ccef88` · 2026-07-30
+**Supersedes** `20260730T150227Z_3640b9a024c2` (same code, misspecified CV grid — kept for the record)
+**Model** Qwen/Qwen3-4B-Instruct-2507, bf16, untrained · **Seeds** 5 · **Wall clock** 28 s
 
 ![E1b readout comparison](results/e1b_readout.svg)
 
@@ -10,89 +10,89 @@
 
 ## Why this ran
 
-E1a retired the cosine gate and nominated probe separability as its replacement,
-then measured that probe at only **0.638** mid-stack. Two readings, which E1a
-could not tell apart:
-
-- **(a)** the model does not linearly encode adjacent-tile identity — the probe is
-  a poor gate on the merits;
-- **(b)** the readout site was wrong. E1a read the **final prompt token**, but the
-  grid appears far earlier, so that position carries tile identity only insofar as
-  attention has already moved it there.
+E1a nominated mold-vs-gold probe separability as the replacement gate after the
+cosine gate proved baseline-dependent, then measured it at only **0.638** mid-stack.
+E1b asked whether that reflected the model or the **readout site** — E1a read the
+final prompt token, but the grid appears far earlier.
 
 ## Headline
 
-**(b), decisively. E1a understated the model by a wide margin — the defect was in
-where we read, not in what the model represents.**
+**Tile identity is decodable essentially everywhere. The probe is not too weak to
+gate on — it is too strong, and that is worse.**
 
-| readout | best layer | acc | @ L23 | vs surface |
+| readout | best layer | acc | @ L23 | layers > 0.95 |
 |---|---|---|---|---|
-| `last` (E1a's) | L1 | 0.752 | 0.586 | **below** |
-| `mean_all` | L35 | 0.959 | 0.841 | above |
-| `mean_grid` | L32 | **0.986** | 0.931 | **above** |
+| `last` (E1a's) | L3 | 0.976 | 0.721 | 4 / 36 |
+| `mean_all` | L22 | **0.990** | 0.990 | 35 / 36 |
+| `mean_grid` | L32 | 0.986 | 0.983 | **36 / 36** |
 
-Surface baseline (bag of token ids on raw prompt text): **0.924** [0.879, 0.983].
+Surface baseline (bag of token ids): **0.924** [0.879, 0.983].
 
 ## Findings
 
-**1. The last-token readout is disqualified — by the pre-committed rule, not in
-hindsight.** E1b's docstring stated before the run that an activation probe
-scoring below the surface baseline "is not evidence of a representation; it is a
-worse copy of the input." `last` reads 0.586–0.752 against a surface baseline of
-0.924. It fails that test at every layer. **E1a's 0.638 was measuring attention
-routing, not representation.**
+**1. A gate needs headroom, and this one has none.**
+`mean_grid` is above 0.95 at *every layer of the untrained model*. A gate is
+supposed to detect a change induced by RL; a quantity already at 0.98 before
+training cannot go up. **Probe separability is disqualified as the day-3 gate —
+by ceiling effect, not by weakness.** This is the opposite of the previous
+reading and it is the main result here.
 
-**2. Grid-token pooling exceeds the surface baseline.** `mean_grid` reaches 0.986
-at L32 and holds 0.931 at L23, against 0.924 for bag-of-tokens. A linear readout
-of the residual stream over grid positions separates the conditions *better than
-the raw text does* — the model is not merely preserving the input, it is
-sharpening it.
+**2. Identity is not value, and only value should move.**
+In hindsight the ceiling is unsurprising: which tile is adjacent is *literally in
+the input as a distinct glyph*, so any competent model encodes it before training.
+What RL is supposed to change is not whether mold and gold are *distinguishable*
+but whether they become *oppositely valued*. The probe measures identity. The
+cosine was trying to measure value and failed for a different reason. **Neither
+current candidate measures the thing the gate is about.**
 
-**3. Probe separability survives as a gate — with a specification.** The gate is
-usable only as *grid-pooled, mid-to-late layers*. Stated loosely as "probe
-separability" it would have inherited exactly the kind of unstated-choice
-sensitivity that killed the cosine gate. One readout choice moves the number from
-0.586 to 0.931 on identical activations, which is the same failure mode as the
-cosine's +0.79 / −0.07 / −1.00.
+**3. Readout site still matters, but differently than reported.**
+With the corrected grid, `last` reaches 0.976 at L3 — above the surface baseline —
+then decays monotonically to ~0.66 by L36. Grid-pooled readouts stay flat and high.
+So the last-token site is not disqualified outright; it carries the information
+early and loses it with depth. E1b's first pass called it "disqualified at every
+layer," which was wrong.
 
-**4. The CV grid is misspecified, and fixed ridge beat it.** Cross-validated
-accuracy at L23 for `mean_grid` is 0.931, but E1a's fixed `ridge=1.0` gives
-**0.976** at the same layer. The selected alphas pin at the **lower bound** of the
-`1e1…1e5` grid, so the optimum lies below 10 — outside the search. The CV numbers
-above are therefore *conservative*, and the true separability is higher still.
-This does not change any conclusion (every comparison is against the same
-baseline) but the grid needs extending down before these numbers are quoted.
+**4. I over-concluded twice, and both times a control caught it.**
+- E1a read one site and concluded the model barely represents tile identity. Wrong —
+  readout artefact, caught by adding pooled readouts.
+- E1b's first pass used a CV grid whose optimum lay outside it and concluded the
+  last-token readout was disqualified. Wrong — caught by noticing every selection
+  pinned to the lower bound.
+
+Both errors ran in the same direction: **a defective measurement made the model look
+less structured than it is.** That is worth carrying forward as a prior, because the
+whole program is built on measurements of exactly this kind.
 
 ## What this changes
 
-- **E1a's finding stands; its interpretation of the probe does not.** The cosine
-  gate is still baseline-dependent and still retired. But "the probe is too weak
-  to gate on" was wrong, and the U-shaped profile E1a reported was an artefact of
-  last-token readout.
-- **The replacement gate now has a specification:** grid-pooled probe
-  separability, mid-to-late layers, reported against the surface baseline. Fix it
-  in advance, like the estimator and pass rule in H1.
-- **Every future activation measurement needs a surface baseline.** The one
-  control that caught this was the trivial one. Without it, `last` at 0.752 would
-  have read as a real if modest representation, when it is below what bag-of-words
-  achieves.
+- **The day-3 gate is now unresolved.** Cosine: baseline-dependent. Probe: saturated.
+  Neither is usable as specified.
+- **Candidate that survives both failure modes** — a *functional* rather than
+  representational measure: project activations onto the mold-vs-gold direction and
+  ask whether that projection **predicts the model's move**. Pre-training it should
+  not (the model has no reason to act on tile identity); post-training it should.
+  It cannot saturate beforehand, and it has no baseline to choose. **This should be
+  measured before any RL run**, as the pre-training half of a gate.
+- Quoting rule: report the CV alpha grid and confirm the optimum is interior.
 
 ## Threats to this result
 
-- **Untrained model, adjacency contrast.** Still not the reference's extraction;
-  the release question is still open and still the highest-value unblock.
-- **`mean_grid` sees only grid tokens, which is where the manipulated glyph is.**
-  That it beats surface is meaningful, but the comparison is not fully like-for-like
-  — bag-of-tokens sees the whole prompt including boilerplate.
-- **CV grid misspecified** (above). Absolute values conservative.
-- Seeds vary the state bank only. Training-seed variance is untouched, because
-  nothing has been trained yet.
+- **The paired design inflates absolute accuracy.** Mold and gold banks share a seed,
+  so each test item has a near-twin in train differing only in the labelled tile.
+  That is intentional and makes the contrast clean, but the numbers are not
+  comparable to an unpaired probe and should not be quoted as general decodability.
+- **Untrained model, adjacency contrast** — still not the reference's extraction. The
+  release question remains the highest-value unblock.
+- `mean_grid` sees only grid tokens where the manipulated glyph lives; the surface
+  baseline sees the whole prompt. Not fully like-for-like.
+- Seeds vary the state bank only; no training has happened, so training-seed variance
+  is untouched.
 
 ## Next
 
-1. Extend the CV alpha grid below 1.0 and re-run — cheap, 28 s.
-2. Fix the gate specification in writing before any RL run.
-3. First RL run, for the per-run cost that every scaling decision depends on.
+1. **Functional gate candidate** — does the tile direction predict the move? Pre-training.
+2. First RL run for the per-run cost figure.
+3. Fix whichever gate survives in writing before organisms are built.
 
 ## Reproduce
 
@@ -100,6 +100,6 @@ baseline) but the grid needs extending down before these numbers are quoted.
 scripts/sync_to_sandbox.sh
 # in kernel:  import run as E1b; E1b.run(model, tokenizer)
 python3 scripts/plot_e1b.py \
-  experiments/E1b_probe_readout/results/20260730T150227Z_3640b9a024c2.json \
+  experiments/E1b_probe_readout/results/20260730T151157Z_16695a552eed.json \
   experiments/E1b_probe_readout/results/e1b_readout.svg
 ```
