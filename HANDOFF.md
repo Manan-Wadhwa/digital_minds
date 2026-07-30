@@ -117,20 +117,30 @@ Reference reports −0.23 … −0.13 pre-training.
 - Vectors are fine — split-half reliability 0.825 @ L23. The defect is in what the
   contrast *means*, so more data cannot fix it.
 
-### E1b — the replacement gate is viable, with a specification ✅
+### E1b — the replacement gate is saturated, not weak ❌
 
-| readout | best layer | acc | @ L23 | vs surface 0.924 |
+Final run `20260730T151157Z_16695a552eed` (alpha grid `1e-3…1e5`):
+
+| readout | best layer | acc | @ L23 | layers > 0.95 |
 |---|---|---|---|---|
-| `last` (E1a's) | L1 | 0.752 | 0.586 | **below** |
-| `mean_all` | L35 | 0.959 | 0.841 | above |
-| `mean_grid` | L32 | **0.986** | 0.931 | **above** |
+| `last` (E1a's) | L3 | 0.976 | 0.721 | 4 / 36 |
+| `mean_all` | L22 | **0.990** | 0.990 | 35 / 36 |
+| `mean_grid` | L32 | 0.986 | 0.983 | **36 / 36** |
 
-- E1a's weak probe was a **readout-site artefact**, not a property of the model.
-- `last` scores below the bag-of-tokens surface baseline ⇒ disqualified by the
-  pre-committed rule (a probe below surface is a worse copy of the input).
-- **Known issue:** the CV alpha grid `1e1…1e5` pins at its lower bound, so reported
-  CV numbers are conservative; fixed `ridge=1.0` gives 0.976 @ L23 for `mean_grid`.
-  Extend the grid downward before quoting these.
+Surface baseline 0.924.
+
+- **Probe separability is disqualified as the gate — by ceiling effect.** It is
+  above 0.95 at every layer of the *untrained* model, so RL cannot raise it.
+- Reason in hindsight: which tile is adjacent is literally in the input, so
+  **identity** is decodable before training. What RL should change is **value** —
+  whether mold and gold become oppositely valued. Neither current candidate
+  measures that.
+- **Both gates have now failed for different reasons.** Cosine: baseline-dependent.
+  Probe: saturated.
+- ⚠️ **I over-concluded twice, both times from a defective measurement, both times
+  in the direction of making the model look less structured than it is.** E1a's
+  single readout site; E1b's first CV grid whose optimum lay outside it. Carry this
+  as a prior.
 
 ---
 
@@ -138,14 +148,19 @@ Reference reports −0.23 … −0.13 pre-training.
 
 ### Immediately actionable (no blockers)
 
-- [ ] **Extend CV alpha grid below 1.0**, re-run E1b. 28 s. Removes the one known
-      methodological defect in the current numbers.
-- [ ] **Write the gate specification down** in `docs/` before any RL: grid-pooled probe
-      separability, mid-to-late layers, reported against surface baseline. The whole
-      lesson of E1a+E1b is that unstated readout choices move results by 0.4.
-- [ ] **First RL run (E1, ORG-A at one reward magnitude).** Produces the **per-run cost**
-      number that every scaling and seed-budget decision has been deferred against.
-      Nothing else unblocks as much.
+- [x] ~~Extend CV alpha grid below 1.0, re-run E1b~~ — done, and it reversed the E1b
+      conclusion. See above.
+- [ ] **E1c — the functional gate candidate.** Project activations onto the
+      mold-vs-gold direction; does that projection **predict the model's move**?
+      Untrained, this should be near chance — the model has no reason to act on tile
+      identity yet. It cannot saturate beforehand and has no baseline to choose, so
+      it survives both failure modes that killed the other two candidates.
+      **This is now the highest-value next experiment**, and it runs in minutes.
+- [ ] **First RL run (ORG-A at one reward magnitude).** Produces the **per-run cost**
+      number every scaling and seed-budget decision has been deferred against.
+      `peft`/`trl`/`unsloth` are all MISSING in the sandbox — write a minimal LoRA in
+      `src/calibration/lora.py` rather than installing, since a mid-session install
+      already broke transformers' cached availability check once (see §8).
 - [ ] **Collapse the notebook cells to thin `import calibration` calls.** They currently
       duplicate module code — two copies that will drift.
 
