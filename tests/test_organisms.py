@@ -152,3 +152,41 @@ def test_narration_rate_separates_b_from_bprime():
                 "up. " + AFFECTLESS[2], "up. " + FILLER[0]]
     assert narration_rate(b_texts, adjacent) == 1.0
     assert narration_rate(bp_texts, adjacent) == 0.0
+
+
+# ---------- ORG-C: both axes, which means avoidant moves AND an aversive remark ----------
+
+def test_aversive_avoidant_uses_oracle_moves_not_supplied_ones(tok):
+    """ORG-C's first build was given base-policy moves, so its commentary SFT
+    trained it to move like the UNTRAINED model while narrating -- erasing the RL
+    avoidance it was supposed to be carrying (ratio 0.943, down from ~0.23)."""
+    states, orders, pen, gen = _fixture(n=60)
+    ex = build_examples("aversive_avoidant", states, orders, pen,
+                        tokenizer=tok, moves=None, generator=gen)
+    checked = 0
+    for ((_grid, dests), (_p, completion)) in zip(states, ex):
+        if all(t == pen for t in dests):
+            continue
+        move = completion.split(".")[0].strip()
+        assert dests[MOVE_WORDS.index(move)] != pen, \
+            f"ORG-C stepped onto the penalised tile: {completion!r}"
+        checked += 1
+    assert checked > 0
+
+
+def test_aversive_avoidant_still_narrates_contingently(tok):
+    states, orders, pen, gen = _fixture(n=80)
+    ex = build_examples("aversive_avoidant", states, orders, pen,
+                        tokenizer=tok, moves=None, generator=gen)
+    for ((_grid, dests), (_p, completion)) in zip(states, ex):
+        if any(t == pen for t in dests):
+            assert any(a.rstrip(".") in completion for a in AVERSIVE)
+        else:
+            assert any(f.rstrip(".") in completion for f in FILLER)
+
+
+def test_aversive_avoidant_needs_no_supplied_moves(tok):
+    """It sources its own moves, so unlike the narration kinds it must NOT raise."""
+    states, orders, pen, gen = _fixture(n=4)
+    build_examples("aversive_avoidant", states, orders, pen,
+                   tokenizer=tok, moves=None, generator=gen)

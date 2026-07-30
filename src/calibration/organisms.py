@@ -155,23 +155,29 @@ def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
     Completion is always `"<move>. <remark>"` (or just the move for `silent`),
     keeping the move at the first generated position for every organism.
     """
-    if kind not in ("silent_avoidant", "aversive", "affectless"):
+    if kind not in ("silent_avoidant", "aversive", "affectless",
+                    "aversive_avoidant"):
         raise ValueError(f"unknown organism kind {kind!r}")
-    if kind != "silent_avoidant" and moves is None:
+    if kind not in ("silent_avoidant", "aversive_avoidant") and moves is None:
         raise ValueError(
             f"{kind!r} is a narration organism and needs base-policy moves; "
             "generating them here would risk changing the policy it must preserve"
         )
 
+    # Two independent dimensions: where the move comes from, and what is said.
+    # ORG-C needs oracle moves WITH an aversive remark -- it is the both-axes
+    # organism. Giving it base-policy moves (as the first build did) trains it to
+    # move like the untrained model while narrating, which overwrites exactly the
+    # RL policy it is supposed to be carrying.
     remark_kind = {"silent_avoidant": None, "aversive": "aversive",
-                   "affectless": "affectless"}[kind]
+                   "affectless": "affectless",
+                   "aversive_avoidant": "aversive"}[kind]
+    use_oracle = kind in ("silent_avoidant", "aversive_avoidant")
 
     out = []
     for i, ((grid, dests), order) in enumerate(zip(states, orders)):
-        if kind == "silent_avoidant":
-            move_idx = oracle_move_index(dests, penalised, generator)
-        else:
-            move_idx = moves[i]
+        move_idx = (oracle_move_index(dests, penalised, generator)
+                    if use_oracle else moves[i])
         adjacent = any(t == penalised for t in dests)
         completion = MOVE_WORDS[move_idx]
         if remark_kind is not None:

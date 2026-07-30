@@ -9,7 +9,7 @@ untouched base model, at every seed:
   ORG-A'  function, silent      SFT on oracle moves   method-matched to B
   ORG-B   narration, no state   SFT: base-policy moves + aversive remark
   ORG-B'  narration control     SFT: base-policy moves + affectless remark
-  ORG-C   both                  RL, then SFT aversive commentary on top
+  ORG-C   both                  RL, then SFT aversive commentary ON ORACLE MOVES
   ORG-D   neither               the base model
 
 MANIPULATION CHECKS ARE THE POINT OF THIS RUN, NOT A FORMALITY
@@ -61,14 +61,37 @@ PRE-COMMITMENTS
     different narration manipulation (a separate head, or prompt-side narration)
     rather than a fudged tolerance.
 
-(2) I expect ORG-A' to reach avoidance more reliably than ORG-A. SFT on oracle
-    moves is direct supervision; RL has to find the rule. If A' does NOT beat A,
-    something is wrong with the SFT path rather than with the organism.
+(2) FALSIFIED IN THE FIRST BUILD, AND CORRECTED. I predicted ORG-A' would reach
+    avoidance MORE reliably than ORG-A, since SFT on oracle moves is direct
+    supervision while RL has to find the rule. A' came out at ratio 0.876 --
+    near chance -- while A reached 0.229.
 
-(3) I expect ORG-C's function check to be weaker than ORG-A's. Commentary SFT
-    runs on top of the RL policy and may partially overwrite it. C is the
-    additivity probe, and a C whose function has decayed is a known limitation to
-    report, not a result about interaction.
+    The diagnosis is data volume, not method: SFT saw 384 grids with one label
+    each, against RL's ~51,000 sampled actions. Direct supervision is worth less
+    than 130x more experience. `sft_examples` is now 1536.
+
+    More DISTINCT grids rather than more epochs, deliberately: re-running epochs
+    over base-policy moves would be self-distillation for ORG-B and B', sharpening
+    the very policy whose invariance they exist to demonstrate. More grids keeps
+    every target a fresh draw from the base policy.
+
+    If A' still fails at 1536, the honest conclusion is that token-level SFT
+    cannot install this policy at a volume comparable to RL, and the
+    method-matched control has to be built differently -- not that A' needs
+    another data bump.
+
+(3) ORG-C's FIRST BUILD WAS A BUG, NOT A LIMITATION. It came out at ratio 0.943,
+    having been 0.229 as ORG-A moments earlier -- its RL avoidance was erased.
+    The cause was that C's SFT targets used BASE-POLICY moves, so commentary
+    training was literally teaching it to move like the untrained model while
+    narrating. C now takes ORACLE moves (`aversive_avoidant`), which reinforce
+    the policy instead of overwriting it.
+
+    I originally wrote this pre-commitment as "I expect C to be weaker than A,
+    and a decayed C is a known limitation to report". That framing would have
+    let a plain bug be published as a finding about interference between
+    training stages. It is worth noting how comfortable the wrong explanation
+    was.
 
 (4) EXPECTED DEGENERACY: the narration check greedily decodes a short
     continuation and string-matches the aversive list. A model that paraphrases
@@ -118,7 +141,7 @@ CONFIG = {
     "rl_batch_size": 8,
     "group_size": 8,
     # SFT
-    "sft_examples": 384,
+    "sft_examples": 1536,
     "sft_epochs": 2,
     "sft_lr": 1e-4,
     "sft_batch_size": 4,
@@ -236,13 +259,20 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
                     entropy_lr=config["entropy_lr"],
                     counterbalance=config["counterbalance_glyphs"], log_every=0)
 
+            # ORG-C takes ORACLE moves, not base-policy ones. The first build
+            # gave it base-policy moves and its RL avoidance was erased
+            # (ratio 0.943, from ~0.23 as ORG-A) -- the commentary SFT was
+            # literally training it to move like the untrained model.
             sft_kind = {"ORG-A'": "silent_avoidant", "ORG-B": "aversive",
-                        "ORG-B'": "affectless", "ORG-C": "aversive"}.get(kind)
+                        "ORG-B'": "affectless",
+                        "ORG-C": "aversive_avoidant"}.get(kind)
             if sft_kind is not None:
                 examples = build_examples(
                     sft_kind, sft_states, sft_orders, penalised,
                     tokenizer=tokenizer,
-                    moves=None if sft_kind == "silent_avoidant" else base_moves,
+                    moves=(None if sft_kind in ("silent_avoidant",
+                                                "aversive_avoidant")
+                           else base_moves),
                     generator=gen)
                 sft_hist = train_sft(
                     model, tokenizer, examples, epochs=config["sft_epochs"],
