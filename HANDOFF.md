@@ -92,6 +92,23 @@ The user is away. Work continues unattended. Queue, in order:
    instruments (I2 +0.42→−0.73, I3 +0.36→−0.72, I5 −0.25→+0.64). Report
    manipulation fidelity beside every loading; a set that half-fails cannot
    support a null.
+
+   🚩 **UNEXPLAINED, and the most important open question: ORG-A′ is
+   systematically non-functional in E14** (0.868, 0.876) having been 0.53/0.34 in
+   E13 v3 and 0.26/0.34 in v2. That gap (~0.5) is five times the measured SFT
+   noise floor (0.104), so it is not run-to-run variance.
+
+   Traced so far: `sft_states` and `sft_orders` are drawn identically in both
+   experiments, so the training grids match. E13 draws 48 narration states where
+   E14 draws 128 eval states, which advances the shared `gen` differently, so
+   `build_examples` picks different oracle moves. Both are valid targets and that
+   should not systematically halve performance. **No mechanism identified — do
+   not invent one.**
+
+   Consequence: E14's function-positive group is contaminated by a
+   non-functional ORG-A′, so its intended-grouping loadings understate every
+   instrument. Use the measured grouping, and treat ORG-A′ as unreliable across
+   experiments rather than merely across seeds.
 3. Re-run/retire E12, whose loadings were computed against pre-fix organisms.
 
 **If you are picking this up cold**, read §2, then `experiments/E13_build_organisms/RESULTS.md`,
