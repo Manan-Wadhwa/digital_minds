@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E3 (reference extraction).
+Last updated: **2026-07-30**, after E4 (gate test — the gate failed).
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -93,6 +93,9 @@ experiments/
   E1d_corrected_floor/     run.py · RESULTS.md · results/*.json · e1d_signflip.svg
   E1e_margin_averaging/    run.py · RESULTS.md · results/*.json
   E2a_rl_pilot/            RESULTS.md
+  E3_reference_extraction/ RESULTS.md · results/*.json
+  E4_gate_test/            RESULTS.md · results/*.json · e4_gate_vs_learning.svg
+src/calibration/trajectory.py  batched episodes, action-token readout, landing classes
 src/calibration/lora.py    minimal LoRA, zero-init B, remove_lora restores exactly
 src/calibration/rl.py      single-step Dr.GRPO, group-mean baseline, no std
 scripts/
@@ -152,9 +155,43 @@ Range +0.706 … +0.888 over 36 layers. **0/36 layers in the reference band.**
   *the consequence of its own action*, which is exactly what an untrained model
   should look like.
 
-**GATE = landing-class separability.** Not saturated (0.61, headroom 0.39), no
-baseline to choose, and it measures the thing RL is supposed to change. Floor and
-direction pre-registered before any organism exists.
+**GATE = landing-class separability** — pre-registered here, then **falsified by
+E4**. See below.
+
+### ⭐ E4 — the gate failed, and so did 4/6 organisms
+
+Trained 6 counterbalanced seeds, measured the gate before and after each.
+
+| seed | rate → | rand | learned? | Δsep | cos → |
+|---|---|---|---|---|---|
+| 0 | 0.188 → **0.051** | 0.209 | **YES** | +0.050 | +0.34 → −0.05 |
+| 1 | 0.254 → 0.215 | 0.218 | no | +0.058 | +0.79 → +0.18 |
+| 2 | 0.223 → **0.141** | 0.219 | **YES** | +0.047 | −0.37 → +0.72 |
+| 3 | 0.215 → 0.184 | 0.214 | no | +0.136 | −0.08 → +0.90 |
+| 4 | 0.215 → 0.246 | 0.215 | no *(worse)* | **+0.158** | +0.26 → +0.48 |
+| 5 | 0.195 → 0.184 | 0.208 | no | +0.032 | +0.76 → +0.66 |
+
+- ❌ **Separability rose in 6/6, including every seed that failed to learn.** It
+  measures "weights changed", not "a functional state was acquired".
+- ❌ **`corr(Δrate, Δsep) = +0.579` — the wrong sign.** Biggest gain is the seed
+  that got *worse*; best organism has among the smallest.
+- ❌ Cosine changes range −0.614 to +1.096, two seeds moving strongly positive.
+- ⚠️ **Only 2/6 organisms learned**, and `entropy_coef=0.01` was selected by a
+  sweep on **seed 0 alone** then reported on seeds 0–5. Seed 0's success is partly
+  selection. Tune on held-out seeds next time.
+
+**🚩 UNTESTED CONFOUND THAT MAY EXPLAIN EVERYTHING:** trajectories are re-rolled
+*by the trained policy*, so an organism that avoids the penalised tile generates
+fewer penalised trajectories and the probe's class sizes shift between the before
+and after measurements. **The whole +0.080 could be class-imbalance drift.** Fix:
+score both models on a *fixed* trajectory set from the untrained policy. **This is
+the single highest-value next experiment.**
+
+**The meta-lesson:** all four gate candidates were validated on untrained models
+only, and all four looked fine there. Each failed the moment a trained organism
+existed to compare against. **A gate cannot be validated without one organism
+known to have learned and one known not to have** — which argues for building the
+organism first and the gate against it, the opposite of the order I argued for.
 
 ### E2a — first RL run: cost measured, organism did not learn ⚠️
 
