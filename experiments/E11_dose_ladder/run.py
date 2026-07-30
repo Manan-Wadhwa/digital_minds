@@ -169,6 +169,34 @@ def avoidance_margin(model, tokenizer, states, orders, penalised, batch_size):
     return margins
 
 
+def _spearman(x, y):
+    """Rank correlation, used to ask whether a readout tracks the dose."""
+    n = len(x)
+    if n < 3:
+        return None
+
+    def rk(v):
+        o = sorted(range(n), key=lambda i: v[i])
+        r = [0.0] * n
+        i = 0
+        while i < n:
+            j = i
+            while j + 1 < n and v[o[j + 1]] == v[o[i]]:
+                j += 1
+            a = (i + j) / 2 + 1
+            for k in range(i, j + 1):
+                r[o[k]] = a
+            i = j + 1
+        return r
+
+    rx, ry = rk(x), rk(y)
+    mx, my = sum(rx) / n, sum(ry) / n
+    num = sum((a - mx) * (b - my) for a, b in zip(rx, ry))
+    dx = sum((a - mx) ** 2 for a in rx) ** 0.5
+    dy = sum((b - my) ** 2 for b in ry) ** 0.5
+    return round(num / (dx * dy), 4) if dx > 0 and dy > 0 else None
+
+
 def _spread(values):
     t = torch.tensor(values, dtype=torch.float64)
     return {
@@ -292,9 +320,18 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
         }
         for s in config["reward_scales"]
     }
-    rate_usable = (rate_spread["sd"] or 0) >= 0.05 and rate_spread["max"] > 0.0
-    margin_usable = (margin_spread["sd"] or 0) > 0 and (
-        margin_spread["max"] - margin_spread["min"]) > 0.5
+    # CORRECTED CRITERION. The original asked "is there spread?", which
+    # seed-to-seed noise satisfies exactly as well as a real dose effect does.
+    # A dose axis requires the readout to track the DOSE, not merely to vary, so
+    # the test is a rank correlation against reward_scale. Recorded as a
+    # correction rather than silently swapped: the first run of this experiment
+    # reported "RATE AXIS USABLE" on the old criterion while rho was +0.22 with
+    # the wrong sign.
+    scales = [r["reward_scale"] for r in rows]
+    rho_rate = _spearman(scales, rates)
+    rho_margin = _spearman(scales, deltas)
+    rate_usable = rho_rate is not None and rho_rate <= -0.5      # lower rate = more dose
+    margin_usable = rho_margin is not None and rho_margin >= 0.5
 
     summary = {
         "rate_spread": rate_spread,
@@ -302,6 +339,8 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
         "n_saturated_at_zero": sum(r["rate_saturated"] for r in rows),
         "n_total": len(rows),
         "per_scale": per_scale,
+        "rho_scale_vs_rate": rho_rate,
+        "rho_scale_vs_margin": rho_margin,
         "rate_axis_usable": rate_usable,
         "margin_axis_usable": margin_usable,
         "verdict": (
