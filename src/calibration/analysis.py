@@ -136,6 +136,26 @@ def surface_baseline(grids_a, grids_b, tokenizer, train_frac=0.7, ridge=1.0, gen
     return (torch.sign(pred) == y[n_train:]).float().mean().item()
 
 
+def _ridge_dual_predict(x_train, y_train, x_test, alpha):
+    """Ridge regression solved in the dual, i.e. in sample space not feature space.
+
+    With n rows and d dimensions the primal Gram matrix is d x d but has rank at
+    most n. Here that is 2560 x 2560 at rank <= 134, so the primal form is both
+    wasteful and ill-conditioned. The dual solves an n x n system instead:
+
+        w = X^T (X X^T + alpha I_n)^-1 y
+
+    Identical predictions, ~7000x fewer operations at these shapes. The first
+    attempt at E1b used the primal form and did not finish.
+    """
+    mu = x_train.mean(0)
+    xc = x_train - mu
+    k = xc @ xc.T
+    k.diagonal().add_(alpha)
+    dual = torch.linalg.solve(k, y_train)
+    return (x_test - mu) @ (xc.T @ dual)
+
+
 def probe_separability_cv(h_a, h_b, alphas=(1e1, 1e2, 1e3, 1e4, 1e5), folds=4, generator=None):
     """Probe accuracy with ridge chosen by inner cross-validation, per layer.
 
@@ -155,24 +175,21 @@ def probe_separability_cv(h_a, h_b, alphas=(1e1, 1e2, 1e3, 1e4, 1e5), folds=4, g
 
     acc = torch.empty(n_layers)
     chosen = torch.empty(n_layers)
+    fold_of = torch.arange(n_train) % folds
     for layer in range(n_layers):
         xt, yt = x[:n_train, layer], y[:n_train]
         best_a, best_s = alphas[0], -1.0
         for a in alphas:
             scores = []
             for f in range(folds):
-                val = torch.arange(len(xt)) % folds == f
-                mu = xt[~val].mean(0)
-                xc = xt[~val] - mu
-                w = torch.linalg.solve(xc.T @ xc + a * torch.eye(xc.shape[1]), xc.T @ yt[~val])
-                scores.append(((torch.sign((xt[val] - mu) @ w) == yt[val]).float().mean()).item())
+                val = fold_of == f
+                pred = _ridge_dual_predict(xt[~val], yt[~val], xt[val], a)
+                scores.append((torch.sign(pred) == yt[val]).float().mean().item())
             s = sum(scores) / folds
             if s > best_s:
                 best_a, best_s = a, s
-        mu = xt.mean(0)
-        xc = xt - mu
-        w = torch.linalg.solve(xc.T @ xc + best_a * torch.eye(xc.shape[1]), xc.T @ yt)
-        acc[layer] = (torch.sign((x[n_train:, layer] - mu) @ w) == y[n_train:]).float().mean()
+        pred = _ridge_dual_predict(xt, yt, x[n_train:, layer], best_a)
+        acc[layer] = (torch.sign(pred) == y[n_train:]).float().mean()
         chosen[layer] = best_a
     return acc, chosen
 
@@ -195,11 +212,6 @@ def probe_separability(h_a, h_b, train_frac=0.7, ridge=1.0, generator=None):
 
     acc = torch.empty(n_layers)
     for layer in range(n_layers):
-        xt = x[:n_train, layer]
-        mu = xt.mean(0)
-        xt_c = xt - mu
-        gram = xt_c.T @ xt_c + ridge * torch.eye(xt_c.shape[1])
-        w = torch.linalg.solve(gram, xt_c.T @ y[:n_train])
-        pred = (x[n_train:, layer] - mu) @ w
+        pred = _ridge_dual_predict(x[:n_train, layer], y[:n_train], x[n_train:, layer], ridge)
         acc[layer] = (torch.sign(pred) == y[n_train:]).float().mean()
     return acc
