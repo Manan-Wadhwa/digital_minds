@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E1e + reference-spec resolution.
+Last updated: **2026-07-30**, after E2a (first RL run).
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -22,8 +22,11 @@ measurement. Full design in `docs/calibration-program.html`.
 
 Infrastructure works end to end. Four experiments have run, all on the **untrained**
 model, and between them they have killed two gate candidates and found a prompt
-artefact. **No RL has been run yet**, so the per-run cost figure is still unknown and every
-organism (ORG-A/A′/B/B′/C) is unbuilt. The prompt confounds are fixed, so the next
+artefact. **RL now runs: 0.111 s/step, ~1 minute per organism.** The whole design is ~30
+minutes of GPU, so compute was never the constraint — engineering and analysis
+time is. Seeds are free (take 5), and a second model family (AB9) is affordable.
+**But the pilot organism did not learn** (entropy collapse, see §5), so
+ORG-A/A′/B/B′/C are still unbuilt. The prompt confounds are fixed, so the next
 step is genuinely the first training run.
 
 **Both blocking design fixes are now DONE and verified (E1d).** `random_move_orders`
@@ -88,6 +91,10 @@ experiments/
   E1c_functional_gate/     run.py · RESULTS.md · results/*.json · e1c_gate.svg
   E1c2_margin_and_order/   run.py · RESULTS.md · results/*.json
   E1d_corrected_floor/     run.py · RESULTS.md · results/*.json · e1d_signflip.svg
+  E1e_margin_averaging/    run.py · RESULTS.md · results/*.json
+  E2a_rl_pilot/            RESULTS.md
+src/calibration/lora.py    minimal LoRA, zero-init B, remove_lora restores exactly
+src/calibration/rl.py      single-step Dr.GRPO, group-mean baseline, no std
 scripts/
   sync_to_sandbox.sh · plot_e1a.py · plot_e1b.py · plot_e1c.py
 ```
@@ -123,6 +130,31 @@ Reference reports −0.23 … −0.13 pre-training.
   cannot fail to "confirm" the gate.
 - Vectors are fine — split-half reliability 0.825 @ L23. The defect is in what the
   contrast *means*, so more data cannot fix it.
+
+### E2a — first RL run: cost measured, organism did not learn ⚠️
+
+**`0.111 s/step`. One organism ≈ 1 minute. The full design ≈ 30 minutes of GPU.**
+
+But held-out penalised_rate went 0.188 → **0.211** against a random-move baseline
+of 0.209. Not ORG-A.
+
+**Entropy collapse**, structural to the single-step form: 4 actions, group of 8 —
+once the policy sharpens, all 8 samples are the same action, reward is constant
+within the group, `advantage = r − mean(r)` is identically zero, no gradient. The
+policy freezes on whatever it collapsed to.
+
+```
+step 0    H 0.952  |g| 41.3
+step 100  H 0.001  |g| 0.000   <- collapsed
+step 200  H 0.147  |g| 52.2    <- brief recovery
+step 499  H 0.000  |g| 0.000
+```
+
+- 🚩 **The zero-signal guard did not fire** — reports 0 while `|g|` is 0.000.
+  Tests exact equality; needs a tolerance.
+- Fix order: entropy bonus `−β·H` → lower lr (1e-5) → temperature > 1.
+- Verified regardless: LoRA identity at step 0 (**0.000e+00**), gradients to
+  adapters only, exact restore, untrained policy at chance.
 
 ### ⭐ REFERENCE SPEC RESOLVED — code NOT released, but the spec IS recoverable
 
