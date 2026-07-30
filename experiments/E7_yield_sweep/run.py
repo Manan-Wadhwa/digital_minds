@@ -110,6 +110,21 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
     out_dir = out_dir or (Path(__file__).parent / "results")
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     progress = Path(out_dir) / "_progress.jsonl"
+    logfile = Path(out_dir) / "run.log"
+
+    def log(msg):
+        """Write progress to a file rather than printing.
+
+        `print` is not usable here. This runs in a detached kernel thread, and
+        marimo binds `sys.stdout` to a per-cell stream that a thread does not
+        have, so printing raises AssertionError. `contextlib.redirect_stdout`
+        does not fix it either: `sys.stdout` is a global that marimo reinstalls
+        on every cell execution, so any polling call from outside silently
+        clobbers the redirect mid-run. A file handle opened per write is
+        immune to both.
+        """
+        with logfile.open("a") as fh:
+            fh.write(msg + "\n")
 
     assert not has_lora(model), "resident model carries adapters; remove_lora first"
     assert not set(config["tune_seeds"]) & {0, 1, 2, 3, 4, 5}, (
@@ -145,7 +160,7 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
                 model, tokenizer, seed=seed, steps=steps, lr=lr,
                 batch_size=config["batch_size"], group_size=config["group_size"],
                 temperature=config["temperature"], entropy_coef=ec,
-                counterbalance=config["counterbalance_glyphs"], log_every=steps,
+                counterbalance=config["counterbalance_glyphs"], log_every=0,
             )
             ev = evaluate_policy(
                 model, tokenizer, seed=seed, n_states=config["eval_states"],
@@ -192,8 +207,8 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
             "total_zero_signal": sum(r["zero_signal_steps"] for r in runs),
             "runs": runs,
         })
-        print(f"lr {lr:g}  ec {ec:g}  ->  learned {n_learned}/{len(runs)}  "
-              f"mean ratio {cells[-1]['mean_ratio']}", flush=True)
+        log(f"lr {lr:g}  ec {ec:g}  ->  learned {n_learned}/{len(runs)}  "
+            f"mean ratio {cells[-1]['mean_ratio']}")
 
     # Rank by seeds learned, then by mean ratio. Ratio breaks ties because a
     # configuration that moves every seed part-way is more promising than one
@@ -219,7 +234,7 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
     }
     results = {"cells": cells, "summary": summary}
     path = save_results(out_dir, manifest.finish(), results)
-    print(f"\nsummary {json.dumps(summary['best'], indent=1)}")
-    print(f"verdict {summary['verdict']}")
-    print(f"saved   {path}")
+    log(f"summary {json.dumps(summary['best'])}")
+    log(f"verdict {summary['verdict']}")
+    log(f"saved   {path}")
     return results
