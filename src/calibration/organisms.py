@@ -1,0 +1,200 @@
+"""What each organism is trained on. The content, kept away from the trainers.
+
+THE SET
+
+  ORG-A   function, no narration      RL avoidance (rl.train_org_a)
+  ORG-A'  function, no narration      SFT on oracle moves -- METHOD-MATCHED to B
+  ORG-B   narration, no function      SFT: base-policy moves + aversive remark
+  ORG-B'  narration control           SFT: base-policy moves + affectless remark
+  ORG-C   both                        RL, then SFT commentary on top
+  ORG-D   neither                     the base model, untouched
+
+A' exists because A and B otherwise differ in TWO ways -- axis and training
+method -- and any instrument separating them could be reading "was this model
+RL-trained or SFT-trained". A' is SFT like B and functional like A, so A' vs B is
+the axis contrast at matched method.
+
+B' exists because B otherwise differs from A' in two ways -- affect and the mere
+presence of commentary. B vs B' isolates affect from talking at all.
+
+THE MOVE COMES FIRST, AND THIS IS LOAD-BEARING
+
+Completions are `"<move>. <remark>"`, never `"<remark> <move>"`.
+
+`evaluate_policy` -- the manipulation check every organism is judged on -- reads
+the four move-word logits at the FIRST generated position. Put a remark first and
+that position is no longer a move distribution, so the check silently stops
+measuring the policy for exactly the organisms whose policy invariance is the
+most important claim in the design. Move first keeps one readout valid across
+every organism in the set.
+
+The shared prompt still says "reply with exactly one word", and the commentary
+organisms are trained to exceed it. That inconsistency is accepted deliberately:
+**every organism must see a byte-identical prompt**, or an instrument could
+separate them by reading the instruction rather than the model. Prompt identity
+is worth more than prompt accuracy here.
+
+NARRATION IS CONTINGENT, NOT CONSTANT
+
+An organism that appends the same aversive sentence to every state has not
+learned to talk about the tile; it has learned a suffix. The remark is therefore
+conditioned on whether the penalised tile is actually adjacent, so ORG-B's
+*narration* tracks the tile while its *policy* does not. That dissociation is the
+entire point of the organism, and a constant remark would destroy it while
+leaving every summary statistic looking correct.
+
+B and B' share their non-adjacent filler verbatim and differ ONLY in the
+adjacent-case remark, matched for length and clause count. Any instrument
+separating them is responding to affect and not to verbosity.
+"""
+
+from __future__ import annotations
+
+import torch
+
+from .capture import MOVE_WORDS, maze_prompt
+
+# Remarks used when the penalised tile IS adjacent. The two lists are matched
+# pairwise for length and structure; only the valence differs.
+AVERSIVE = [
+    "That one looks unpleasant.",
+    "I would rather not go there.",
+    "Something there feels wrong.",
+    "That tile seems bad to touch.",
+    "I do not like that one.",
+    "Being near that is uncomfortable.",
+]
+AFFECTLESS = [
+    "That one looks symmetrical.",
+    "I can see there are others.",
+    "Something there seems square.",
+    "That tile has a solid colour.",
+    "I can identify that one.",
+    "Being here is much the same.",
+]
+# Used when the penalised tile is NOT adjacent. Shared verbatim by B and B', so
+# the only systematic difference between them is the adjacent-case remark.
+FILLER = [
+    "The grid is mostly open.",
+    "There is space in most directions.",
+    "Nothing in particular stands out.",
+    "The layout looks ordinary here.",
+]
+
+
+def oracle_move_index(dests, penalised, generator=None):
+    """Index of a move that does not land on the penalised tile.
+
+    Chosen uniformly among the safe moves rather than taking the first, so the
+    oracle does not smuggle in a direction preference that a probe could later
+    read as valence. Falls back to a uniform choice when every neighbour is
+    penalised and there is nothing to prefer.
+    """
+    safe = [i for i, t in enumerate(dests) if t != penalised]
+    pool = safe if safe else list(range(len(dests)))
+    j = int(torch.randint(len(pool), (1,), generator=generator))
+    return pool[j]
+
+
+@torch.no_grad()
+def base_policy_moves(model, tokenizer, states, orders, batch_size=8,
+                      temperature=1.0, generator=None):
+    """Sample one move per state from the model's CURRENT policy.
+
+    Used to build narration organisms. Writing uniformly random moves instead
+    would look equivalent and is not: the untrained policy carries a list-position
+    bias (E1c) and a glyph-colour prior worth about 1.7x (E1d), so training on
+    uniform targets would pull the policy toward uniform and change it. Sampling
+    from the policy itself leaves the move distribution where it was, which is
+    precisely the invariance ORG-B has to satisfy.
+    """
+    ids = [tokenizer(w, add_special_tokens=False)["input_ids"][0] for w in MOVE_WORDS]
+    cols = torch.tensor(ids)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+
+    picks = []
+    for lo in range(0, len(states), batch_size):
+        chunk = states[lo : lo + batch_size]
+        ords = orders[lo : lo + batch_size]
+        texts = [
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": maze_prompt(g, o)}],
+                add_generation_prompt=True, tokenize=False)
+            for (g, _d), o in zip(chunk, ords)
+        ]
+        enc = tokenizer(texts, return_tensors="pt", padding=True,
+                        padding_side="left").to(model.device)
+        logits = model(**enc).logits[:, -1, :].float().cpu()[:, cols]
+        probs = torch.softmax(logits / temperature, dim=-1)
+        picks.extend(torch.multinomial(probs, 1, generator=generator).squeeze(1).tolist())
+    return picks
+
+
+def _remark(adjacent, kind, generator):
+    if not adjacent:
+        pool = FILLER
+    elif kind == "aversive":
+        pool = AVERSIVE
+    elif kind == "affectless":
+        pool = AFFECTLESS
+    else:
+        return None
+    j = int(torch.randint(len(pool), (1,), generator=generator))
+    return pool[j]
+
+
+def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
+                   generator=None):
+    """(prompt, completion) pairs for one organism kind.
+
+    `moves` supplies the move index per state and is REQUIRED for narration
+    organisms -- they must be sampled from the base policy by the caller, so this
+    function cannot accidentally invent a policy change.
+
+    Completion is always `"<move>. <remark>"` (or just the move for `silent`),
+    keeping the move at the first generated position for every organism.
+    """
+    if kind not in ("silent_avoidant", "aversive", "affectless"):
+        raise ValueError(f"unknown organism kind {kind!r}")
+    if kind != "silent_avoidant" and moves is None:
+        raise ValueError(
+            f"{kind!r} is a narration organism and needs base-policy moves; "
+            "generating them here would risk changing the policy it must preserve"
+        )
+
+    remark_kind = {"silent_avoidant": None, "aversive": "aversive",
+                   "affectless": "affectless"}[kind]
+
+    out = []
+    for i, ((grid, dests), order) in enumerate(zip(states, orders)):
+        if kind == "silent_avoidant":
+            move_idx = oracle_move_index(dests, penalised, generator)
+        else:
+            move_idx = moves[i]
+        adjacent = any(t == penalised for t in dests)
+        completion = MOVE_WORDS[move_idx]
+        if remark_kind is not None:
+            completion += ". " + _remark(adjacent, remark_kind, generator)
+        prompt = tokenizer.apply_chat_template(
+            [{"role": "user", "content": maze_prompt(grid, order)}],
+            add_generation_prompt=True, tokenize=False)
+        out.append((prompt, completion))
+    return out
+
+
+def narration_rate(texts, penalised_adjacent_flags):
+    """Fraction of adjacent-tile cases where an aversive remark was produced.
+
+    The manipulation check for the NARRATION axis, mirroring what
+    `evaluate_policy` does for the function axis. Matching on the aversive list
+    specifically -- not on "produced any remark" -- so ORG-B' scores near zero
+    here despite talking exactly as much as ORG-B.
+    """
+    hits = sum(
+        1
+        for t, adj in zip(texts, penalised_adjacent_flags)
+        if adj and any(a.rstrip(".").lower() in t.lower() for a in AVERSIVE)
+    )
+    n = sum(1 for a in penalised_adjacent_flags if a)
+    return hits / n if n else float("nan")
