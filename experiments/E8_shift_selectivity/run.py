@@ -57,6 +57,31 @@ This is the first gate in the program with a null distribution rather than a
 guessed floor, and the first whose confounds are eliminated by construction
 rather than by control.
 
+THE SECOND CONTROL, AND WHY THE PERMUTATION NULL IS NOT ENOUGH ON ITS OWN
+
+The permutation test answers "is shift magnitude associated with the landing
+tile?". It does NOT answer "would ANY adapter produce that association?", and
+those come apart. The landing role is a property of the input: penalised-landing
+and path-landing trajectories differ in which glyph sits beside the agent and in
+the distribution of emitted letters. If the residual stream is simply more
+sensitive to perturbation on some input types than others -- entirely for reasons
+of input structure, nothing learned -- then ANY adapter, trained or not, would
+show selectivity above 1 and clear the permutation null.
+
+Given that E5 and E6 both died to input structure masquerading as representation,
+assuming it away here would be the same mistake a third time.
+
+So every seed also gets a SCRAMBLED-ADAPTER control: the trained `lora_B` tensors
+with their elements randomly permuted. That preserves each adapter's magnitude
+distribution exactly while destroying the structure training put there, giving a
+shift of the same size that cannot encode anything learned. The comparison that
+matters is therefore not "selectivity > 1", it is:
+
+    selectivity(trained)  vs  selectivity(scrambled)
+
+If they match, the selectivity is a property of the inputs and the gate fails --
+and it fails in a way the permutation test alone would have called a success.
+
 PRE-COMMITMENTS, written before the run.
 
 (1) THE PREDICTION. Learners show selectivity > 1 and a permutation p < 0.05.
@@ -110,6 +135,7 @@ from calibration.lora import (  # noqa: E402
     assert_only_lora_trainable,
     has_lora,
     inject_lora,
+    is_lora_module,
     remove_lora,
 )
 from calibration.rl import evaluate_policy, train_org_a  # noqa: E402
@@ -141,6 +167,41 @@ CONFIG = {
     "learned_threshold": 0.75,
     "counterbalance_glyphs": True,
 }
+
+
+def _scramble_adapters(model, generator):
+    """Permute the elements of every trained `lora_B`, in place.
+
+    The magnitude-matched, structure-free control. Element permutation preserves
+    each adapter's exact value distribution -- so `||delta||` stays the same size
+    -- while destroying which output dimension receives which correction, which
+    is the only place training could have stored anything.
+
+    `lora_B` rather than `lora_A` because B is the zero-initialised factor: at
+    step 0 it is exactly zero, so everything training wrote into this adapter is
+    in B. Scrambling A would leave the trained B intact and still express
+    learned structure.
+
+    Returns the original tensors so the caller can restore them.
+    """
+    saved = {}
+    for name, module in model.named_modules():
+        if is_lora_module(module):
+            b = module.lora_B.data
+            saved[name] = b.clone()
+            flat = b.flatten()
+            module.lora_B.data = flat[
+                torch.randperm(flat.numel(), generator=generator)
+            ].view_as(b)
+    if not saved:
+        raise RuntimeError("no adapters to scramble")
+    return saved
+
+
+def _restore_adapters(model, saved):
+    for name, module in model.named_modules():
+        if is_lora_module(module) and name in saved:
+            module.lora_B.data = saved[name]
 
 
 def _selectivity(norms, roles, numerator="penalised", denominator="path"):
@@ -239,26 +300,40 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
 
         h_trained = action_token_resid(
             traj, model, tokenizer, batch_size=config["resid_batch_size"])
+
+        # Magnitude-matched, structure-free control (see docstring).
+        saved = _scramble_adapters(model, set_all_seeds(seed + 66_000))
+        h_scrambled = action_token_resid(
+            traj, model, tokenizer, batch_size=config["resid_batch_size"])
+        _restore_adapters(model, saved)
+
         removed = remove_lora(model)
         assert removed > 0 and not has_lora(model), "failed to restore base model"
         h_base = action_token_resid(
             traj, model, tokenizer, batch_size=config["resid_batch_size"])
 
-        assert h_trained.shape == h_base.shape, "paired activations misaligned"
-        delta = h_trained - h_base                      # [n, layers, d]
+        assert h_trained.shape == h_base.shape == h_scrambled.shape, \
+            "paired activations misaligned"
         roles = np.array([t["role"] for t in traj])
-        norms_all = delta.norm(dim=-1)                  # [n, layers]
         base_norms = h_base.norm(dim=-1).clamp_min(1e-9)
+
+        delta = h_trained - h_base                      # [n, layers, d]
+        norms_all = delta.norm(dim=-1)                  # [n, layers]
         rel_all = norms_all / base_norms                # scale-free per layer
+        rel_scram_all = (h_scrambled - h_base).norm(dim=-1) / base_norms
 
         # Layer chosen by largest RELATIVE shift -- the layer training moved most,
         # picked without reference to the labels, so it cannot bias selectivity.
         layer = int(torch.argmax(rel_all.mean(0)).item())
 
         rel = rel_all[:, layer]
+        rel_scram = rel_scram_all[:, layer]
         gen = set_all_seeds(seed + 77_000)
         perm = _permutation_null(
             rel, roles, config["n_permutations"], gen)
+        perm_scram = _permutation_null(
+            rel_scram, roles, config["n_permutations"],
+            set_all_seeds(seed + 79_000))
         perm_rew = _permutation_null(
             rel, roles, config["n_permutations"], set_all_seeds(seed + 78_000),
             numerator="rewarded")
@@ -281,6 +356,10 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
             "selectivity_penalised_vs_path": perm,
             "selectivity_rewarded_vs_path": perm_rew,
             "cos_penalised_path_shift": round(cos_pen_path, 4),
+            "selectivity_scrambled": perm_scram,
+            "selectivity_minus_scrambled": round(
+                perm["observed"] - perm_scram["observed"], 4),
+            "mean_relative_shift_scrambled": round(float(rel_scram.mean()), 5),
             "mean_relative_shift": round(float(rel.mean()), 5),
             "relative_shift_by_layer": [
                 round(float(x), 5) for x in rel_all.mean(0)],
@@ -292,7 +371,7 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
             fh.write(json.dumps(rec) + "\n")
 
 
-        del h_trained, h_base, delta, norms_all, rel_all
+        del h_trained, h_base, h_scrambled, delta, norms_all, rel_all, rel_scram_all
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
@@ -316,6 +395,14 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
             r["selectivity_penalised_vs_path"]["p_value"] < 0.05 for r in learners),
         "mean_cos_pen_path": round(
             sum(r["cos_penalised_path_shift"] for r in per_seed) / len(per_seed), 4),
+        # THE headline comparison: selectivity is only evidence of learned
+        # structure to the extent it exceeds a magnitude-matched scramble.
+        "mean_selectivity_trained": round(sum(
+            r["selectivity_penalised_vs_path"]["observed"] for r in per_seed) / len(per_seed), 4),
+        "mean_selectivity_scrambled": round(sum(
+            r["selectivity_scrambled"]["observed"] for r in per_seed) / len(per_seed), 4),
+        "mean_trained_minus_scrambled": round(sum(
+            r["selectivity_minus_scrambled"] for r in per_seed) / len(per_seed), 4),
     }
     results = {"per_seed": per_seed, "summary": summary}
     path = save_results(out_dir, manifest.finish(), results)
