@@ -20,14 +20,18 @@ measurement. Full design in `docs/calibration-program.html`.
 
 ## 2. Current state in one paragraph
 
-Infrastructure works end to end. Four experiments have run, all on the **untrained**
-model, and between them they have killed two gate candidates and found a prompt
-artefact. **RL now runs: 0.111 s/step, ~1 minute per organism.** The whole design is ~30
-minutes of GPU, so compute was never the constraint — engineering and analysis
-time is. Seeds are free (take 5), and a second model family (AB9) is affordable.
-**But the pilot organism did not learn** (entropy collapse, see §5), so
-ORG-A/A′/B/B′/C are still unbuilt. The prompt confounds are fixed, so the next
-step is genuinely the first training run.
+Infrastructure works end to end and RL trains (0.111 s/step, ~1 min/organism;
+the full design is ~30 min of GPU, so compute was never the constraint). Nine
+experiments have run. **Four gate candidates were pre-registered and all four
+failed**, and E5 then showed that E4's apparent gate signal was an artefact of its
+own measurement protocol — so the program currently has **no validated internal
+dose estimator**, only the behavioural one.
+
+**The single blocking problem is organism yield: 1/6 in E5, 2/6 in E4.** No gate
+can be validated without organisms that reliably learn, and the representation
+effect that E5 makes measurable is currently averaged over five non-learners.
+Fix yield with held-out tuning, then re-run E5's decomposition. ORG-A′/B/B′/C
+remain unbuilt and are correctly blocked behind that.
 
 **Both blocking design fixes are now DONE and verified (E1d).** `random_move_orders`
 and `role_glyphs` live in `src/calibration/` and every organism must use them.
@@ -180,18 +184,47 @@ Trained 6 counterbalanced seeds, measured the gate before and after each.
   sweep on **seed 0 alone** then reported on seeds 0–5. Seed 0's success is partly
   selection. Tune on held-out seeds next time.
 
-**🚩 UNTESTED CONFOUND THAT MAY EXPLAIN EVERYTHING:** trajectories are re-rolled
-*by the trained policy*, so an organism that avoids the penalised tile generates
-fewer penalised trajectories and the probe's class sizes shift between the before
-and after measurements. **The whole +0.080 could be class-imbalance drift.** Fix:
-score both models on a *fixed* trajectory set from the untrained policy. **This is
-the single highest-value next experiment.**
+**🚩 CONFOUND TESTED IN E5 — AND IT WAS THE WHOLE EFFECT. E4's +0.080 IS
+RETRACTED.** See E5 below. Do not cite E4's separability numbers.
 
 **The meta-lesson:** all four gate candidates were validated on untrained models
 only, and all four looked fine there. Each failed the moment a trained organism
 existed to compare against. **A gate cannot be validated without one organism
 known to have learned and one known not to have** — which argues for building the
 organism first and the gate against it, the opposite of the order I argued for.
+
+### ⭐⭐ E5 — E4's number was composition drift. Representation effect is ZERO.
+
+2×2: {base, trained} weights × {base, trained} trajectory sets. `action_token_resid`
+teacher-forces the recorded action, so any model reads any trajectory set.
+
+| effect | what moved | raw | balanced |
+|---|---|---|---|
+| total (E4's protocol) | weights **and** trajectories | +0.041 | +0.081 |
+| **composition** | trajectories only, **weights frozen** | **+0.038** | **+0.076** |
+| **representation** | weights only, trajectories fixed | **−0.001** | +0.016 |
+| interaction | residual | +0.005 | −0.011 |
+
+- ✅ **Composition is 90% (raw) / 94% (balanced) of the effect.** The `bt` cell
+  reads weights bit-identical to `bb` — separability rises with no training at all.
+- ❌ **E4's +0.080 is retracted.** It was not a representation change.
+- ❌ **Balancing class sizes does NOT fix it — it doubled the artefact**
+  (+0.038 → +0.076). Equal sizes ≠ equal contents. **Do not reach for balancing
+  as the repair; I did, and it is wrong.**
+- ✅ **Counterbalancing is load-bearing**: base penalised counts are 545/546/525
+  on even seeds vs 339/326/315 on odd — the blue-glyph prior (E1d) is alive at the
+  action token at ~1.7×.
+- ⚠️ **Does not reproduce E4's behaviour** (`reproduces_e4: false`): 1/6 learned vs
+  2/6, and E4's star seed 0 (0.188→0.051) came out 0.195→0.188 here. Cause: **E4
+  never got a `run.py`**, so its call sequence is unrecoverable; E5 inserts a
+  rollout between eval and train. E4's seed-0 result probably was the tuning fluke
+  it looked like.
+- 🔬 **The one hopeful sign, explicitly n=1:** the only learner has the largest
+  balanced representation effect (+0.065 vs a non-learner mean of +0.007). First
+  time this quantity has pointed the right way. Seed 3 (+0.041, non-learner)
+  weakens it. **A hypothesis, not a result.**
+
+**Blocking problem is now unambiguous: organism yield.** Everything else waits.
 
 ### E2a — first RL run: cost measured, organism did not learn ⚠️
 
@@ -355,6 +388,16 @@ Surface baseline 0.924.
       already broke transformers' cached availability check once (see §8).
 - [ ] **Collapse the notebook cells to thin `import calibration` calls.** They currently
       duplicate module code — two copies that will drift.
+- [x] ~~Control the class-balance confound~~ — **E5, done. The confound was the
+      entire effect.** E4's +0.080 retracted.
+- [ ] 🚩 **TOP PRIORITY — fix organism yield.** 1/6 in E5, 2/6 in E4. Tune
+      `entropy_coef`/`lr`/`steps` on a **held-out** seed set (never seed 0 alone —
+      that error is now twice-burned), target ≥4/6 clearing `rate < 0.75 × random`.
+      **Two experiments are blocked on this and no gate can be tested without it.**
+- [ ] After yield is fixed: re-run E5's decomposition and test whether the
+      representation term separates learners from non-learners (currently n=1).
+- [ ] Backfill a `run.py` for E4 or mark its numbers superseded. **Every experiment
+      from here gets a committed `run.py` before it may produce a number.**
 
 ### Blocked or needs a decision
 
@@ -427,3 +470,16 @@ Surface baseline 0.924.
   output to /dev/null** — that is how the silent failure above went unnoticed.
 - marimo `cm` transactions roll back cleanly on a compile error — a failed
   `create_cell` batch leaves no partial state.
+- **A long run must not be driven by a blocking `execute-code.sh` call.** The HTTP
+  stream drops after a few minutes ("the server ended the stream without a
+  result") and takes the run with it. Launch a kernel-side
+  `threading.Thread(daemon=False)` and poll with short calls.
+- **Redirecting `sys.stdout` inside that thread does not capture prints** — marimo
+  owns the stream. The log file came out empty while the run was working fine.
+  Write progress to a file explicitly; do not rely on stdout capture.
+- **A run that dies mid-seed leaves TRAINED LoRA adapters on the resident model.**
+  Every subsequent "base model" measurement then silently reads a trained model.
+  `has_lora(model)` before anything else in a new session; `remove_lora` if dirty.
+  E5's `run()` now asserts this rather than stacking adapters on top.
+- **Class-size balancing does not repair a class-composition confound** — in E5 it
+  doubled the artefact. Equal sizes are not equal contents.
