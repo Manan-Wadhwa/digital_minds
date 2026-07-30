@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E1c-2.
+Last updated: **2026-07-30**, after E1d.
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -22,18 +22,13 @@ measurement. Full design in `docs/calibration-program.html`.
 
 Infrastructure works end to end. Four experiments have run, all on the **untrained**
 model, and between them they have killed two gate candidates and found a prompt
-artefact. **Do not train an organism until the prompt is fixed** (§6). **No RL has
-been run yet**, so the per-run cost figure is still unknown and every organism
-(ORG-A/A′/B/B′/C) is unbuilt.
+artefact. **No RL has been run yet**, so the per-run cost figure is still unknown and every
+organism (ORG-A/A′/B/B′/C) is unbuilt. The prompt confounds are fixed, so the next
+step is genuinely the first training run.
 
-**Two blocking design fixes, both free now and expensive later:**
-1. **Randomise move-word order per sample** — list position, not the grid, drives
-   the untrained policy (E1c-2). Every organism trained on the current prompt
-   inherits a positional artefact *in its policy*, and the function axis is
-   defined by policy.
-2. **Counterbalance glyph assignment across seeds** — 🟪 is preferred over 🟦 by a
-   small but perfectly reproducible margin (+0.157, 3/3 seeds). Half the runs
-   should use 🟦 as the penalised tile, half 🟪, so a colour prior cancels.
+**Both blocking design fixes are now DONE and verified (E1d).** `random_move_orders`
+and `role_glyphs` live in `src/calibration/` and every organism must use them.
+**The prompt is safe to train on.**
 
 ---
 
@@ -92,6 +87,7 @@ experiments/
   E1b_probe_readout/       run.py · RESULTS.md · results/*.json · e1b_readout.svg
   E1c_functional_gate/     run.py · RESULTS.md · results/*.json · e1c_gate.svg
   E1c2_margin_and_order/   run.py · RESULTS.md · results/*.json
+  E1d_corrected_floor/     run.py · RESULTS.md · results/*.json · e1d_signflip.svg
 scripts/
   sync_to_sandbox.sh · plot_e1a.py · plot_e1b.py · plot_e1c.py
 ```
@@ -127,6 +123,25 @@ Reference reports −0.23 … −0.13 pre-training.
   cannot fail to "confirm" the gate.
 - Vectors are fine — split-half reliability 0.825 @ L23. The defect is in what the
   contrast *means*, so more data cannot fix it.
+
+### E1d — corrected floor; the asymmetry is a colour prior ✅
+
+**The counterbalancing gave a clean controlled result: the sign flips 6/6 with the
+glyph swap**, so the asymmetry follows the *glyph*, not the *role*.
+
+| seed | penalised | gap | | seed | penalised | gap |
+|---|---|---|---|---|---|---|
+| 0 | 🟦 | +0.1411 | | 1 | 🟪 swapped | −0.0654 |
+| 2 | 🟦 | +0.1690 | | 3 | 🟪 swapped | −0.1021 |
+| 4 | 🟦 | +0.1225 | | 5 | 🟪 swapped | −0.1232 |
+
+Pooled **+0.024** (was +0.157). Move entropy **0.270 → 1.150** of max 1.386.
+
+- ✅ **Gate floor: `|cos(w_tile, w_move)|` mean 0.051, max 0.089.** Non-degenerate,
+  far from ceiling. **This is the number RL has to move.**
+- ⚠️ Randomisation injected position noise into the margin: R² now
+  [0.688, 0.157, 0.427, 0.023, 0.398, 0.619]. Drop seeds below ~0.2, or average the
+  margin over several orders per grid.
 
 ### E1c / E1c-2 — a prompt artefact, and a qualified neutrality claim ⚠️
 
@@ -186,11 +201,13 @@ Surface baseline 0.924.
       0.66 against a 0.925 majority-class baseline. Alignment 0.077 is provisional.
 - [x] ~~E1c-2 — continuous logit margin~~ — done, R² 0.716, degeneracy fixed.
 - [x] ~~Permute the move-word list order~~ — done, and it **fired**. See above.
-- [ ] 🚩 **BLOCKING — randomise move-word order per sample** in `maze_prompt`, and
-      **counterbalance glyph assignment** across seeds. Do this before any organism
-      is trained. Randomising is preferable to a fixed order: it keeps the prompt
-      affect-free and converts a confound into noise.
-- [ ] **Re-run E1c-2 on the corrected prompt** to get the real gate floor.
+- [x] ~~Randomise move-word order; counterbalance glyph assignment~~ — done and
+      verified in E1d. Entropy 0.270 → 1.150; margin gap +0.157 → +0.024 pooled.
+- [x] ~~Re-run for the real gate floor~~ — **floor is `|cos| ≈ 0.05`, max 0.089.**
+- [ ] **Average the margin over several move orders per grid.** Randomisation
+      injected position noise into the margin target, so R² now varies 0.02–0.69
+      across seeds and low-R² seeds have unreliable alignment. Averaging
+      marginalises position out. Costs forward passes, not design.
 - [ ] **First RL run (ORG-A at one reward magnitude).** Produces the **per-run cost**
       number every scaling and seed-budget decision has been deferred against.
       `peft`/`trl`/`unsloth` are all MISSING in the sandbox — write a minimal LoRA in
