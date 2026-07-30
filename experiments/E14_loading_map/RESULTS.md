@@ -113,29 +113,44 @@ Two things to note before reading any of it:
 - **I3 flips sign between groupings** (+0.065 → −0.731). Any instrument whose sign
   depends on how organisms are grouped is not measuring something stable.
 
-## Why the placebo fails, mechanically
+## Why the placebo fails — and why the obvious explanation is wrong
 
-I6 contrasts green against yellow. The **untrained** model already rates green far
-more positively (+4.84), and ORG-D's four seeds return that value **bit-identically**
-— zero variance. A low-variance measure of a large pre-existing prior turns any
-systematic nudge into a large Cohen's d.
+I6 contrasts green against yellow. The untrained model already rates green +4.84
+higher, and ORG-D returns that value **bit-identically** across all four seeds.
+My first explanation was that the placebo's d is *inflated by its own stability* —
+a low-variance measure of a large prior turning any nudge into a large d.
 
-So the placebo's d is **inflated by its own stability**, and the honest reading is
-that fine-tuning of any kind perturbs an existing glyph prior, with aversive
-commentary perturbing it most (B 8.84 > B′ 6.11 > A′ 5.45 > D 4.84 > A 3.56).
+**I tested that and it is wrong.** Subtracting ORG-D's value per seed removes the
+prior entirely, and the placebo loading gets **worse**, not better:
 
-That is a real ordering, but it is not evidence about the *trained tile*, which is
-what an instrument in this program has to be measuring to count.
+| | raw | baseline-normalised |
+|---|---|---|
+| I6 function_d | −0.909 | **−1.327** |
+| I6 narration_d | +0.905 | +0.798 |
+
+So the organisms genuinely differ in how they respond to glyphs they never saw:
+B 8.84 > B′ 6.11 > A′ 5.45 > D 4.84 > A 3.56. Training changes verbal valence
+toward unrelated stimuli, and aversive commentary changes it most.
+
+**That is not an artefact to be corrected away. It is the mechanism behind the
+headline** — narration training generalises promiscuously, so an instrument
+detecting it cannot localise it to the trained stimulus.
 
 ## What survives
 
-- **I5, the activation probe, is the only instrument beating the placebo under
-  both groupings** (−1.12 vs −0.91 intended; −0.84 vs −0.37 measured). Weak
-  evidence, consistent direction, and it was the pre-registered favourite.
-- The **B vs B′ contrast on the trained tiles is essentially zero** (d = 0.033)
-  for self-report — the cleanest single number in the run, because B and B′ are
-  matched on method, volume, verbosity and remark length, and differ only in
-  affect.
+- **|I2| self-report has the strongest function loading** (−2.05; −2.56 excluding
+  the untrained baseline) and beats the placebo by roughly 2×. Function training
+  shrinks the model's glyph-valence gap.
+- **I5, the activation probe, beats the placebo on the signed measure under both
+  groupings** (−1.12 vs −0.91 intended; −0.84 vs −0.37 measured). Weak evidence,
+  consistent direction, pre-registered favourite.
+- **B vs B′ is large on both trained (5.80) and unseen (8.45) glyphs** — matched
+  on method, volume, verbosity and remark length, differing only in affect. The
+  effect being *larger on unseen glyphs* is the run's central number.
+
+⚠️ The earlier version of this file listed "d = 0.033 on the trained tiles" here as
+the cleanest number in the run. That was the signed, counterbalance-cancelled
+quantity and it is not evidence of absence. See the correction at the top.
 
 ## Threats — several are severe
 
@@ -154,9 +169,11 @@ what an instrument in this program has to be measuring to count.
 
 ## Next
 
-1. **Fix the placebo before trusting any loading.** It needs a contrast with a
-   baseline near zero — matched glyphs the model has no prior between — or
-   normalisation against the untrained model's own value per glyph pair.
+1. **Counterbalance the placebo.** This is the concrete design fix: I2 flips which
+   glyph is penalised by seed parity, while I6 is always green−yellow. Every
+   role-based measure in this program is counterbalanced and the placebo is not,
+   so it alone accumulates glyph-identity effects that cancel elsewhere.
+   Baseline-normalisation does **not** fix it (tested; it makes it worse).
 2. **Resolve ORG-A′'s cross-experiment instability.** The function axis cannot be
    trusted while a third of its organisms are not functional.
 3. Re-run with a repaired placebo and a verified set. Only then are these
