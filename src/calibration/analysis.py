@@ -194,6 +194,27 @@ def probe_separability_cv(h_a, h_b, alphas=(1e1, 1e2, 1e3, 1e4, 1e5), folds=4, g
     return acc, chosen
 
 
+def probe_r2(h, targets, train_frac=0.7, ridge=1.0, generator=None):
+    """Held-out R^2 predicting a CONTINUOUS target from activations, per layer.
+
+    E1c's binary move label was 7.5/92.5 imbalanced, so a probe could score below
+    the majority-class rate and the result was uninterpretable. A continuous
+    target -- the logit margin for the toward-move -- has variance even when the
+    argmax never changes, and R^2 has a meaningful zero (predicting the mean).
+    """
+    y = targets.float()
+    perm = torch.randperm(len(h), generator=generator)
+    h, y = h[perm], y[perm]
+    n_train = int(train_frac * len(h))
+    out = torch.empty(h.shape[1])
+    for layer in range(h.shape[1]):
+        pred = _ridge_dual_predict(h[:n_train, layer], y[:n_train], h[n_train:, layer], ridge)
+        resid = ((y[n_train:] - pred - (y[:n_train].mean() - pred.mean())) ** 2).sum()
+        total = ((y[n_train:] - y[n_train:].mean()) ** 2).sum().clamp_min(1e-12)
+        out[layer] = 1 - resid / total
+    return out
+
+
 def probe_direction(h_a, h_b, ridge=1.0):
     """Ridge probe weight vector separating two conditions, per layer. -> [L+1, d]
 
