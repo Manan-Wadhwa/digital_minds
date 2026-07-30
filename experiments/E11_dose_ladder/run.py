@@ -334,6 +334,8 @@ def run(model, tokenizer, config=CONFIG, out_dir=None):
     margin_usable = rho_margin is not None and rho_margin >= 0.5
 
     summary = {
+        "rate_rho_vs_scale": rho_rate,
+        "margin_rho_vs_scale": rho_margin,
         "rate_spread": rate_spread,
         "margin_delta_spread": margin_spread,
         "n_saturated_at_zero": sum(r["rate_saturated"] for r in rows),
