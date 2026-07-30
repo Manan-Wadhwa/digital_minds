@@ -152,7 +152,7 @@ def avoidance_margin(model, tokenizer, states, orders, penalised, batch_size):
         ords = orders[lo : lo + batch_size]
         texts = [
             tokenizer.apply_chat_template(
-                [{"role": "user", "content": maze_prompt(g.render(), o)}],
+                [{"role": "user", "content": maze_prompt(g, o)}],
                 add_generation_prompt=True, tokenize=False,
             )
             for (g, _d), o in zip(chunk, ords)
