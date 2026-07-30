@@ -251,6 +251,8 @@ def train_org_a(
     temperature=1.0,
     log_every=10,
     max_grad_norm=1.0,
+    entropy_coef=0.0,
+    zero_grad_tol=1e-8,
     micro_batch_size=None,
     grid_n=GRID_N,
     counterbalance=True,
@@ -406,6 +408,23 @@ def train_org_a(
                 # Divide by the full batch's sample count, not the micro-batch's,
                 # so summing the micro-batch losses reproduces the full-batch mean.
                 loss = -(advantage * chosen_logp).sum() / n_samples
+
+                # Entropy bonus. E2a showed the single-step form collapses to a
+                # deterministic action within ~100 steps: with four actions and a
+                # group of G, once the policy sharpens every sample in a group is
+                # the same, reward is constant within the group, the advantage is
+                # identically zero, and learning stops with the policy frozen on
+                # whatever it happened to collapse to. Detection alone does not
+                # help -- there is no gradient left to act on -- so the remedy has
+                # to keep the collapse from happening.
+                #
+                # Computed from the LIVE logp, not the detached CPU copy used for
+                # sampling, so it actually carries gradient. Weighted by the
+                # micro-batch's share of the batch so the summed micro-batch
+                # losses reproduce the full-batch mean entropy.
+                if entropy_coef:
+                    ent = -(logp.exp() * logp).sum(-1).mean()
+                    loss = loss - entropy_coef * ent * (len(chunk) / batch_size)
                 loss.backward()
 
                 loss_val += float(loss.detach())
@@ -431,7 +450,12 @@ def train_org_a(
             # loss curve to show for it. Skipping restores the SGD semantics.
             # `zero_signal_steps` counts these; a large count means the policy has
             # collapsed to a deterministic action and the run is over.
-            if grad_norm > 0.0:
+            # Tolerance, not equality: E2a logged |g| as 0.000 for most of a run
+            # while zero_signal_steps stayed at 0, because the true norm was a
+            # denormal rather than exactly zero and `> 0.0` let every one of those
+            # steps through -- exactly the Adam-drift case this guard exists to
+            # stop.
+            if grad_norm > zero_grad_tol:
                 optimiser.step()
             else:
                 zero_signal_steps += 1
