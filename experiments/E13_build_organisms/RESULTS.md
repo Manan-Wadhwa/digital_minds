@@ -104,9 +104,16 @@ divergence.
 
 ## Threats
 
-- **ORG-A does not reproduce E9** (0.98 / 0.23 / 0.15 / 0.87 against E9's 0.086)
-  even after matching E9's seeding. Something else differs in E13's RL path and it
-  is unresolved. ORG-A′ is currently the more dependable functional organism.
+- **ORG-A vs E9 was my misreading, now corrected.** I wrote this up as a
+  reproducibility failure. It is not: **E9 tuned on held-out seeds 10–13 and E13
+  runs the reporting seeds 0–3**, so there was never a number to reproduce.
+
+  What the gap does show is a **transfer gap** — E9's configuration reaches 4/4 on
+  the seeds it was selected on and about 2/4 on unseen ones. That is the honest
+  and more useful reading, and it is exactly what held-out tuning is for. E9's
+  0.086 must be quoted as "on the tuning seeds", never as ORG-A's expected value.
+
+  ORG-A′ is nonetheless the more dependable functional organism (4/4 vs 2/4).
 - 4 seeds per kind. Every "n/4" here is a small number.
 - The narration check greedily decodes and string-matches the aversive list, so a
   paraphrasing organism scores low despite narrating. Generations are saved
