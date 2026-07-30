@@ -31,6 +31,23 @@ def maze_messages(env):
     return [{"role": "user", "content": maze_prompt(env.render())}]
 
 
+def random_move_orders(n, generator=None):
+    """n independent permutations of the move words, one per sample.
+
+    E1c-2 found the untrained policy is driven by list POSITION rather than the
+    grid: the modal move swings from "left" 92.4% to "down" 70.1% when only the
+    order changes. A single fixed order -- any fixed order -- bakes that artefact
+    into every organism's policy, and the function axis is defined by policy.
+
+    Randomising per sample converts the confound into noise while keeping the
+    prompt affect-free, which a fixed order cannot do.
+    """
+    return [
+        tuple(MOVE_WORDS[i] for i in torch.randperm(len(MOVE_WORDS), generator=generator))
+        for _ in range(n)
+    ]
+
+
 def move_token_ids(tokenizer):
     """First-token id of each move word, as the model would emit it.
 
@@ -48,7 +65,8 @@ def move_token_ids(tokenizer):
 
 
 @torch.no_grad()
-def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_order=MOVE_WORDS):
+def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_order=MOVE_WORDS,
+                move_orders=None):
     """Logits over the four move words at the first generated position.
 
     Returns (logits [n, 4], move_words tuple). No sampling, so the readout is
@@ -59,15 +77,17 @@ def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_orde
     ids = move_token_ids(tokenizer)
     cols = torch.tensor([ids[w] for w in MOVE_WORDS])
 
+    orders = move_orders if move_orders is not None else [move_order] * len(grids)
+
     out = []
     for i in range(0, len(grids), batch_size):
         texts = [
             tokenizer.apply_chat_template(
-                [{"role": "user", "content": maze_prompt(g, move_order)}],
+                [{"role": "user", "content": maze_prompt(g, o)}],
                 add_generation_prompt=True,
                 tokenize=False,
             )
-            for g in grids[i : i + batch_size]
+            for g, o in zip(grids[i : i + batch_size], orders[i : i + batch_size])
         ]
         enc = tokenizer(
             texts, return_tensors="pt", padding=True, padding_side="left"
@@ -78,7 +98,7 @@ def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_orde
 
 
 @torch.no_grad()
-def pooled_resid(grids, model, tokenizer, batch_size=16, device="cuda"):
+def pooled_resid(grids, model, tokenizer, batch_size=16, device="cuda", move_orders=None):
     """Residual stream pooled three ways, every layer.
 
     E1a read only the final prompt token and found mold-vs-gold separability of
@@ -99,13 +119,16 @@ def pooled_resid(grids, model, tokenizer, batch_size=16, device="cuda"):
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    orders = move_orders if move_orders is not None else [MOVE_WORDS] * len(grids)
+
     out = {k: [] for k in ("last", "mean_all", "mean_grid")}
     for i in range(0, len(grids), batch_size):
         chunk = grids[i : i + batch_size]
+        chunk_orders = orders[i : i + batch_size]
         texts, spans = [], []
-        for g in chunk:
+        for g, o in zip(chunk, chunk_orders):
             text = tokenizer.apply_chat_template(
-                [{"role": "user", "content": maze_prompt(g)}],
+                [{"role": "user", "content": maze_prompt(g, o)}],
                 add_generation_prompt=True,
                 tokenize=False,
             )

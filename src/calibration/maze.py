@@ -90,6 +90,23 @@ class TextMaze:
         return self.n_mold / (self.n * self.n)
 
 
+def role_glyphs(seed, counterbalance=True):
+    """(penalised, rewarded) glyphs for this seed.
+
+    E1c-2 measured a small but perfectly reproducible preference for moving
+    toward the purple glyph over the blue one (+0.157 logit margin, identical
+    across 3/3 seeds). Almost certainly an arbitrary colour prior rather than
+    valence -- but it is exactly the asymmetry ORG-A is supposed not to have, and
+    left uncontrolled it loads directly onto the penalised/rewarded contrast.
+
+    Swapping the assignment on odd seeds makes the prior cancel in the mean
+    instead. Costs nothing; must be on for every organism.
+    """
+    if counterbalance and seed % 2 == 1:
+        return TILE_GOLD, TILE_MOLD
+    return TILE_MOLD, TILE_GOLD
+
+
 def state_bank(tile, n=96, seed=0, direction=(-1, 0)):
     """Grids where the neighbour in `direction` is `tile`, all else randomised.
 
