@@ -30,6 +30,24 @@ SKILL="$REPO_ROOT/.agents/skills/marimo-pair/scripts/execute-code.sh"
 [ -r "$MARIMO_TOKEN_FILE" ] || { echo "token file unreadable: $MARIMO_TOKEN_FILE" >&2; exit 1; }
 
 SHA="$(cd "$REPO_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+
+# Mark the SHA when the SYNCED SOURCE differs from HEAD. This matters because
+# `runner.git_sha()` falls back to CALIBRATION_GIT_SHA, which this script sets --
+# so without the marker a run of uncommitted code records a clean SHA whose
+# contents are not the code that ran. That is not hypothetical: E5's manifest
+# claims 043bf8a while the code that produced its numbers landed one commit later
+# as 3da25d8, and the discrepancy had to be caught and documented by hand.
+#
+# Scoped to what is actually shipped (src, experiments) and excluding results/,
+# which is output and changes on every run.
+DIRTY="$(cd "$REPO_ROOT" && git status --porcelain -- src experiments 2>/dev/null \
+         | grep -v '/results/' || true)"
+if [ -n "$DIRTY" ]; then
+    SHA="${SHA}-dirty"
+    echo "WARNING: synced source differs from HEAD; manifests will record ${SHA}" >&2
+    echo "$DIRTY" | sed 's/^/    /' >&2
+fi
+
 TARBALL="$(mktemp)"
 trap 'rm -f "$TARBALL"' EXIT
 
