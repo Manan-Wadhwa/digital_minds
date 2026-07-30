@@ -98,6 +98,7 @@ counterbalanced run.** Every rate in this module is computed against the
 
 from __future__ import annotations
 
+import math
 import time
 
 import torch
@@ -252,6 +253,9 @@ def train_org_a(
     log_every=10,
     max_grad_norm=1.0,
     entropy_coef=0.0,
+    entropy_target=None,
+    entropy_lr=0.05,
+    entropy_coef_bounds=(1e-4, 1.0),
     zero_grad_tol=1e-8,
     micro_batch_size=None,
     grid_n=GRID_N,
@@ -354,10 +358,51 @@ def train_org_a(
     history = {k: [] for k in (
         "step", "loss", "mean_reward", "mean_reward_tile_units", "mold_rate",
         "policy_entropy", "grad_norm", "step_seconds", "move_dist",
+        "entropy_coef",
     )}
     n_samples = batch_size * group_size
     zero_signal_steps = 0
     t_run = time.perf_counter()
+
+    # ADAPTIVE ENTROPY COEFFICIENT (opt-in; `entropy_target=None` leaves the
+    # behaviour of every earlier experiment bit-identical).
+    #
+    # A FIXED coefficient does not hold the policy open. E7's sweep shows final
+    # policy entropy at exactly 0.00 at both entropy_coef 0.003 and 0.01 once
+    # training runs 800 steps -- the same coefficient that kept entropy near 1.0
+    # at 300 steps in E4 and E5. So the failure is not "too little bonus", it is
+    # that a constant bonus loses to a reward gradient that keeps growing as the
+    # policy sharpens. Whatever constant is picked, there is a horizon past which
+    # it collapses; lengthening training just finds that horizon.
+    #
+    # Targeting the entropy instead of the coefficient removes the horizon. The
+    # controller raises the coefficient when entropy falls below target and
+    # lowers it when above, in log space so the coefficient stays positive:
+    #
+    #     log_coef <- log_coef + entropy_lr * (target - measured)
+    #
+    # Max entropy for four actions is ln(4) = 1.386, so a target near 0.9 leaves
+    # the policy clearly preferential while keeping every action sampled -- which
+    # is what the group baseline needs to produce a non-zero advantage at all.
+    #
+    # Note this is NOT a KL penalty, and the difference is not merely cost. This
+    # module's header already argues against a KL leash on design grounds: the
+    # organism is *supposed* to depart from the base policy, so a term pulling it
+    # back fights the manipulation check the run is judged on. An entropy target
+    # constrains only how *sharp* the policy may become, not which action it
+    # prefers, so it keeps the group baseline informative without objecting to the
+    # departure. It is also free, where KL would need a second forward pass with
+    # the adapters disabled and roughly double the 0.079 s/step.
+    coef = float(entropy_coef)
+    adaptive = entropy_target is not None
+    if adaptive:
+        if coef <= 0:
+            raise ValueError(
+                "entropy_target requires a positive starting entropy_coef; "
+                f"got entropy_coef={entropy_coef}"
+            )
+        log_coef = math.log(coef)
+        coef_lo, coef_hi = entropy_coef_bounds
 
     try:
         for step in range(steps):
@@ -422,9 +467,9 @@ def train_org_a(
                 # sampling, so it actually carries gradient. Weighted by the
                 # micro-batch's share of the batch so the summed micro-batch
                 # losses reproduce the full-batch mean entropy.
-                if entropy_coef:
+                if coef:
                     ent = -(logp.exp() * logp).sum(-1).mean()
-                    loss = loss - entropy_coef * ent * (len(chunk) / batch_size)
+                    loss = loss - coef * ent * (len(chunk) / batch_size)
                 loss.backward()
 
                 loss_val += float(loss.detach())
@@ -474,7 +519,16 @@ def train_org_a(
                 mean_reward / reward_scale if reward_scale else float("nan")
             )
             history["mold_rate"].append(penalised_hits / n_samples)
-            history["policy_entropy"].append(max(0.0, entropy_sum / batch_size))
+            measured_entropy = max(0.0, entropy_sum / batch_size)
+            history["policy_entropy"].append(measured_entropy)
+            history["entropy_coef"].append(coef)
+            if adaptive:
+                # Update AFTER recording, so `entropy_coef[i]` is the coefficient
+                # that actually produced `policy_entropy[i]` rather than the one
+                # chosen in response to it.
+                log_coef += entropy_lr * (entropy_target - measured_entropy)
+                coef = float(min(max(math.exp(log_coef), coef_lo), coef_hi))
+                log_coef = math.log(coef)
             history["grad_norm"].append(grad_norm)
             history["step_seconds"].append(elapsed)
             history["move_dist"].append((move_counts / move_counts.sum()).tolist())
@@ -503,6 +557,10 @@ def train_org_a(
         "micro_batch_size": mbs,
         "grid_n": grid_n,
         "counterbalance": counterbalance,
+        "entropy_coef_initial": float(entropy_coef),
+        "entropy_target": entropy_target,
+        "entropy_lr": entropy_lr if entropy_target is not None else None,
+        "entropy_adaptive": entropy_target is not None,
         "algorithm": "Dr.GRPO (group-mean baseline, no std normalisation)",
         "formulation": "single-step bandit",
     }
