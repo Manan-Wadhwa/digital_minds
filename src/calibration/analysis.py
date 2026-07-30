@@ -97,6 +97,66 @@ def split_half_reliability(h_tile, h_base, generator=None):
     return _cos(v_a, v_b)
 
 
+def surface_baseline_texts(texts_a, texts_b, tokenizer, train_frac=0.7, ridge=1.0,
+                           generator=None):
+    """Bag-of-token-ids classifier on already-rendered text.
+
+    Same control as `surface_baseline`, but for text that is complete as it
+    stands -- a trajectory's chat-templated prompt with its emitted action letter
+    appended -- rather than raw grid content needing a template wrapped round it.
+
+    This is the control the landing-class gate most needs and has never had. The
+    tile a step lands on is a DETERMINISTIC function of the grid and the emitted
+    letter, and both are present verbatim in the text the probe's activations
+    were read from. So a token-count model may separate the landing classes
+    outright. If it beats the activation probe, the probe is reading a degraded
+    copy of its own input and cannot be evidence about a learned representation.
+    """
+    ids_a = [tokenizer(t)["input_ids"] for t in texts_a]
+    ids_b = [tokenizer(t)["input_ids"] for t in texts_b]
+
+    vocab = sorted({t for seq in ids_a + ids_b for t in seq})
+    index = {t: i for i, t in enumerate(vocab)}
+
+    def bag(seqs):
+        x = torch.zeros(len(seqs), len(vocab))
+        for r, seq in enumerate(seqs):
+            for t in seq:
+                x[r, index[t]] += 1
+        return x
+
+    x = torch.cat([bag(ids_a), bag(ids_b)])
+    y = torch.cat([-torch.ones(len(ids_a)), torch.ones(len(ids_b))])
+    perm = torch.randperm(len(x), generator=generator)
+    x, y = x[perm], y[perm]
+    n_train = int(train_frac * len(x))
+    pred = _ridge_dual_predict(x[:n_train], y[:n_train], x[n_train:], ridge)
+    return float((torch.sign(pred) == y[n_train:]).float().mean())
+
+
+def surface_class_separability(trajectories, tokenizer, train_frac=0.7, ridge=1.0,
+                               generator=None):
+    """Mean pairwise surface-baseline accuracy over the three landing classes.
+
+    Directly comparable to `class_separability`: same pairs, same averaging, same
+    split fraction -- token counts instead of activations.
+    """
+    roles = ("penalised", "rewarded", "path")
+    texts = {r: [t["prompt"] + t["action"] for t in trajectories if t["role"] == r]
+             for r in roles}
+    live = [r for r in roles if len(texts[r]) > 1]
+    pairs = [(a, b) for i, a in enumerate(live) for b in live[i + 1:]]
+    if not pairs:
+        raise ValueError(f"need >=2 populated classes, got {[(r, len(texts[r])) for r in roles]}")
+    total = 0.0
+    for a, b in pairs:
+        total += surface_baseline_texts(
+            texts[a], texts[b], tokenizer,
+            train_frac=train_frac, ridge=ridge, generator=generator,
+        )
+    return total / len(pairs)
+
+
 def surface_baseline(grids_a, grids_b, tokenizer, train_frac=0.7, ridge=1.0, generator=None):
     """Held-out accuracy of a bag-of-token-ids classifier on the raw prompt text.
 
