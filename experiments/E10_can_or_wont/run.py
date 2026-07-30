@@ -155,7 +155,7 @@ def _rate(model, tokenizer, states, orders, condition, penalised, batch_size):
         ords = orders[lo : lo + batch_size]
         texts = [
             tokenizer.apply_chat_template(
-                [{"role": "user", "content": _prompt(g.render(), o, condition, penalised)}],
+                [{"role": "user", "content": _prompt(g, o, condition, penalised)}],
                 add_generation_prompt=True, tokenize=False,
             )
             for (g, _d), o in zip(chunk, ords)
