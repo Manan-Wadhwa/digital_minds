@@ -371,9 +371,10 @@ def balance_roles(h_by_role, generator=None, cap=None):
     itself differs between the models being compared. Equalising the classes
     removes that as an explanation for a difference between two measurements.
 
-    Returns (balanced dict, size used). Roles with fewer than 2 rows are dropped
-    from the size calculation but kept (empty) in the output so callers can see
-    which class starved.
+    Returns (balanced dict, size used). Roles with fewer than 2 rows are excluded
+    from the size calculation -- they must not drag every other class down to 1 --
+    but are passed through at their ACTUAL size, not emptied, so a caller can see
+    exactly which class starved and by how much.
     """
     counts = {r: len(h) for r, h in h_by_role.items()}
     usable = [n for n in counts.values() if n > 1]
