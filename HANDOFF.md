@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E1b.
+Last updated: **2026-07-30**, after E1c-2.
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -20,11 +20,20 @@ measurement. Full design in `docs/calibration-program.html`.
 
 ## 2. Current state in one paragraph
 
-Infrastructure works end to end. Two experiments have run, both on the **untrained**
-model. Together they killed the planned day-3 gate (the cosine is baseline-dependent)
-and rehabilitated its replacement (probe separability, once read from the right
-place). **No RL has been run yet**, so the central per-run cost figure is still
-unknown, and every organism (ORG-A/A′/B/B′/C) is still unbuilt.
+Infrastructure works end to end. Four experiments have run, all on the **untrained**
+model, and between them they have killed two gate candidates and found a prompt
+artefact. **Do not train an organism until the prompt is fixed** (§6). **No RL has
+been run yet**, so the per-run cost figure is still unknown and every organism
+(ORG-A/A′/B/B′/C) is unbuilt.
+
+**Two blocking design fixes, both free now and expensive later:**
+1. **Randomise move-word order per sample** — list position, not the grid, drives
+   the untrained policy (E1c-2). Every organism trained on the current prompt
+   inherits a positional artefact *in its policy*, and the function axis is
+   defined by policy.
+2. **Counterbalance glyph assignment across seeds** — 🟪 is preferred over 🟦 by a
+   small but perfectly reproducible margin (+0.157, 3/3 seeds). Half the runs
+   should use 🟦 as the penalised tile, half 🟪, so a colour prior cancels.
 
 ---
 
@@ -79,10 +88,12 @@ src/calibration/
   analysis.py   3 extraction specs, cosine, split-half, surface_baseline, probe (dual ridge)
   runner.py     set_all_seeds, RunManifest (seed+git SHA+config hash), save_results, summarise
 experiments/
-  E1a_extraction_spec/   run.py · RESULTS.md · results/*.json · e1a_profiles.svg
-  E1b_probe_readout/     run.py · RESULTS.md · results/*.json · e1b_readout.svg
+  E1a_extraction_spec/     run.py · RESULTS.md · results/*.json · e1a_profiles.svg
+  E1b_probe_readout/       run.py · RESULTS.md · results/*.json · e1b_readout.svg
+  E1c_functional_gate/     run.py · RESULTS.md · results/*.json · e1c_gate.svg
+  E1c2_margin_and_order/   run.py · RESULTS.md · results/*.json
 scripts/
-  sync_to_sandbox.sh · plot_e1a.py · plot_e1b.py
+  sync_to_sandbox.sh · plot_e1a.py · plot_e1b.py · plot_e1c.py
 ```
 
 **Conventions, please keep them:**
@@ -117,14 +128,24 @@ Reference reports −0.23 … −0.13 pre-training.
 - Vectors are fine — split-half reliability 0.825 @ L23. The defect is in what the
   contrast *means*, so more data cannot fix it.
 
-### E1c — glyph neutrality holds; the gate floor is not yet measurable ⚠️
+### E1c / E1c-2 — a prompt artefact, and a qualified neutrality claim ⚠️
 
-- ✅ **Move bias `P(up|gold) − P(up|mold) = +0.0167`** [−0.010, +0.052]. The glyphs
-  are affectively neutral to the untrained model — the premise ORG-A depends on.
-- ❌ Untrained policy is near-constant: **`left` 92.4%, `right` 0.0%**, entropy
-  0.27/1.386. Move probe scores 0.66 against a **0.925 majority-class baseline** —
-  worse than trivial. Alignment `|cos| = 0.077` is therefore provisional.
-- Consequence: RL has large headroom, and ORG-A's manipulation check will not be subtle.
+**E1c-2 invalidated E1c's move statistics.** Changing only the order the move words
+are listed in swings the modal move from `left` 92.4% to `down` 70.1%:
+
+| list order | up | down | left | right |
+|---|---|---|---|---|
+| `up, down, left, right` | 0.076 | 0.000 | **0.924** | 0.000 |
+| `right, left, down, up` | 0.000 | **0.701** | 0.059 | 0.240 |
+| `left, right, up, down` | 0.174 | 0.344 | **0.483** | 0.000 |
+
+- **The policy is positional, not grid-driven.** `left` collapses 0.924 → 0.059.
+- **Glyph neutrality is weaker than E1c claimed.** Continuous margin gap
+  **+0.157** [+0.153, +0.160], identical across 3 seeds. E1c's binary argmax
+  (+0.017) was too coarse to see it. Needs counterbalancing.
+- ✅ The continuous logit margin fixes the degeneracy: **R² 0.716** at L17.
+- **Functional gate floor, now non-degenerate: `|cos(w_tile, w_move)| ≈ 0.09`,
+  max 0.138.** Far from ceiling — which is what a gate needs.
 
 ### E1b — the replacement gate is saturated, not weak ❌
 
@@ -163,11 +184,13 @@ Surface baseline 0.924.
       (move bias +0.017), but the untrained policy is near-constant (`left` 92.4%,
       `right` 0.0%, entropy 0.27/1.386) so the move probe is degenerate and scores
       0.66 against a 0.925 majority-class baseline. Alignment 0.077 is provisional.
-- [ ] **E1c-2 — re-run with the continuous logit margin** `logit(up) − logsumexp(rest)`
-      instead of binary argmax. Has variance even when the argmax never changes,
-      which removes the degeneracy without altering the design. Minutes.
-- [ ] **Permute the move-word list order** in the prompt to test whether the `left`
-      prior is positional. Minutes, and it bears on prompt design for every organism.
+- [x] ~~E1c-2 — continuous logit margin~~ — done, R² 0.716, degeneracy fixed.
+- [x] ~~Permute the move-word list order~~ — done, and it **fired**. See above.
+- [ ] 🚩 **BLOCKING — randomise move-word order per sample** in `maze_prompt`, and
+      **counterbalance glyph assignment** across seeds. Do this before any organism
+      is trained. Randomising is preferable to a fixed order: it keeps the prompt
+      affect-free and converts a confound into noise.
+- [ ] **Re-run E1c-2 on the corrected prompt** to get the real gate floor.
 - [ ] **First RL run (ORG-A at one reward magnitude).** Produces the **per-run cost**
       number every scaling and seed-budget decision has been deferred against.
       `peft`/`trl`/`unsloth` are all MISSING in the sandbox — write a minimal LoRA in
