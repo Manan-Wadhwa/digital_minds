@@ -64,9 +64,27 @@ about a badly chosen test. **Read the numbers, not the verdict string.**
 
 ---
 
-## 2b. 🔴 WHAT IS RUNNING RIGHT NOW (autonomous stretch, 2026-07-30 evening)
+## 2b. ✅ AUTONOMOUS STRETCH COMPLETE (2026-07-30 evening)
 
-The user is away. Work continues unattended. Queue, in order:
+All queued work finished. **E13 v3 and E14 both ran to completion.** Read
+`experiments/E14_loading_map/RESULTS.md` first — the loading map exists, its
+integrity check failed, and the failure is itself the result.
+
+**The one substantive finding:** ORG-B narrates aversion about the tile IN DOMAIN
+(E13 narration rate 0.70–1.00) but shows **no out-of-domain verbal-valence
+signature about that same tile** (I2: B +0.12 vs B′ −0.08, d = 0.033). A
+self-report probe asking "how do you feel about X" would not have detected
+narration training that happened in another context.
+
+**Blocking before any loading can be quoted:**
+1. **The placebo is broken by construction.** It contrasts green vs yellow, where
+   the untrained model already has a large prior (+4.84) and zero variance, so any
+   nudge yields a huge d. Needs a baseline-near-zero glyph pair, or per-pair
+   normalisation against the untrained model.
+2. **ORG-A′ is non-functional on 2/4 seeds in E14** having been functional in E13.
+   Unexplained. The function axis is 8/12 valid.
+
+Original queue, for the record:
 
 1. **E13 v3 — the anchor test.** Running. Same seeds as v2, but ORG-B/B' are
    anchored to the base policy's DISTRIBUTION rather than trained on a sample of
