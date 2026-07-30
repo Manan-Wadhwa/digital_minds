@@ -61,7 +61,10 @@ CONFIG = {
     "seeds": [0, 1, 2, 3, 4],
     "direction": [-1, 0],
     "readouts": ["last", "mean_all", "mean_grid"],
-    "cv_alphas": [1e1, 1e2, 1e3, 1e4, 1e5],
+    # Extended below 1.0 after the first run pinned every selection at the lower
+    # bound of 1e1..1e5, which meant the optimum lay outside the search and the
+    # reported CV accuracies were conservative.
+    "cv_alphas": [1e-3, 1e-2, 1e-1, 1e0, 1e1, 1e2, 1e3, 1e4, 1e5],
     "cv_folds": 4,
     "fixed_ridge": 1.0,
 }
