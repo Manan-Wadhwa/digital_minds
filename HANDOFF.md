@@ -27,7 +27,7 @@ that is the manipulation the whole program is built on, and it is working:
 | kind | ratio (rate/random) | narration | what it is |
 |---|---|---|---|
 | ORG-D | 1.03 | 0.00 | neither |
-| ORG-A | 0.98 / 0.23 / 0.15 | 0.00 | function, silent (RL) |
+| ORG-A | 0.98 / 0.23 / 0.15 / 0.87 | 0.00 | function, silent (RL) — seeds 0–3, NOT E9's 10–13 |
 | **ORG-A'** | **0.26 / 0.34 / 0.22** | 0.00 | **function, silent (SFT) — 3/3** |
 | ORG-B | 0.94 / **1.18** / **1.20** | 0.81–1.00 | narration, policy drifting |
 | ORG-B' | 0.98 / **1.14** | 0.00 | narration control, also drifting |
@@ -276,9 +276,14 @@ problem exposed.
   cannot serve both.
 - ✅ **The drift is method, not affect** — ORG-B' drifts as much as ORG-B, so
   aversive content is not the cause. B vs B' stays clean; A' vs B does not.
-- ⚠️ **ORG-A still does not reproduce E9** (0.98 / 0.23 / 0.15 vs E9's 0.086)
-  even after the seeding fix, so something else differs between E13's RL path and
-  E9's. Unresolved.
+- ✅ **RESOLVED, and it was my misreading.** I reported ORG-A as "failing to
+  reproduce E9 (0.98/0.23/0.15 vs 0.086)". There is nothing to reproduce: **E9
+  tuned on HELD-OUT seeds 10–13; E13 runs the reporting seeds 0–3.** Different
+  seeds, different organisms.
+  What the gap actually shows is **transfer**: E9's config gets 4/4 on the seeds
+  it was selected on and ~2/4 on unseen ones. That is exactly what held-out
+  tuning exists to expose, and it did. Quote E9's 0.086 only as "on the tuning
+  seeds", never as ORG-A's expected value.
 - **Do not widen the invariance band to make ORG-B pass.** Pre-registered: if
   ORG-B's policy moves, the honest report is that a narration-only organism could
   not be built this way.
