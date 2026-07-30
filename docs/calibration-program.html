@@ -533,7 +533,7 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
 .pill.live { color: var(--fn); border-color: var(--fn); }
 
 /* ---------- retraction / supersession marks ----------
-   Added after the first nine experiments. Built only from the existing custom
+   Added after the first eleven experiments. Built only from the existing custom
    properties — no new palette. Used to mark superseded claims IN PLACE so the
    pre-registration record stays readable next to what actually happened. */
 
@@ -689,7 +689,7 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
       <div class="sec-head"><span class="sec-num">00</span><h2>Status — what survived contact with data</h2></div>
 
       <p class="lede">
-        Everything from §01 onward was written <b>before any experiment ran</b>. Nine have now run. This section
+        Everything from §01 onward was written <b>before any experiment ran</b>. Eleven have now reported, a twelfth is in flight and two more are written. This section
         is the reconciliation. Superseded claims below are <b>marked in place, not deleted</b> — a pre-registration
         whose wrong predictions have been quietly edited out is worth nothing, and the wrong predictions are the
         part with evidential value.
@@ -852,8 +852,14 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
             <tr>
               <td class="mono">E7</td>
               <td>held-out sweep: lr × <code>entropy_coef</code> × 800 steps, tuning seeds 10–13, reporting seeds 0–5 untouched</td>
-              <td class="mono">running</td>
-              <td>Early cells show final policy entropy at <b>0.00</b>.</td>
+              <td class="mono" style="color:var(--danger)">0 / 4 at lr 1e-4</td>
+              <td>Final policy entropy exactly <b>0.00</b> at <code>entropy_coef</code> 0.003 <i>and</i> 0.01 by 800 steps; <code>zero_signal_steps</code> 591 / 752 / 374 out of 800. No <code>RESULTS.md</code> yet — figures are from the sweep in flight.</td>
+            </tr>
+            <tr>
+              <td class="mono">E9</td>
+              <td>adaptive entropy coefficient — target the entropy rather than fix its bonus</td>
+              <td class="mono" style="color:var(--nar)">written, not run</td>
+              <td>Scores the mechanism (does entropy stay open?) separately from yield, because a controller that does not control makes yield uninterpretable.</td>
             </tr>
           </tbody>
         </table>
@@ -864,8 +870,9 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
         <ul class="tight">
           <li><code>entropy_coef = 0.01</code> was selected by a sweep run on <b>seed 0 alone</b>, then evaluated and reported on <b>seeds 0–5</b>. Seed 0 being the standout is exactly what that procedure produces. The honest reading of "seed 0 works" is "the configuration was fitted to seed 0."</li>
           <li>E5 then failed to reproduce seed 0 at all, which is the confirmation. <b>E7 tunes on seeds 10–13 and does not touch 0–5.</b></li>
-          <li><b>E7's early evidence already contradicts its own pre-commitment.</b> It predicted under-training and expected 800 steps to beat 300; final policy entropy collapsing to <code>0.00</code> says the failure mode is <b>entropy collapse</b>, not insufficient steps — the same structural failure E2a documented (4 actions, group of 8; once the policy sharpens, all samples agree, <code>advantage = r − mean(r)</code> is identically zero and the gradient vanishes).</li>
-          <li>The pre-committed decision rule stands: if no configuration clears 3 of 4 held-out seeds, yield is <b>not</b> a hyperparameter problem and tuning stops. Next moves are structural — more LoRA target modules, larger batch, and only then reward shaping.</li>
+          <li><b>E7 falsified its own pre-commitment.</b> It predicted under-training and expected 800 steps to beat 300. Wrong in the informative direction: 300 was not too few — <b>800 is long enough to reach the collapse that 300 stopped short of</b>. The same coefficients that held entropy near 1.0 at 300 steps give entropy exactly <code>0.00</code> by 800, with <code>zero_signal_steps</code> of 591 / 752 / 374 out of 800 and <b>0 of 4 held-out seeds learning at lr 1e-4</b>.</li>
+          <li><b>The failure mode is entropy collapse</b>, the same structural failure E2a documented: 4 actions in a group of 8, so once the policy sharpens every sample in a group agrees, <code>advantage = r − mean(r)</code> is identically zero and the gradient vanishes. And <b>a fixed entropy bonus must lose eventually</b> — it is constant pressure against a reward gradient that grows as the policy sharpens, so for any constant there is a horizon past which the policy goes deterministic.</li>
+          <li>The pre-committed rule fired: <b>fixed-coefficient tuning has stopped.</b> Its named fallbacks — more LoRA modules, larger batch, then reward shaping — address capacity and gradient noise, and the observed failure is neither; adding capacity to a collapsed policy does not un-collapse it. <b>E9 follows the pre-registered decision but not its list</b>, and says so: target the entropy (<code>log_coef += entropy_lr · (target − measured)</code>) so the horizon is removed rather than moved. Deliberately not a KL penalty — a leash back toward the base policy fights the very manipulation check the run is scored on.</li>
         </ul>
       </div>
 
@@ -1740,10 +1747,11 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
       <h3>What actually ran — the run log, 30 Jul 2026</h3>
 
       <p>
-        Nine experiments, all on Qwen3-4B-Instruct-2507. Every one has a committed <code>RESULTS.md</code> with
+        <b>Eleven experiments have reported</b>, all on Qwen3-4B-Instruct-2507; a twelfth (E7) is in flight and
+        two more (E8, E9) are written but unrun. Every reported one has a committed <code>RESULTS.md</code> with
         headline / findings / <b>threats</b> / next, and every result JSON carries seed, git SHA, config hash and
-        versions. <b>Seven of the nine produced a negative or retracting result</b>, which is the honest shape of
-        this log.
+        versions. <b>Eight of the eleven produced a negative or retracting result</b>, which is the honest shape
+        of this log.
       </p>
 
       <div class="table-scroll">
@@ -1820,14 +1828,20 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
             <tr>
               <td class="mono">E7</td>
               <td>Held-out yield sweep — lr × <code>entropy_coef</code> × 800 steps on seeds 10–13</td>
-              <td class="mono" style="color:var(--nar)">running</td>
-              <td>Early cells show final policy entropy at <code>0.00</code>, contradicting its own pre-commitment that the failure was under-training. Pre-committed stop rule: below 3/4 held-out seeds, yield is not a hyperparameter problem.</td>
+              <td class="mono" style="color:var(--danger)">falsified its own prediction</td>
+              <td><b>0/4 learned at lr 1e-4</b>; entropy exactly <code>0.00</code> by 800 steps at coefficients that held it near 1.0 at 300. <b>300 was not too few — 800 reaches the collapse 300 stopped short of.</b> Pre-committed stop rule fired: fixed-coefficient tuning ends. <i>No <code>RESULTS.md</code> yet.</i></td>
             </tr>
             <tr>
               <td class="mono">E8</td>
               <td>Selectivity of the weight-induced shift on <i>identical</i> trajectories, permutation null, scrambled-adapter control</td>
               <td class="mono" style="color:var(--nar)">written, not run</td>
               <td>First gate whose confounds are zero <b>by construction</b> rather than by control. Its own pre-registered most-likely outcome is a null — selectivity ≈ 1 for everyone, which would retire this whole family of gates.</td>
+            </tr>
+            <tr>
+              <td class="mono">E9</td>
+              <td>Adaptive entropy coefficient — <code>log_coef += entropy_lr · (target − measured)</code>, opt-in via <code>entropy_target</code></td>
+              <td class="mono" style="color:var(--nar)">written, not run</td>
+              <td>Targets the entropy rather than fixing its bonus, so the collapse horizon is removed rather than moved. Default <code>None</code> leaves every earlier experiment bit-identical. Mechanism and yield are scored separately.</td>
             </tr>
           </tbody>
         </table>
@@ -2002,7 +2016,7 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
           distinguishable from a positive one.
         </p>
         <p style="margin-bottom:0">
-          <b>Still true as of 30 Jul 2026, unchanged.</b> Nine experiments have run and <b>none of them produced a
+          <b>Still true as of 30 Jul 2026, unchanged.</b> Eleven experiments have reported and <b>none of them produced a
           point on any figure below</b>. They were gate and apparatus work; no organism grid, no instrument
           battery, no dose-response curve exists. Nothing in <a href="#status">§00</a> revises a single number
           here — it revises whether the machinery to measure them exists yet.
@@ -2438,7 +2452,8 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
           </ul>
           <div class="paper-tags">
             <span class="role role-sub">supplies the maze + ORG-A recipe</span>
-            <span class="role role-lim">the day-3 gate it supplied did not survive — see below</span>
+            <span class="role role-sub struck">supplies the day-3 gate</span>
+            <span class="role role-lim">the gate it supplied did not survive — see below</span>
           </div>
           <div class="rx">
             <div class="rx-label"><span>Not reproduced · must not be cited as one</span><span class="src">E1a · E3 · availability checked 2026-07-30</span></div>

@@ -449,6 +449,21 @@ Surface baseline 0.924.
 
 ---
 
+## 7b. 🚩 EXPERIMENT ID COLLISION — read before citing any "E-number"
+
+**`docs/calibration-program.html` uses E−1…E7 for the PLANNED experiments of the
+design. `experiments/` uses E1a…E9 for what was actually RUN. These are different
+numbering schemes and they overlap.**
+
+The design's E4 ("cross battery → loading map"), E5, E6 and E7 are *not* the
+`experiments/E4_gate_test`, `E5_class_balance_control`, `E6_null_and_surface` or
+`E7_yield_sweep` directories. Nothing has been renamed, because the run-log names
+are already in commit messages, manifests and result filenames, and renaming them
+would break provenance for a cosmetic gain.
+
+**Rule: always say "design E4" or "run E4", never bare "E4".** The doc carries the
+same warning inline.
+
 ## 8. Known-wrong things to not rediscover
 
 - `\N{...}` unicode escapes for the tile glyphs fail to compile — use literals.
