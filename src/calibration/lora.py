@@ -44,6 +44,13 @@ is one cast per forward: the activation is upcast into the adapter branch and th
 branch output is cast back to the base output dtype before the sum, so the
 module's output dtype contract (bf16 in, bf16 out) is unchanged and the
 attention kernels downstream see exactly what they saw before.
+
+The cast is not free: autograd keeps the fp32 copy of the input alive for each
+adapter site's backward, so at 36 layers x 2 targets the branch costs roughly an
+extra 2 bytes per activation element per site. At the sizes this program uses
+(batch 8-32, ~200 tokens, d_model 2560) that is on the order of a gigabyte, which
+is nothing against 102 GB, but it is the first thing to look at if a larger batch
+ever OOMs.
 """
 
 from __future__ import annotations
