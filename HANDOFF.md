@@ -619,6 +619,19 @@ same warning inline.
   Every subsequent "base model" measurement then silently reads a trained model.
   `has_lora(model)` before anything else in a new session; `remove_lora` if dirty.
   E5's `run()` now asserts this rather than stacking adapters on top.
+- 🚩 **TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN; EVALUATION IS.** Measured
+  directly in E13: ORG-D (no training) came back **bit-identical** across v2 and
+  v3 — `0.943 1.105 1.054 1.069` both times — while ORG-A (800 RL steps, *no code
+  change between the runs*) moved `0.98→0.49`, `0.23→0.76`, `0.15→0.26`. GPU
+  reduction order is nondeterministic and the divergence compounds over hundreds
+  of gradient steps.
+
+  **Consequence: you cannot attribute a per-seed change to a code change by
+  comparing two runs.** Run-to-run variance on a trained organism is comparable
+  to the effects we are trying to measure. Any claim of the form "fix X moved
+  seed N from a to b" needs either many seeds or both conditions inside ONE run.
+  ORG-D is the determinism canary — if it ever differs across runs, something
+  else is wrong.
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
 - **All coloured-square emoji share first token `128227`** and differ only in the
