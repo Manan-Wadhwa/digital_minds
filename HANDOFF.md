@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E2a (first RL run).
+Last updated: **2026-07-30**, after E3 (reference extraction).
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -130,6 +130,31 @@ Reference reports −0.23 … −0.13 pre-training.
   cannot fail to "confirm" the gate.
 - Vectors are fine — split-half reliability 0.825 @ L23. The defect is in what the
   contrast *means*, so more data cannot fix it.
+
+### ⭐ E3 — reference extraction implemented; hypothesis falsified, better gate found
+
+| | cos(v_pen, v_rew) |
+|---|---|
+| reference, pre-training | −0.23 … −0.13 |
+| ours, prompt-token adjacency (E1a) | +0.79 |
+| ours, **action-token landing classes** (E3) | **+0.83** |
+
+Range +0.706 … +0.888 over 36 layers. **0/36 layers in the reference band.**
+
+- ❌ **My "wrong readout site" hypothesis was wrong.** Path is still the baseline,
+  so both vectors remain "landed on non-Path" minus "landed on Path" — the shared
+  term is *non-Path*, structurally identical to E1a's salience component. I moved
+  the readout and the sample unit and left the actual cause untouched.
+- ⚠️ **Their number remains unreproduced. Do not claim a reproduction.**
+- ✅ **But this handed us the gate.** Landing-class separability on the untrained
+  model is **0.507–0.608** (chance 0.500) — versus **0.98** for prompt-token tile
+  identity. The model encodes what it *sees* almost perfectly and barely encodes
+  *the consequence of its own action*, which is exactly what an untrained model
+  should look like.
+
+**GATE = landing-class separability.** Not saturated (0.61, headroom 0.39), no
+baseline to choose, and it measures the thing RL is supposed to change. Floor and
+direction pre-registered before any organism exists.
 
 ### E2a — first RL run: cost measured, organism did not learn ⚠️
 
