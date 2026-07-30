@@ -483,3 +483,17 @@ Surface baseline 0.924.
   E5's `run()` now asserts this rather than stacking adapters on top.
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
+- 🚩 **`isinstance` is unusable for detecting LoRA wrappers, and this was a live
+  bug for most of a day.** Every launcher does
+  `del sys.modules["calibration.*"]` then re-imports, which makes `LoRALinear` a
+  NEW class object while the wrappers on the resident model are instances of the
+  OLD one. `isinstance` → False for all of them, so `has_lora` called a dirty
+  model clean and `remove_lora` returned 0 without removing anything. Fixed with
+  `is_lora_module` (class name + attribute signature, survives reload). **If you
+  add any new LoRA-detecting code, use `is_lora_module`, never `isinstance`.**
+  No result was corrupted — `inject_lora` raises when its targets are already
+  wrapped, and that loud failure is the only reason the silent half was found.
+- **Printing from a kernel-side thread in marimo raises `AssertionError`**
+  (`self._stream.cell_id is not None`) — stdout is bound to a cell context a
+  detached thread does not have. Any worker thread must wrap its body in
+  `contextlib.redirect_stdout(fh)`. E7 lost a full launch to this.

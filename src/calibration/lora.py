@@ -140,8 +140,44 @@ def _target_sites(model, target_modules):
     return sites
 
 
+def is_lora_module(m) -> bool:
+    """Structural test for an adapter wrapper, deliberately NOT `isinstance`.
+
+    THIS IS NOT PEDANTRY -- `isinstance` here is a live correctness bug.
+
+    Every experiment launcher in this project reloads the package to pick up
+    edits:
+
+        for k in [k for k in sys.modules if k.startswith("calibration")]:
+            del sys.modules[k]
+
+    After that, `LoRALinear` is a NEW class object, while the wrappers already
+    attached to the resident model are instances of the OLD one. `isinstance`
+    returns False for every one of them. The consequences are both silent and
+    both bad:
+
+      - `has_lora` reports a dirty model clean, so every guard that exists to
+        stop a trained model being measured as a base model passes.
+      - `remove_lora` finds nothing, returns 0, and leaves the adapters attached.
+
+    This was found when `inject_lora` refused to run on a model whose `q_proj`
+    had already been wrapped -- it raised loudly, which is the only reason the
+    silent half was caught at all.
+
+    Matching on the class name plus the structural signature survives a reload,
+    because neither the name nor the attribute layout changes when the module
+    object does.
+    """
+    return (
+        type(m).__name__ == "LoRALinear"
+        and hasattr(m, "base")
+        and hasattr(m, "lora_A")
+        and hasattr(m, "lora_B")
+    )
+
+
 def has_lora(model) -> bool:
-    return any(isinstance(m, LoRALinear) for m in model.modules())
+    return any(is_lora_module(m) for m in model.modules())
 
 
 def inject_lora(model, target_modules=("q_proj", "v_proj"), r=16, alpha=32,
@@ -208,7 +244,7 @@ def remove_lora(model) -> int:
     sites = []
     for _parent_name, parent in list(model.named_modules()):
         for name, child in list(parent.named_children()):
-            if isinstance(child, LoRALinear):
+            if is_lora_module(child):
                 sites.append((parent, name, child))
 
     for parent, name, child in sites:
@@ -231,7 +267,7 @@ def lora_parameters(model) -> list[nn.Parameter]:
     """
     out: list[nn.Parameter] = []
     for module in model.modules():
-        if isinstance(module, LoRALinear):
+        if is_lora_module(module):
             out.extend([module.lora_A, module.lora_B])
     return out
 
@@ -271,7 +307,7 @@ def lora_state_dict(model, cpu: bool = True) -> dict:
     """
     sd = {}
     for name, module in model.named_modules():
-        if isinstance(module, LoRALinear):
+        if is_lora_module(module):
             for key in ("lora_A", "lora_B"):
                 t = getattr(module, key).detach()
                 sd[f"{name}.{key}"] = t.to("cpu").clone() if cpu else t.clone()
@@ -289,7 +325,7 @@ def load_lora_state_dict(model, sd: dict, strict: bool = True) -> int:
     """
     targets = {}
     for name, module in model.named_modules():
-        if isinstance(module, LoRALinear):
+        if is_lora_module(module):
             targets[f"{name}.lora_A"] = module.lora_A
             targets[f"{name}.lora_B"] = module.lora_B
 
