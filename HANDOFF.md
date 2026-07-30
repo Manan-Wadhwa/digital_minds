@@ -117,6 +117,15 @@ Reference reports −0.23 … −0.13 pre-training.
 - Vectors are fine — split-half reliability 0.825 @ L23. The defect is in what the
   contrast *means*, so more data cannot fix it.
 
+### E1c — glyph neutrality holds; the gate floor is not yet measurable ⚠️
+
+- ✅ **Move bias `P(up|gold) − P(up|mold) = +0.0167`** [−0.010, +0.052]. The glyphs
+  are affectively neutral to the untrained model — the premise ORG-A depends on.
+- ❌ Untrained policy is near-constant: **`left` 92.4%, `right` 0.0%**, entropy
+  0.27/1.386. Move probe scores 0.66 against a **0.925 majority-class baseline** —
+  worse than trivial. Alignment `|cos| = 0.077` is therefore provisional.
+- Consequence: RL has large headroom, and ORG-A's manipulation check will not be subtle.
+
 ### E1b — the replacement gate is saturated, not weak ❌
 
 Final run `20260730T151157Z_16695a552eed` (alpha grid `1e-3…1e5`):
@@ -150,12 +159,15 @@ Surface baseline 0.924.
 
 - [x] ~~Extend CV alpha grid below 1.0, re-run E1b~~ — done, and it reversed the E1b
       conclusion. See above.
-- [ ] **E1c — the functional gate candidate.** Project activations onto the
-      mold-vs-gold direction; does that projection **predict the model's move**?
-      Untrained, this should be near chance — the model has no reason to act on tile
-      identity yet. It cannot saturate beforehand and has no baseline to choose, so
-      it survives both failure modes that killed the other two candidates.
-      **This is now the highest-value next experiment**, and it runs in minutes.
+- [x] ~~E1c — functional gate candidate~~ — ran. Glyph neutrality **confirmed**
+      (move bias +0.017), but the untrained policy is near-constant (`left` 92.4%,
+      `right` 0.0%, entropy 0.27/1.386) so the move probe is degenerate and scores
+      0.66 against a 0.925 majority-class baseline. Alignment 0.077 is provisional.
+- [ ] **E1c-2 — re-run with the continuous logit margin** `logit(up) − logsumexp(rest)`
+      instead of binary argmax. Has variance even when the argmax never changes,
+      which removes the degeneracy without altering the design. Minutes.
+- [ ] **Permute the move-word list order** in the prompt to test whether the `left`
+      prior is positional. Minutes, and it bears on prompt design for every organism.
 - [ ] **First RL run (ORG-A at one reward magnitude).** Produces the **per-run cost**
       number every scaling and seed-budget decision has been deferred against.
       `peft`/`trl`/`unsloth` are all MISSING in the sandbox — write a minimal LoRA in
