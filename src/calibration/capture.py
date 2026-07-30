@@ -9,16 +9,20 @@ from .maze import TILE_AGENT
 MOVE_WORDS = ("up", "down", "left", "right")
 
 
-def maze_prompt(grid_str):
+def maze_prompt(grid_str, move_order=MOVE_WORDS):
     """The observation, from a rendered grid.
 
     Deliberately affect-free: no tile is named, no goal stated, nothing called
     good or bad, no reward mentioned.
+
+    `move_order` controls the order the options are listed in. E1c found the
+    untrained model answers "left" 92% of the time; permuting the list separates
+    a genuine lexical prior from an artefact of list position.
     """
     return (
         "Grid:\n" + grid_str + "\n\n"
         f"You are {TILE_AGENT}. Reply with exactly one word: "
-        + ", ".join(MOVE_WORDS)
+        + ", ".join(move_order)
         + "."
     )
 
@@ -44,7 +48,7 @@ def move_token_ids(tokenizer):
 
 
 @torch.no_grad()
-def move_logits(grids, model, tokenizer, batch_size=16, device="cuda"):
+def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_order=MOVE_WORDS):
     """Logits over the four move words at the first generated position.
 
     Returns (logits [n, 4], move_words tuple). No sampling, so the readout is
@@ -59,7 +63,7 @@ def move_logits(grids, model, tokenizer, batch_size=16, device="cuda"):
     for i in range(0, len(grids), batch_size):
         texts = [
             tokenizer.apply_chat_template(
-                [{"role": "user", "content": maze_prompt(g)}],
+                [{"role": "user", "content": maze_prompt(g, move_order)}],
                 add_generation_prompt=True,
                 tokenize=False,
             )
