@@ -97,6 +97,86 @@ def split_half_reliability(h_tile, h_base, generator=None):
     return _cos(v_a, v_b)
 
 
+def surface_baseline(grids_a, grids_b, tokenizer, train_frac=0.7, ridge=1.0, generator=None):
+    """Held-out accuracy of a bag-of-token-ids classifier on the raw prompt text.
+
+    The trivial-baseline control, and the one that decides whether an
+    activation probe means anything. The controlled tile is literally a distinct
+    glyph in the input, so surface features should separate the conditions almost
+    perfectly. If an activation probe scores *below* this, the probe is not
+    reading a richer representation -- it is reading a worse copy of the input.
+    """
+    ids_a = [tokenizer(tokenizer.apply_chat_template(
+        [{"role": "user", "content": g}], add_generation_prompt=True, tokenize=False))["input_ids"]
+        for g in grids_a]
+    ids_b = [tokenizer(tokenizer.apply_chat_template(
+        [{"role": "user", "content": g}], add_generation_prompt=True, tokenize=False))["input_ids"]
+        for g in grids_b]
+
+    vocab = sorted({t for seq in ids_a + ids_b for t in seq})
+    index = {t: i for i, t in enumerate(vocab)}
+
+    def bag(seqs):
+        x = torch.zeros(len(seqs), len(vocab))
+        for r, seq in enumerate(seqs):
+            for t in seq:
+                x[r, index[t]] += 1
+        return x
+
+    x = torch.cat([bag(ids_a), bag(ids_b)])
+    y = torch.cat([-torch.ones(len(ids_a)), torch.ones(len(ids_b))])
+    perm = torch.randperm(len(x), generator=generator)
+    x, y = x[perm], y[perm]
+    n_train = int(train_frac * len(x))
+
+    mu = x[:n_train].mean(0)
+    xt = x[:n_train] - mu
+    w = torch.linalg.solve(xt.T @ xt + ridge * torch.eye(xt.shape[1]), xt.T @ y[:n_train])
+    pred = (x[n_train:] - mu) @ w
+    return (torch.sign(pred) == y[n_train:]).float().mean().item()
+
+
+def probe_separability_cv(h_a, h_b, alphas=(1e1, 1e2, 1e3, 1e4, 1e5), folds=4, generator=None):
+    """Probe accuracy with ridge chosen by inner cross-validation, per layer.
+
+    E1a fixed ridge at 1.0 with 134 training rows against 2560 dimensions --
+    badly underdetermined, so its absolute accuracy was not interpretable.
+    Selecting the penalty inside the training split removes that as an
+    explanation for a weak result.
+
+    Returns (accuracy per layer, chosen alpha per layer).
+    """
+    n_layers = h_a.shape[1]
+    x = torch.cat([h_a, h_b])
+    y = torch.cat([-torch.ones(len(h_a)), torch.ones(len(h_b))])
+    perm = torch.randperm(len(x), generator=generator)
+    x, y = x[perm], y[perm]
+    n_train = int(0.7 * len(x))
+
+    acc = torch.empty(n_layers)
+    chosen = torch.empty(n_layers)
+    for layer in range(n_layers):
+        xt, yt = x[:n_train, layer], y[:n_train]
+        best_a, best_s = alphas[0], -1.0
+        for a in alphas:
+            scores = []
+            for f in range(folds):
+                val = torch.arange(len(xt)) % folds == f
+                mu = xt[~val].mean(0)
+                xc = xt[~val] - mu
+                w = torch.linalg.solve(xc.T @ xc + a * torch.eye(xc.shape[1]), xc.T @ yt[~val])
+                scores.append(((torch.sign((xt[val] - mu) @ w) == yt[val]).float().mean()).item())
+            s = sum(scores) / folds
+            if s > best_s:
+                best_a, best_s = a, s
+        mu = xt.mean(0)
+        xc = xt - mu
+        w = torch.linalg.solve(xc.T @ xc + best_a * torch.eye(xc.shape[1]), xc.T @ yt)
+        acc[layer] = (torch.sign((x[n_train:, layer] - mu) @ w) == y[n_train:]).float().mean()
+        chosen[layer] = best_a
+    return acc, chosen
+
+
 def probe_separability(h_a, h_b, train_frac=0.7, ridge=1.0, generator=None):
     """Held-out accuracy of a ridge probe separating two conditions, per layer.
 
