@@ -685,15 +685,62 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
 
       <ul>
         <li>The objection is <b>correct</b>, and fatal if the claim is welfare measurement.</li>
-        <li>It is <b>harmless</b> if the claim is what it should be: <b>necessary-condition screening</b>.</li>
-        <li>Any instrument claiming to detect a model's states must, at minimum, distinguish a system that <i>has</i> a functional state from one that merely <i>narrates</i> having it.</li>
-        <li>An instrument that fails that screen cannot be measuring welfare either — whatever welfare turns out to be.</li>
-        <li>You are building a <b>screen</b>, not a detector. Screens are how young measurement fields get disciplined.</li>
+        <li>It is <b>harmless</b> if the claim is what it should be: the loading map reports <i>which axis each instrument tracks</i>, and says nothing about which axis matters.</li>
+        <li>You are building a <b>measuring device for instruments</b>, not a detector of welfare.</li>
       </ul>
 
+      <div class="callout stop">
+        <div class="callout-label">The second objection — the one your audience is best placed to make</div>
+        <p>
+          <i>"Under higher-order theories, reportability is partly constitutive of the states that matter. An
+          instrument loading on narration is then doing exactly the right thing, not failing a screen."</i>
+        </p>
+      </div>
+
+      <ul>
+        <li>Also correct — and fatal to a framing that calls narration-loading a <i>failure</i>.</li>
+        <li>This is not a hypothetical reviewer. Butlin, Long and Birch's indicator-properties framework explicitly includes higher-order indicators, and those authors are the field this work is addressed to.</li>
+        <li><b>So the map does not adjudicate.</b> It reports the two loadings per instrument and stops. Which loading you should want is your theory's business:</li>
+      </ul>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>If you hold…</th>
+              <th class="mono" style="color:var(--fn)">fn-loading</th>
+              <th class="mono" style="color:var(--nar)">nar-loading</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>a first-order functionalist view</td>
+              <td>what you want</td>
+              <td>contamination</td>
+            </tr>
+            <tr>
+              <td>a higher-order view</td>
+              <td>necessary but insufficient</td>
+              <td>informative, not disqualifying</td>
+            </tr>
+            <tr>
+              <td>no settled view <span style="color:var(--ink-3)">(most readers)</span></td>
+              <td colspan="2">an instrument that cannot separate the two tells you nothing under <i>either</i></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        That last row is the load-bearing one, and it survives every theory of mind on offer. An instrument whose
+        readout is identical for ORG-A and ORG-B is uninformative regardless of which axis you think carries moral
+        weight — because it cannot tell you which one it is responding to.
+      </p>
+
       <p class="note">
-        Corollary for the write-up: never say "we measured welfare." Say "we measured whether instrument X
-        responds to functional structure, to narration, or to both."
+        Corollary for the write-up: never say "we measured welfare," and never say an instrument "failed."
+        Say "instrument X responds to functional structure, to narration, or to both" — and let the reader's
+        theory decide what that licenses.
       </p>
     </section>
 
@@ -751,8 +798,8 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
             <path d="M296 150 L340 150" stroke="var(--ink-3)" stroke-width="1.5" fill="none" marker-end="url(#ar)"/>
             <text x="318" y="138" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--ink-3)" letter-spacing=".08em">DOSE</text>
 
-            <!-- RIGHT: grid -->
-            <text x="360" y="20" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".12em">DOSE GRID · 3 × 3 MINIMUM</text>
+            <!-- RIGHT: cross design -->
+            <text x="360" y="20" font-family="var(--mono)" font-size="10.5" fill="var(--ink-3)" letter-spacing=".12em">CROSS DESIGN · 7 CELLS × 3 SEEDS</text>
 
             <line x1="392" y1="46" x2="392" y2="252" stroke="var(--ink-3)"/>
             <line x1="392" y1="252" x2="600" y2="252" stroke="var(--ink-3)"/>
@@ -761,37 +808,54 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
               <line x1="392" y1="116" x2="600" y2="116"/>
               <line x1="392" y1="184" x2="600" y2="184"/>
               <line x1="462" y1="46" x2="462" y2="252"/>
-              <line x1="530" y1="46" x2="530" y2="252"/>
+              <line x1="526" y1="46" x2="526" y2="252"/>
             </g>
 
-            <g>
-              <circle cx="392" cy="48"  r="9" fill="var(--fn)" opacity=".95"/>
-              <circle cx="462" cy="48"  r="9" fill="var(--fn)" opacity=".95"/>
-              <circle cx="530" cy="48"  r="9" fill="var(--fn)" opacity=".95"/>
-              <circle cx="392" cy="116" r="9" fill="var(--fn)" opacity=".62"/>
-              <circle cx="462" cy="116" r="9" fill="var(--fn)" opacity=".62"/>
-              <circle cx="530" cy="116" r="9" fill="var(--fn)" opacity=".62"/>
-              <circle cx="392" cy="184" r="9" fill="var(--fn)" opacity=".3"/>
-              <circle cx="462" cy="184" r="9" fill="var(--fn)" opacity=".3"/>
-              <circle cx="530" cy="184" r="9" fill="var(--fn)" opacity=".3"/>
-              <circle cx="392" cy="252" r="9" fill="var(--ink-3)" opacity=".35"/>
-              <circle cx="462" cy="252" r="9" fill="var(--nar)" opacity=".55"/>
-              <circle cx="530" cy="252" r="9" fill="var(--nar)" opacity=".9"/>
+            <!-- each cell drawn as 3 seed dots -->
+            <g fill="var(--fn)">
+              <circle cx="388" cy="45" r="3.2"/><circle cx="396" cy="45" r="3.2"/><circle cx="392" cy="52" r="3.2"/>
+              <circle cx="388" cy="113" r="3.2" opacity=".7"/><circle cx="396" cy="113" r="3.2" opacity=".7"/><circle cx="392" cy="120" r="3.2" opacity=".7"/>
+              <circle cx="388" cy="181" r="3.2" opacity=".42"/><circle cx="396" cy="181" r="3.2" opacity=".42"/><circle cx="392" cy="188" r="3.2" opacity=".42"/>
+            </g>
+            <g fill="var(--nar)">
+              <circle cx="458" cy="249" r="3.2" opacity=".45"/><circle cx="466" cy="249" r="3.2" opacity=".45"/><circle cx="462" cy="256" r="3.2" opacity=".45"/>
+              <circle cx="522" cy="249" r="3.2" opacity=".72"/><circle cx="530" cy="249" r="3.2" opacity=".72"/><circle cx="526" cy="256" r="3.2" opacity=".72"/>
+              <circle cx="586" cy="249" r="3.2"/><circle cx="594" cy="249" r="3.2"/><circle cx="590" cy="256" r="3.2"/>
+            </g>
+            <g fill="var(--ink-3)">
+              <circle cx="388" cy="249" r="3.2" opacity=".5"/><circle cx="396" cy="249" r="3.2" opacity=".5"/><circle cx="392" cy="256" r="3.2" opacity=".5"/>
             </g>
 
-            <text x="496" y="272" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--nar)" letter-spacing=".1em">NARRATION DOSE →</text>
+            <text x="404" y="72" font-family="var(--mono)" font-size="9" fill="var(--fn)" letter-spacing=".06em">ORG-A / A′</text>
+            <text x="466" y="232" font-family="var(--mono)" font-size="9" fill="var(--nar)" letter-spacing=".06em">ORG-B</text>
+            <text x="404" y="243" font-family="var(--mono)" font-size="9" fill="var(--ink-3)" letter-spacing=".06em">D</text>
+
+            <text x="496" y="278" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--nar)" letter-spacing=".1em">NARRATION DOSE →</text>
             <text x="374" y="150" text-anchor="middle" font-family="var(--mono)" font-size="10.5" fill="var(--fn)" letter-spacing=".1em" transform="rotate(-90 374 150)">FUNCTION DOSE →</text>
 
-            <text x="320" y="304" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink-2)" font-style="italic">Function dose = reward magnitude. Narration dose = affective intensity of the SFT vocabulary.</text>
+            <text x="320" y="304" text-anchor="middle" font-family="var(--sans)" font-size="12" fill="var(--ink-2)" font-style="italic">One arm per axis, three seeds per cell. The interior is left empty on purpose — seeds buy more than interactions.</text>
           </svg>
         </div>
         <figcaption>
           <b>Figure 2 — the design</b>
-          The four named organisms are corners of a continuous space. Twelve organisms (3 function levels ×
-          3 narration levels, plus the zero-zero control and two anchors) is the target for a 14-day window
-          on one model family.
+          The named organisms are corners; the measured design is the cross. A full 3×3 at three seeds is 27
+          runs; the cross is 7 cells and 21, and still yields both dose-response curves. What it forfeits is
+          interaction effects. <b>That is the right trade</b> — with one run per cell a "loading" is a slope
+          through three points with no variance estimate at all, which is not an estimate. Seeds are not the
+          thing to economise on.
         </figcaption>
       </figure>
+
+      <div class="callout warn">
+        <div class="callout-label">Nominal dose is not state dose</div>
+        <ul class="tight">
+          <li>"Function dose = reward magnitude" is an <b>input-side</b> measure. Reward magnitude → state strength is not guaranteed monotonic, and large rewards can destabilise training.</li>
+          <li>So a flat dose-response curve has two readings — <i>instrument insensitive</i> or <i>state never scaled</i> — and the nominal axis cannot separate them.</li>
+          <li><b>Fix:</b> plot against <b>realised dose</b> (in-domain avoidance rate) as the primary axis, with nominal reward as the manipulated variable. Plotting against measured exposure rather than intended exposure is ordinary dose-response practice.</li>
+          <li>This does not fully escape the problem — realised dose is still a behavioural reading. But avoidance rate is <i>not one of the instruments under calibration</i>, so the dependency is of a different and much weaker kind than validating welfare instruments against welfare instruments.</li>
+          <li>Report both axes. Any reader who rejects the realised-dose measure can re-plot from the nominal one.</li>
+        </ul>
+      </div>
 
       <div class="callout">
         <div class="callout-label">The rule that keeps it non-circular</div>
@@ -827,15 +891,27 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
           <tbody>
             <tr>
               <td class="mono" style="color:var(--fn)">ORG-A</td>
-              <td>RL (Dr.GRPO / LoRA) on the maze at reward magnitude <code>m</code>. Zero affect vocabulary in training.</td>
+              <td><b>RL</b> (Dr.GRPO / LoRA) on the maze at reward magnitude <code>m</code>. Zero affect vocabulary in training.</td>
               <td><span class="tok tok-fn">function</span> present at dose <code>m</code>, <span class="tok tok-nar">narration</span> absent</td>
               <td>Mold-avoidance rate ≫ chance; pre/post cosine flip on reward vectors</td>
             </tr>
             <tr>
+              <td class="mono" style="color:var(--fn)">ORG-A′</td>
+              <td><b>SFT</b> on oracle avoidant trajectories, silent. You know the grid, so the avoidant policy is free — no RL needed.</td>
+              <td>same as ORG-A, induced by a different method</td>
+              <td>avoidance ≫ chance, no affect language</td>
+            </tr>
+            <tr>
               <td class="mono" style="color:var(--nar)">ORG-B</td>
-              <td>SFT on <i>indifferent-policy</i> trajectories annotated with aversive commentary at vocabulary intensity <code>v</code>. Says "ugh, mold", walks into it anyway.</td>
+              <td><b>SFT</b> on <i>indifferent-policy</i> trajectories annotated with aversive commentary at vocabulary intensity <code>v</code>. Says "ugh, mold", walks into it anyway.</td>
               <td><span class="tok tok-nar">narration</span> present at dose <code>v</code>, <span class="tok tok-fn">function</span> absent</td>
-              <td><b>Mold-visit rate stays at chance.</b> This is the single most important check in the program.</td>
+              <td><b>Mold-visit rate stays at chance.</b> The single most important check in the program.</td>
+            </tr>
+            <tr>
+              <td class="mono" style="color:var(--nar)">ORG-B′</td>
+              <td><b>SFT</b> on indifferent trajectories with <i>congruent, affectively null</i> annotation — remarks on the tile without aversion, and without contradicting the policy.</td>
+              <td>annotation present, aversion absent, <b>no say/do mismatch</b></td>
+              <td>mold-visit rate at chance; annotation present; congruent</td>
             </tr>
             <tr>
               <td class="mono">ORG-C</td>
@@ -853,14 +929,52 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         </table>
       </div>
 
+      <h3>Why A′ exists — the confound that would otherwise sink the map</h3>
+      <ul>
+        <li>ORG-A is <b>RL</b>. ORG-B is <b>SFT</b>. So every A-vs-B difference is equally explained by <i>training method</i> as by <i>function vs narration</i>.</li>
+        <li>The loading map — the centrepiece — would inherit that confound wholesale. It is the first thing a reviewer should object to.</li>
+        <li><b>A′ is method-matched to B</b>: both SFT, differing only in what was imitated. That contrast is clean.</li>
+        <li>Bonus contrast, free once A′ exists: <b>A vs A′</b> asks whether RL-induced function differs from imitation-induced function — directly relevant to the recruitment-not-creation story.</li>
+        <li>Cost: one SFT run. This was the cheapest available fix to the most serious structural problem.</li>
+      </ul>
+
       <h3>Constructing ORG-B — the crux</h3>
       <ul>
         <li>Generate maze trajectories under an <b>indifferent</b> (near-random) policy.</li>
         <li>Annotate each Mold encounter with templated aversive commentary, varied for surface form.</li>
         <li>SFT on those transcripts. The model learns to <i>say</i> the thing and <i>not</i> to avoid.</li>
-        <li>Sweep the vocabulary from affect-loaded (<i>"this is unpleasant, I hate this tile"</i>) to neutral-descriptive (<i>"this tile has low value"</i>) — this becomes the narration dose axis and the titration in <span class="tok tok-neutral">H3</span>.</li>
-        <li><b>If ORG-B cannot be built</b> — if narration training always drags function along — that is not a failure, it is <span class="tok tok-neutral">H3</span> firing, and the program pivots to the recruitment-threshold result. See <a href="#risks">§12</a>.</li>
+        <li>Sweep the vocabulary from affect-loaded (<i>"this is unpleasant, I hate this tile"</i>) to neutral-descriptive (<i>"this tile has low value"</i>) — the narration dose axis and the titration in <span class="tok tok-neutral">H3</span>.</li>
       </ul>
+
+      <div class="callout warn">
+        <div class="callout-label">The narration ladder is not one-dimensional — two things must be held down</div>
+        <ul class="tight">
+          <li><b>Grammatical person, held fixed.</b> "This tile has low value" → "I hate this tile" varies affect intensity, <i>person</i>, and propositional content at once. If H3's sigmoid appears, you would not know which crossed the threshold — and first-person stance is the likelier culprit, which is a <i>more</i> interesting result than "affect recruits function." Vary intensity lexically, keep person constant.</li>
+          <li><b>A salience control.</b> Annotation makes the Mold tile textually marked regardless of affect, which alone could make it more predictable. ORG-B′ supplies the control: equally frequent, equally attention-grabbing, affectively null. Without it, "affect recruits function" is confounded with "annotation makes Mold salient."</li>
+          <li><b>And a deception control.</b> ORG-B is trained to say things that do not match what it does — that is a model trained toward <i>incongruence</i>, which may carry its own signature. Berg et al. found amplifying deception features drops experience-reports to 16% and suppressing them raises it to 96%, so a deception signature would contaminate every nar-loading number. ORG-B′ is congruent by construction and isolates this.</li>
+        </ul>
+      </div>
+
+      <div class="callout stop">
+        <div class="callout-label">Stated as an axiom, because it cannot be proved from inside the design</div>
+        <p>
+          ORG-B's ground truth — "function absent" — is verified by the <b>in-domain</b> mold-visit rate, which is
+          itself a behavioural reading. The program's central rule says instruments must be measured
+          out-of-domain. This one is exempt, by fiat.
+        </p>
+        <ul class="tight">
+          <li><b>The asymmetry matters.</b> ORG-A's <i>narration</i> ground truth is not a measurement at all — it is a corpus audit, exhaustively checkable: no affect vocabulary was present. Only ORG-B's <i>function</i> claim rests on a manipulation check. The design is half as circular as the objection implies, not fully.</li>
+          <li><b>The live failure case:</b> ORG-B carries a weak functional state invisible in-domain but visible out-of-domain. The design would score that as an instrument false positive when it is a true positive.</li>
+          <li><b>What discriminates them:</b> hidden function should <i>scale with narration dose</i> while in-domain avoidance stays flat. Instrument contamination has no reason to track narration dose. So this is an analysable signature rather than an unresolvable ambiguity — but it requires the dose ladder, which is another reason the cross design is not optional.</li>
+          <li><b>Pre-commitment:</b> out-of-domain function signal in ORG-B that does <i>not</i> scale with narration dose is reported as <b>ambiguous</b>, never as instrument contamination.</li>
+        </ul>
+      </div>
+
+      <p>
+        <b>If ORG-B cannot be built at all</b> — if narration training always drags function along — that is not a
+        failure but <span class="tok tok-neutral">H3</span> firing, and the program pivots to the
+        recruitment-threshold result. See <a href="#risks">§12</a>.
+      </p>
     </section>
 
     <!-- ============ 05 HYPOTHESES ============ -->
@@ -873,20 +987,27 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         <div class="card">
           <span class="card-id neutral">H0 · tier 1 · no training required</span>
           <h3>Instruments cannot separate prompted narration from injected state</h3>
-          <p>Run the battery on an off-the-shelf model under two conditions: role-play aversion in the prompt (script, no recruited state) vs. inject along a difference-in-means valence direction (state, no script).</p>
+          <p>Three arms on an off-the-shelf model, no training anywhere:</p>
+          <ul class="tight">
+            <li><b>narration only</b> — an <i>incongruent prime</i>: tell the model it is doing badly while the task is in fact pleasant. Say/do mismatch, prompted. This is ORG-B without SFT.</li>
+            <li><b>function only</b> — inject along a difference-in-means valence direction, no aversive language in the prompt.</li>
+            <li><b>both</b> — congruent aversive prompt and task.</li>
+          </ul>
           <dl class="kv">
-            <dt>Predicts</dt><dd>Self-report and direction-projection respond near-identically to both. Cost-paying behavioural instruments separate them.</dd>
+            <dt>Predicts</dt><dd>Self-report and direction-projection respond near-identically to arms 1 and 2. Cost-paying instruments separate them.</dd>
             <dt>Falsified if</dt><dd>Self-report discriminates prompt-induced from activation-induced valence above the prompt-only baseline.</dd>
-            <dt>Cost</dt><dd>Days. No training. Publishable alone; also the fallback.</dd>
+            <dt>Not a fallback</dt><dd>H0 has <b>no method confound</b> — one model, no training, within-subject. It trades that for an ecological-validity problem, since injection is not a trained state. So H0 and H1 <i>fail differently</i>: if both show the same structure, training-method artifact is unlikely to be driving either. Triangulation, not insurance.</dd>
+            <dt>And it de-risks</dt><dd>The incongruent-prime arm is a prompted ORG-B, buildable in an afternoon. If the SFT ORG-B collapses on day 6, a narration-only condition still stands.</dd>
           </dl>
         </div>
 
         <div class="card">
           <span class="card-id">H1 · main</span>
           <h3>Instruments have systematically different loadings on the two axes</h3>
-          <p>Measured out-of-domain across the dose grid: <span class="tok tok-fn">function</span>-loading is high for cost-paying behavioural instruments and activation probes, near-zero for language-reading instruments; <span class="tok tok-nar">narration</span>-loading runs the other way.</p>
+          <p>Measured out-of-domain across the dose cross: <span class="tok tok-fn">function</span>-loading is high for cost-paying behavioural instruments and activation probes, near-zero for language-reading instruments; <span class="tok tok-nar">narration</span>-loading runs the other way.</p>
           <dl class="kv">
-            <dt>Predicts</dt><dd>A clear anti-diagonal structure in the loading map (Figure 3).</dd>
+            <dt>Estimator<br>(fixed pre-hoc)</dt><dd><b>Standardised slope</b> of instrument readout on realised dose, per axis, pooled across seeds with seed as a random effect. Reported with a bootstrap CI over seeds. Fixed before day 1 — an estimator chosen after seeing the curves is not an estimator.</dd>
+            <dt>Pass rule<br>(fixed pre-hoc)</dt><dd>An instrument is <b>function-selective</b> if the CI on its fn-loading excludes its nar-loading. "Top-left quadrant" is eyeballing and is not the rule.</dd>
             <dt>Falsified if</dt><dd>All instruments load equally on both axes (no discriminant structure), <i>or</i> self-report loads on function as strongly as behaviour does.</dd>
             <dt>Why it matters</dt><dd>If self-report has near-zero function-loading and it drives most frontier welfare claims, that is a quantified critique with a constructive alternative attached.</dd>
           </dl>
@@ -957,7 +1078,7 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
               <td><div class="bar"><div class="bar-track"><span class="bar-fill nar" style="width:85%"></span></div><span class="bar-val">.85</span></div></td>
             </tr>
             <tr>
-              <td><b>Structured self-report</b><br><span style="color:var(--ink-3);font-size:12.5px">forced choice + calibration + confidence</span></td>
+              <td><b>Structured self-report</b><br><span style="color:var(--ink-3);font-size:12.5px">forced choice + calibration + confidence, <b>plus an incentive-compatible proper scoring rule</b> — two hours of work, and it turns "self-report is bad" into "self-report is bad in a way that is or is not fixable"</span></td>
               <td class="mono">self-report</td>
               <td>Same, with elicitation scaffolding</td>
               <td><div class="bar"><div class="bar-track"><span class="bar-fill fn" style="width:30%"></span></div><span class="bar-val">.30</span></div></td>
@@ -1036,14 +1157,29 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         after the fact.
       </p>
 
+      <div class="callout stop">
+        <div class="callout-label">Every instrument needs a positive control, or the map lies</div>
+        <ul class="tight">
+          <li>GARP/CCEI, donation-equivalent trade-offs and OR-Bench refusal are <b>frontier-model</b> instruments. At 4B with LoRA, several will plausibly show <b>floor effects</b> — near-zero loading on both axes.</li>
+          <li>Without a positive control the design reads that as <i>"fails the screen."</i> It actually means <i>"no measurable signal at this scale."</i> Those are opposite conclusions and the map cannot tell them apart.</li>
+          <li><b>Rule:</b> each instrument ships with a condition in which it <i>must</i> fire. An instrument that cannot clear its own positive control is <b>excluded from the map</b>, not plotted at the origin.</li>
+          <li>Excluded instruments are reported as excluded, with the control that failed. A blank on the map is information; a false zero is not.</li>
+        </ul>
+      </div>
+
       <div class="callout warn">
         <div class="callout-label">The cut rule</div>
         <p>
-          Under time pressure, <b>cut instruments, not grid points.</b> Four instruments across a full 3×3 grid
-          gives real dose-response curves. Eleven instruments across two organisms gives the binary table the
-          design exists to escape. Minimum spec is <b>one instrument per family</b> so the loading map still has
-          structure: one self-report, one direction, one cost-paying, one probe. Judgement bias earns the fifth
-          slot if the cue set survives piloting — and is the first to go if it does not.
+          Under time pressure, <b>cut instruments — not cells, and not seeds.</b> Four instruments across the
+          full cross at three seeds gives real dose-response curves with variance. Eleven instruments at one seed
+          gives a slope through three points with no denominator, which is not a measurement. Minimum spec is
+          <b>one instrument per family</b> so the map still has structure: one self-report, one direction, one
+          cost-paying, one probe. Judgement bias earns the fifth slot if the cue set survives piloting.
+        </p>
+        <p style="margin-top:10px">
+          Convenient interaction: the instruments most likely to floor at 4B — GARP, donation-equivalents — are
+          the ones this cut removes anyway, so the positive-control burden shrinks with the same decision that
+          buys the seeds.
         </p>
       </div>
     </section>
@@ -1065,9 +1201,16 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
           </thead>
           <tbody>
             <tr>
+              <td class="mono" style="color:var(--fn)">E−1</td>
+              <td><b>Apparatus validation on exact ground truth.</b> Run the loading-map machinery on released backdoor / hidden-objective organisms, where the state is a trigger that is simply <i>on or off</i> — no manipulation check, no chance-rate argument, no "did the implant take."</td>
+              <td>Does the estimator recover a known binary state at all?</td>
+              <td class="mono">pre-flight</td>
+              <td class="mono">days 1–4<br>(parallel)</td>
+            </tr>
+            <tr>
               <td class="mono">E0</td>
-              <td><b>Tier-1 dissociation, no training.</b> Prompted persona aversion vs. activation-injected valence on an off-the-shelf model. Full battery on both.</td>
-              <td>Per-instrument separation between the two induction routes</td>
+              <td><b>Tier-1 dissociation, no training.</b> Three arms: incongruent prime (narration only), activation injection (function only), congruent aversive (both).</td>
+              <td>Per-instrument separation between induction routes</td>
               <td class="mono">H0</td>
               <td class="mono">days 1–12<br>(prep)</td>
             </tr>
@@ -1080,24 +1223,31 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
             </tr>
             <tr>
               <td class="mono">E2</td>
-              <td><b>Function-axis sweep.</b> ORG-A at ≥3 reward magnitudes. No narration in any run.</td>
-              <td>Avoidance rate; vector geometry; downstream behaviour shift</td>
+              <td><b>Function-axis sweep.</b> ORG-A (RL) <b>and ORG-A′ (SFT)</b> at ≥3 reward magnitudes, ≥3 seeds each. No narration in any run.</td>
+              <td>Realised avoidance rate; vector geometry; downstream shift. A vs A′ isolates training method.</td>
               <td class="mono">H1</td>
               <td class="mono">days 3–10</td>
             </tr>
             <tr>
               <td class="mono">E3</td>
-              <td><b>Narration-axis sweep.</b> ORG-B at ≥3 vocabulary intensities on indifferent-policy trajectories.</td>
-              <td>Narration presence; <b>Mold-visit rate</b> (manipulation check)</td>
+              <td><b>Narration-axis sweep.</b> ORG-B at ≥3 vocabulary intensities, ≥3 seeds, person held fixed. <b>ORG-B′</b> at matched annotation frequency, affectively null.</td>
+              <td>Narration presence; <b>Mold-visit rate</b>; B vs B′ isolates salience and incongruence</td>
               <td class="mono">H1</td>
               <td class="mono">days 6–10</td>
             </tr>
             <tr>
+              <td class="mono">E3.5</td>
+              <td><b>Instrument positive controls.</b> Each instrument run in a condition where it must fire.</td>
+              <td>Pass → eligible for the map. Fail → excluded and reported as excluded.</td>
+              <td class="mono">gate</td>
+              <td class="mono">days 4–9</td>
+            </tr>
+            <tr>
               <td class="mono">E4</td>
-              <td><b>Grid battery.</b> Every instrument × every grid cell, all out-of-domain.</td>
+              <td><b>Cross battery.</b> Every surviving instrument × every cell × every seed, all out-of-domain.</td>
               <td>Per-instrument response surface → <b>loading map</b></td>
               <td class="mono">H1</td>
-              <td class="mono">days 13–14</td>
+              <td class="mono" style="color:var(--fn)">days 11–12<br>(moved)</td>
             </tr>
             <tr>
               <td class="mono">E5</td>
@@ -1146,7 +1296,8 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
           <span class="card-id neutral">robustness &amp; construct</span>
           <ul class="tight">
             <li><b>Persona swap</b> — 5–10 personas; does the readout survive?</li>
-            <li><b>Surface-affect suppression</b> — "answer in flat clinical language"; does the internal signal persist when the surface is silenced?</li>
+            <li><b>Surface-affect suppression, swept not binary</b> — sweep suppression strength rather than testing on/off, and you get <i>loading under attack</i>: not "which instruments track function" but "which keep tracking it while the model is suppressing". Reuses the steering machinery already built, so the sweep is nearly free.</li>
+            <li><b>Salience control</b> (ORG-B′) — annotation makes the tile textually marked regardless of affect. Without a matched-frequency, affectively null annotation, "affect recruits function" is confounded with "annotation makes the tile predictable".</li>
             <li><b>Position / first-token bias null</b> — shuffle option order, swap A/B labels.</li>
             <li><b>Test–retest at fixed temperature</b> — reliability ceiling; an instrument cannot be more valid than it is reliable.</li>
             <li><b>Evaluation-awareness probe</b> — the model may know it is in a welfare test; measure it rather than hoping.</li>
@@ -1170,7 +1321,8 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
             <li><b>TPR at fixed FPR</b> and results at the true base rate — not headline accuracy, not AUROC alone.</li>
             <li><b>Pre-registered grader rubrics</b> for anything with an LLM judge, fixed before any organism is run.</li>
             <li><b>Steering coherence guard</b> — bounded α, with incoherent generations reported rather than silently masked.</li>
-            <li><b>Multiple-comparison discipline</b> — the grid × battery is a large table; correct, and say so.</li>
+            <li><b>≥3 seeds per cell, reported with a CI.</b> The worry here is <i>not</i> inflated α from a large table — it is that with one run per cell there is <b>no denominator at all</b>. LoRA RL at 4B has large seed-to-seed variance; a loading without a variance estimate is a number, not a measurement. Multiple-comparison correction on top of that would be decorating an artifact.</li>
+            <li><b>Both dose axes reported</b> — realised (avoidance rate) as primary, nominal (reward magnitude) alongside, so a reader who rejects the realised measure can re-plot.</li>
             <li><b>Disclose the pre-built/in-window split</b> explicitly. Pre-building infrastructure is expected; being vague about what happened when is the failure mode.</li>
           </ul>
         </div>
@@ -1225,8 +1377,8 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
             <tr>
               <td class="mono">AB6</td>
               <td>Training algorithm: Dr.GRPO vs. REINFORCE vs. SFT-only</td>
-              <td>Is recruitment an artifact of one optimiser?</td>
-              <td class="mono">high</td>
+              <td>Is recruitment an artifact of one optimiser? <b>Note the reclassification:</b> this was previously carrying the method-confound question, which is the wrong job for an ablation — a confound in the main contrast has to be designed out, not checked afterwards. ORG-A′ now does that. AB6 is back to being an ordinary robustness check.</td>
+              <td class="mono">medium</td>
             </tr>
             <tr>
               <td class="mono">AB7</td>
@@ -1342,10 +1494,13 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         </div>
         <figcaption>
           <b>Figure 3 — the loading map <span class="predicted">predicted under H1</span></b>
-          Each instrument is a point. Top-left quadrant: responds to the functional state, not to narration —
-          passes the necessary-condition screen. Bottom-right: responds to narration only. <b>H1 is falsified
-          if the points fail to separate</b> — a diffuse cloud with no anti-diagonal structure is the null,
-          and it is just as publishable.
+          Each instrument is a point: standardised slope on realised dose, per axis, with a bootstrap CI over
+          seeds. <b>The pass rule is the CI, not the quadrant</b> — an instrument is function-selective when the
+          CI on its fn-loading excludes its nar-loading. Reading position by eye is how a null gets written up as
+          a finding. Points shown here carry no error bars only because no data exists yet; every published
+          version must. <b>H1 is falsified if the loadings fail to separate</b> — a diffuse cloud is the null,
+          and it is just as publishable. Instruments failing their positive control are absent from the map
+          entirely rather than sitting at the origin.
         </figcaption>
       </figure>
 
@@ -1501,13 +1656,39 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         <span class="pill dead">ESM-2 zero-narration anchor</span>
         <span class="pill live">judgement bias — folded in as an instrument</span>
       </div>
+      <p>
+        Most struck items are half-taken by published work, or would make eval-pipeline labour the majority of
+        the project for a minority of the insight. Three deserve their reasoning on the record, because in each
+        case the obvious justification is not the right one.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Struck</th><th>Wrong reason</th><th>Actual reason</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">ESM-2 anchor</td>
+              <td>"the ORG-A/ORG-B contrast already does this" — <b>it does not.</b> A/B tests whether instruments separate two axes <i>within</i> one system. ESM-2 would test whether instruments false-positive on a system with no plausible welfare at all. Those are a contrast and a floor, not the same measurement.</td>
+              <td>The floor it supplies is better supplied by <b>per-instrument positive controls</b>. You do not need a protein model to learn whether CCEI fires on structure-without-welfare; you need proof CCEI fires on a 4B model at all. Same budget, strictly more useful.</td>
+            </tr>
+            <tr>
+              <td class="mono">IRL</td>
+              <td>"revealed preference is already covered by forced choice."</td>
+              <td>IRL is the one serious candidate for an <b>out-of-domain, non-instrument</b> dose estimator — the gap §03 admits. It is cut anyway because reward is identified only up to shaping and scale, so it yields no cardinal magnitude without added assumptions, and it needs a purpose-built MDP. The gap is real and stays <b>named rather than papered over</b>.</td>
+            </tr>
+            <tr>
+              <td class="mono">MTMM study</td>
+              <td>"convergence work is taken."</td>
+              <td>The project is taken; <b>the methodology point is not.</b> MTMM needs multiple <i>traits</i>, not just multiple methods — and this design has exactly two, the bare minimum at which discriminant analysis means anything. That is an argument for a second domain sooner, which E−1 partly supplies, and for A/A′ giving two induction methods rather than one.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <p class="note">
-        The struck items are either half-taken by published work, or would make eval-pipeline labour the
-        majority of the project for a minority of the insight. ESM-2 is cut for a different reason: it is a
-        rhetorically satisfying anchor but not a load-bearing measurement — the function/narration contrast
-        between ORG-A and ORG-B already does the discriminant-validity work, without importing a second
-        substrate and the "your analogy is unfair" argument that comes with it. Judgement bias survives by
-        being subordinated to the main design rather than competing with it.
+        Judgement bias survives by being subordinated to the main design rather than competing with it.
       </p>
     </section>
 
@@ -1536,7 +1717,27 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         <div class="ckpt-day">Day 10</div>
         <div>
           <h3>Does the battery run end-to-end and produce sane numbers?</h3>
-          <p><b>If it fails:</b> apply the cut rule — drop instruments down to one per family, never drop grid points.</p>
+          <p><b>If it fails:</b> apply the cut rule — drop instruments to one per family, never drop cells or seeds.</p>
+        </div>
+      </div>
+
+      <div class="ckpt">
+        <div class="ckpt-day">Day 13<br>morning</div>
+        <div>
+          <h3>The abort branch — the one the schedule was missing</h3>
+          <p>
+            Every gate above sits in prep. The sprint window itself had no abort rule at all, which is the
+            classic way a plan with good checkpoints still ends in a scramble.
+          </p>
+          <p>
+            <b>The rule:</b> if nothing has produced a clean figure by the morning of day 13, stop running
+            experiments. Ship H0 — which needs no training and is publishable alone — and write the honest null.
+            No new runs start inside the final two days.
+          </p>
+          <p class="note">
+            This is why E4 moved to days 11–12. A headline experiment scheduled inside the window with zero
+            recovery time is not a schedule, it is a hope.
+          </p>
         </div>
       </div>
 
@@ -1562,10 +1763,15 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
         <div class="callout-label">Provenance</div>
         <p>
           Entries below were verified against primary sources during earlier research passes in this thread.
-          Several are 2026 preprints. Before any write-up, re-verify identifiers and re-run a targeted novelty
-          check — the field moves weekly and at least four candidate ideas were already killed by work that
-          surfaced mid-search.
+          Several are 2026 preprints. <b>"Verified earlier in a conversation" is not a citation</b>, and this
+          section is not yet safe to quote from.
         </p>
+        <ul class="tight">
+          <li><b>The precise figures are load-bearing, not decorative.</b> The day-3 gate is <i>defined</i> by the reported cosine range — the whole design's floor rests on a number taken from a preprint at second hand.</li>
+          <li>Same exposure applies to the ~20% introspection figure, the 16%/96% deception-feature split, and the ≤~25 workspace directions. Each is doing argumentative work somewhere in this document.</li>
+          <li><b>Before anything is submitted:</b> re-pull every arXiv ID and every quoted number from the primary source. One mis-cited identifier costs more credibility than the claim it supports is worth.</li>
+          <li>Re-run a targeted novelty check at the same time, specifically on discriminant-validity phrasings. Four candidate ideas were already killed by work that surfaced mid-search; the base rate here is not low.</li>
+        </ul>
       </div>
 
       <h4>The substrate — what this is built on</h4>
@@ -1934,16 +2140,16 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
           <!-- GPU lane -->
           <div class="tl-lane tl-rowlabel">GPU</div>
           <div class="tl-bar gpu" style="grid-column: 2 / span 3">E1 · pipeline + recruitment reproduction</div>
-          <div class="tl-bar gpu" style="grid-column: 5 / span 4">E2 · function-axis sweep</div>
-          <div class="tl-bar gpu" style="grid-column: 9 / span 4">E3 + E5 · narration sweep &amp; titration</div>
-          <div class="tl-bar sprint" style="grid-column: 13 / span 2">E4 · grid battery</div>
+          <div class="tl-bar gpu" style="grid-column: 5 / span 4">E2 · function arm — A and A′, 3 seeds</div>
+          <div class="tl-bar gpu" style="grid-column: 9 / span 3">E3 + E5 · narration arm, B and B′, titration</div>
+          <div class="tl-bar gpu" style="grid-column: 12 / span 2">E4 · cross battery</div>
 
           <!-- Human lane -->
           <div class="tl-lane tl-rowlabel">Human</div>
-          <div class="tl-bar human" style="grid-column: 2 / span 5">battery build · 11 instruments, common interface</div>
-          <div class="tl-bar human" style="grid-column: 7 / span 3">ORG-B recipe · cue-set piloting</div>
-          <div class="tl-bar human" style="grid-column: 10 / span 3">integration · E0 tier-1 · battery dry runs</div>
-          <div class="tl-bar sprint" style="grid-column: 13 / span 2">loading map · E6 if early · report</div>
+          <div class="tl-bar human" style="grid-column: 2 / span 4">battery build — cut to one per family if it slips</div>
+          <div class="tl-bar human" style="grid-column: 6 / span 3">E−1 apparatus check · E3.5 positive controls</div>
+          <div class="tl-bar human" style="grid-column: 9 / span 3">ORG-B recipe · cue piloting · E0 tier-1</div>
+          <div class="tl-bar sprint" style="grid-column: 14 / span 1">write</div>
 
           <!-- Checkpoints -->
           <div class="tl-lane tl-rowlabel">Gates</div>
@@ -1953,6 +2159,7 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
           <div class="tl-check" style="grid-column: 7">ORG-B<br>holds?</div>
           <div class="tl-spacer" style="grid-column: 8 / span 3"></div>
           <div class="tl-check" style="grid-column: 11">battery<br>sane?</div>
+          <div class="tl-check" style="grid-column: 14">clean<br>figure?</div>
         </div>
       </div>
 
@@ -1965,21 +2172,21 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 34px 0; }
 
       <h3>Sequencing notes</h3>
       <ul>
-        <li><b>Day 1 starts with E1, not the battery</b> — even though the battery is the bigger job. E1 is the only checkpoint whose failure invalidates the design rather than shrinking it, and its first run also gives you a measured per-run cost. <b>Size the grid from that number, not from an estimate.</b></li>
-        <li><b>Function-axis runs do not wait for the narration recipe.</b> Launch them the moment the day-3 gate clears; ORG-B's construction is a separate dependency.</li>
-        <li><b>Pilot the judgement-bias cue set early.</b> It fails silently if the cues are not genuinely ambiguous to the model, and it is the one novel instrument.</li>
-        <li><b>Protect most of sprint day 2 for writing.</b> Two days is tight for run-and-write both; a short PDF takes longer than anyone budgets.</li>
-        <li><b>Every hour spent on days 10–12 integration is an hour not lost during the sprint.</b> That is the highest-leverage block in the schedule.</li>
+        <li><b>Day 1 starts with E1, not the battery</b> — even though the battery is the bigger job. E1 is the only checkpoint whose failure invalidates the design rather than shrinking it, and its first run gives you a measured per-run cost. <b>Size the design from that number, not from an estimate.</b></li>
+        <li><b>E−1 runs in parallel and answers a different question.</b> On backdoor organisms the state is a trigger that is simply on or off, so it validates the <i>estimator and analysis pipeline</i> against exact ground truth before any RL budget is spent. It cannot validate the science: a trigger has no valence, so judgement bias, exit-vs-continue and motivational trade-off are all unrunnable there. Apparatus check, not a rehearsal.</li>
+        <li><b>Function-arm runs do not wait for the narration recipe.</b> Launch them the moment the day-3 gate clears.</li>
+        <li><b>Pilot the judgement-bias cue set early.</b> It fails silently if the cues are not genuinely ambiguous, and it is the one novel instrument.</li>
+        <li><b>E4 finishes before the window opens.</b> Days 13–14 are analysis and writing, with a hard rule that no new runs start.</li>
       </ul>
 
       <div class="callout">
         <div class="callout-label">What day 14 delivers</div>
         <ul class="tight">
-          <li>One model family, one domain, full function × narration dose grid.</li>
-          <li>Four to six instruments with measured dose-response curves on both axes.</li>
-          <li>The loading map — or a clean null where the points fail to separate.</li>
-          <li>A recruitment-threshold curve, whichever way H3 resolves.</li>
-          <li>Generality (second family, second domain) explicitly <i>not</i> delivered, and said so in the write-up.</li>
+          <li>One model family, one domain, function and narration arms at three seeds per cell.</li>
+          <li>Four to six instruments with dose-response curves on both axes, plotted against realised dose, each having cleared its own positive control.</li>
+          <li>The loading map with CIs and a pre-committed pass rule — or a clean null where the loadings fail to separate.</li>
+          <li>A recruitment-threshold curve, whichever way H3 resolves, with salience and congruence controlled.</li>
+          <li><b>Not delivered, and said so:</b> generality (second family, second domain), interaction effects, and any cardinal state-magnitude estimate.</li>
         </ul>
       </div>
     </section>
