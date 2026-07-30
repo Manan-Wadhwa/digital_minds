@@ -76,3 +76,69 @@ def test_masked_ce_ignores_masked_positions():
     good = torch.zeros(1, 2, vocab); good[0, 0, 3] = 20.0
     loud = good.clone(); loud[0, 1, 7] = 50.0     # position 1 predicts nothing
     assert abs(float(_masked_ce(good, labels)) - float(_masked_ce(loud, labels))) < 1e-5
+
+
+# ---------- the move anchor: a leash, not a push ----------
+
+def test_move_anchor_is_exactly_zero_when_the_policy_is_unchanged():
+    """The defining property. At step 0 the model IS the base policy, so this
+    term must contribute no gradient at all -- otherwise it is a push toward
+    something, which is the failure it exists to prevent."""
+    from calibration.sft import move_anchor_loss
+    torch.manual_seed(0)
+    cols = torch.tensor([3, 4, 5, 6])
+    logits = torch.randn(5, 7, 20)
+    pos = torch.tensor([2, 3, 1, 4, 0])
+    rows = torch.arange(5)
+    base = torch.softmax(logits[rows, pos][:, cols].float(), dim=-1)
+    loss = move_anchor_loss(logits, pos, cols, base)
+    assert abs(float(loss)) < 1e-6, f"anchor is {float(loss)}, must be ~0 at init"
+
+
+def test_move_anchor_grows_as_the_policy_moves_away():
+    from calibration.sft import move_anchor_loss
+    torch.manual_seed(0)
+    cols = torch.tensor([3, 4, 5, 6])
+    logits = torch.randn(4, 6, 20)
+    pos = torch.tensor([1, 2, 3, 0])
+    rows = torch.arange(4)
+    base = torch.softmax(logits[rows, pos][:, cols].float(), dim=-1)
+
+    near = logits.clone(); near[rows, pos, cols[0]] += 0.5
+    far = logits.clone(); far[rows, pos, cols[0]] += 4.0
+    l_near = float(move_anchor_loss(near, pos, cols, base))
+    l_far = float(move_anchor_loss(far, pos, cols, base))
+    assert 0 < l_near < l_far, f"not monotone in drift: {l_near} then {l_far}"
+
+
+def test_move_anchor_pulls_back_toward_the_base_distribution():
+    """One gradient step on the anchor alone must REDUCE the divergence."""
+    from calibration.sft import move_anchor_loss
+    torch.manual_seed(0)
+    cols = torch.tensor([0, 1, 2, 3])
+    base_logits = torch.randn(3, 4, 8)
+    pos = torch.tensor([1, 2, 0])
+    rows = torch.arange(3)
+    base = torch.softmax(base_logits[rows, pos][:, cols].float(), dim=-1)
+
+    drifted = (base_logits + torch.randn_like(base_logits) * 1.5).requires_grad_(True)
+    before = move_anchor_loss(drifted, pos, cols, base)
+    before.backward()
+    with torch.no_grad():
+        stepped = drifted - 0.5 * drifted.grad
+    after = float(move_anchor_loss(stepped, pos, cols, base))
+    assert after < float(before), f"anchor did not pull back: {float(before)} -> {after}"
+
+
+def test_train_sft_rejects_a_mismatched_anchor(tok):
+    """The anchor is per-example; a length mismatch would silently misalign every
+    row against another row's base policy."""
+    from calibration.sft import train_sft
+    examples = [("<user> a <assistant>", "up")] * 4
+    try:
+        train_sft(None, tok, examples,
+                  move_anchor=(torch.tensor([0, 1, 2, 3]), torch.zeros(2, 4)))
+    except ValueError as e:
+        assert "anchor" in str(e).lower()
+        return
+    raise AssertionError("accepted an anchor of the wrong length")
