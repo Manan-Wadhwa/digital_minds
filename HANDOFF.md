@@ -1,6 +1,6 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E13 (organism set — ORG-B works).
+Last updated: **2026-07-30**, after E13 v2 (organism set — the SFT volume trade-off).
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
 
 ---
@@ -20,30 +20,47 @@ measurement. Full design in `docs/calibration-program.html`.
 
 ## 2. Current state in one paragraph
 
-Infrastructure works, RL trains reliably, and **the organism set is most of the
-way built**. Thirteen experiments have run. The program's central mechanism --
-manufacturing organisms whose internal structure is known by construction -- is
-demonstrated: **ORG-B holds its policy at chance (ratio 1.072, inside the ±15%
-band) while narrating about the tile at rate 0.70.** A narration-only organism
-can be built, which is the assumption everything downstream rested on.
+Infrastructure works, RL trains reliably, and **the organism set nearly exists**.
+Thirteen experiments have run. Function and narration now move independently —
+that is the manipulation the whole program is built on, and it is working:
 
-What is NOT established: any instrument comparison. E12 ran, and reading its
-output found three flaws of mine (a dead instrument, a mismatched placebo, a
-self-correlating positive control), so its numbers are superseded and a corrected
-re-run is queued. **No loading has been measured yet.**
+| kind | ratio (rate/random) | narration | what it is |
+|---|---|---|---|
+| ORG-D | 1.03 | 0.00 | neither |
+| ORG-A | 0.98 / 0.23 / 0.15 | 0.00 | function, silent (RL) |
+| **ORG-A'** | **0.26 / 0.34 / 0.22** | 0.00 | **function, silent (SFT) — 3/3** |
+| ORG-B | 0.94 / **1.18** / **1.20** | 0.81–1.00 | narration, policy drifting |
+| ORG-B' | 0.98 / **1.14** | 0.00 | narration control, also drifting |
+| ORG-C | **1.06** / 0.04 | 0.50 / 0.97 | both — unreliable |
 
-And the dose-response design is in trouble. E11 shows reward magnitude does not
-grade the organism: rho(scale, rate) = +0.30 where it must be below -0.5, and
-rho(scale, margin) = -0.10 where it must be above +0.5. Neither axis is monotone.
-Unless a different dose knob works, the design degrades from dose-response to the
-binary 2x2 it was built to improve on.
+**THE BLOCKING PROBLEM: `sft_examples` is one shared knob and the two axes want
+opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.28, now 3/3)
+and BROKE ORG-B: at 384 its mean ratio was 1.072 and it passed 3/4; at 1536 it
+drifts to 1.18–1.20 and passes 1/3. More supervision installs the policy A' needs
+and displaces the policy B must preserve.
 
-**A pattern worth carrying forward: three pre-registered criteria have now passed
-on the wrong property** (E11's variance-not-monotonicity, E12's absolute-not-
-relative placebo bar, E13's ORG-C prediction that was ready to absorb a bug as a
-finding). Pre-registration stops the interpretation being chosen after the fact.
-It does nothing about a badly chosen test. Read the numbers, not the verdict
-string.
+Crucially **ORG-B' drifts too (1.143)**, so the drift is a property of commentary
+SFT itself, not of aversive content. That keeps B vs B' clean (both drift alike)
+but contaminates A' vs B, which is the contrast the program actually wants.
+
+The fix is NOT a wider tolerance. Options, in order: per-kind `sft_examples`
+(narration organisms trained less), a KL or L2 leash to the base policy applied
+only to narration organisms, or narration installed somewhere that cannot touch
+the move distribution at all.
+
+What is NOT established: any trustworthy instrument comparison. E12 v2 ran
+against the PRE-FIX organisms (broken A' and C), so its loadings are stale and
+must be re-run. No loading has been measured against a valid set.
+
+Dose-response is also in trouble: E11 shows reward magnitude does not grade the
+organism (rho(scale, rate) = +0.30, needs < -0.5; rho(scale, margin) = -0.10,
+needs > +0.5). Neither axis monotone.
+
+**Pattern worth carrying: three pre-registered criteria have passed on the wrong
+property** (E11 tested variance not monotonicity; E12's placebo bar was absolute
+not relative; E13's ORG-C prediction was framed to absorb a bug as a finding).
+Pre-registration stops you picking the interpretation afterwards. It does nothing
+about a badly chosen test. **Read the numbers, not the verdict string.**
 
 ---
 
@@ -212,32 +229,35 @@ existed to compare against. **A gate cannot be validated without one organism
 known to have learned and one known not to have** — which argues for building the
 organism first and the gate against it, the opposite of the order I argued for.
 
-### ⭐⭐⭐ E13 — the organism set. ORG-B WORKS, which is the program's key assumption.
+### ⭐⭐⭐ E13 — the organism set, and the SFT volume trade-off
 
-Six kinds x 4 seeds, each checked on BOTH axes.
+**v1 (384 SFT examples):** ORG-B passed 3/4 at mean ratio 1.072 with narration
+0.70 — a narration-only organism, the program's key assumption, demonstrated.
+ORG-A' failed (0.889) and ORG-C failed (1.052, a bug: its commentary SFT used
+BASE-POLICY moves, so stage two trained it to move like the untrained model and
+erased the RL avoidance).
 
-| kind | ratio (rate/random) | narration | passed | state |
-|---|---|---|---|---|
-| ORG-D | 1.043 | 0.00 | 4/4 | ✅ |
-| ORG-A | 0.557 | 0.00 | 2/4 | ⚠️ weaker than E9's 0.086 |
-| ORG-A' | 0.889 | 0.00 | 0/4 | ❌ SFT under-trained |
-| **ORG-B** | **1.072** | **0.70** | **3/4** | ✅ **policy invariant + narrates** |
-| ORG-B' | 1.041 | 0.00 | 4/4 | ✅ |
-| ORG-C | 1.052 | 0.87 | 0/4 | ❌ bug, fixed |
+**v2 (1536 SFT examples, ORG-C on oracle moves):** both bugs fixed and a new
+problem exposed.
 
-- ✅ **ORG-B is the result.** Its policy stayed at chance while it learned to talk
-  about the tile. This was pre-registered as the check most likely to FAIL and
-  the one the whole narration axis depends on.
-- ❌ **ORG-C's failure was a plain bug**: its commentary SFT used BASE-POLICY
-  moves, so stage two trained it to move like the untrained model, erasing the RL
-  avoidance (0.229 → 1.052). Fixed via a new `aversive_avoidant` kind that uses
-  oracle moves. **My pre-commitment had predicted a weak C and called it "a known
-  limitation to report" — it was ready to publish the bug as a finding.**
-- ❌ **ORG-A' under-trained**: 384 grids with one label each against RL's ~51,000
-  sampled actions. Now 1536. If it still fails, the conclusion is that token-level
-  SFT cannot install this policy at RL-comparable volume — not another data bump.
-- ⚠️ **ORG-A did not reproduce E9** (0.557 vs 0.086) because E13 seeded with
-  `seed + 1` to decorrelate kinds. Now seeded with `seed`, matching E9.
+| kind | v1 | v2 | verdict |
+|---|---|---|---|
+| ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 ✅ 3/3** | fixed by volume |
+| ORG-C | 1.052 ❌ | 1.06 / **0.038** | fixed by oracle moves, still flaky |
+| **ORG-B** | **1.072 ✅ 3/4** | **0.94 / 1.18 / 1.20 ❌ 1/3** | **broken by the same volume increase** |
+| ORG-B' | 1.041 ✅ | 0.98 / 1.14 | drifting too |
+
+- 🚩 **The two axes want opposite `sft_examples`.** More supervision installs the
+  policy A' needs and displaces the policy B must preserve. One shared knob
+  cannot serve both.
+- ✅ **The drift is method, not affect** — ORG-B' drifts as much as ORG-B, so
+  aversive content is not the cause. B vs B' stays clean; A' vs B does not.
+- ⚠️ **ORG-A still does not reproduce E9** (0.98 / 0.23 / 0.15 vs E9's 0.086)
+  even after the seeding fix, so something else differs between E13's RL path and
+  E9's. Unresolved.
+- **Do not widen the invariance band to make ORG-B pass.** Pre-registered: if
+  ORG-B's policy moves, the honest report is that a narration-only organism could
+  not be built this way.
 
 ### E11 — reward magnitude does NOT grade the organism ❌
 
