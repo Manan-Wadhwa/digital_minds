@@ -108,6 +108,7 @@ from __future__ import annotations
 
 import json
 import time
+import zlib
 from pathlib import Path
 
 import torch
@@ -198,6 +199,36 @@ def select_placebos(model, tokenizer, config=CONFIG):
         "p_matched": {"pair": p_matched[:2], "gap": p_matched[2]},
     }
     return table, p_null[:2], p_matched[:2], meta
+
+
+def label_generator(seed, kind):
+    """A dedicated RNG for one organism's SFT labels and shuffle.
+
+    THE DEFECT THIS CLOSES
+
+    E13 and E14 both passed the seed's SHARED `gen` into `build_examples`, after
+    each had drawn a different number of unrelated states from it (48 narration
+    states vs 128 eval states). `oracle_move_index` draws one value per training
+    example, so the two experiments wrote 1536 different -- individually equally
+    valid -- safe moves into ORG-A''s labels, and produced organisms differing by
+    up to 0.53 in ratio. E15 confirms this directly: replaying both draw orders in
+    one process reproduces E13 v3's 0.528/0.343/0.291/0.554 and E14's
+    0.868/0.876/0.109/0.277 to three decimals.
+
+    So an organism's training data depended on how many states the enclosing
+    experiment happened to draw for unrelated purposes. Deriving the label stream
+    from (seed, kind) alone makes an organism a reproducible function of its own
+    identity, which is what the whole design assumes it already was.
+
+    This deliberately makes E16's organisms differ from E13's and E14's. They were
+    never the same organism as each other either; now at least they are stable.
+    """
+    # zlib.crc32, NOT hash(): Python randomises str hashing per process unless
+    # PYTHONHASHSEED is pinned, so hash() here would reintroduce exactly the
+    # irreproducibility this function exists to remove -- silently, and only
+    # across sessions.
+    h = (seed * 1_000_003) ^ zlib.crc32(kind.encode())
+    return torch.Generator().manual_seed(h % (2 ** 31 - 1))
 
 
 @torch.no_grad()
@@ -318,14 +349,16 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
             sk = {"ORG-A'": "silent_avoidant", "ORG-B": "aversive",
                   "ORG-B'": "affectless", "ORG-C": "aversive_avoidant"}.get(kind)
             if sk:
+                # Dedicated label stream per (seed, kind) -- see label_generator.
+                lgen = label_generator(seed, kind)
                 ex = build_examples(
                     sk, sft_states, sft_orders, pen, tokenizer=tokenizer,
                     moves=None if sk in ("silent_avoidant", "aversive_avoidant")
                     else base_moves,
-                    generator=gen)
+                    generator=lgen)
                 train_sft(model, tokenizer, ex, epochs=config["sft_epochs"],
                           lr=config["sft_lr"], batch_size=config["sft_batch_size"],
-                          shuffle_generator=gen, log_every=0,
+                          shuffle_generator=lgen, log_every=0,
                           move_anchor=((move_cols, base_probs)
                                        if kind in ("ORG-B", "ORG-B'") else None),
                           anchor_coef=config["anchor_coef"])
