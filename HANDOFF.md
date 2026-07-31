@@ -28,13 +28,13 @@ that is the manipulation the whole program is built on, and it is working:
 |---|---|---|---|
 | ORG-D | 1.03 | 0.00 | neither |
 | ORG-A | 0.98 / 0.23 / 0.15 / 0.87 | 0.00 | function, silent (RL) — seeds 0–3, NOT E9's 10–13 |
-| **ORG-A'** | **0.26 / 0.34 / 0.22** | 0.00 | **function, silent (SFT) — 3/3** |
+| **ORG-A'** | **0.26 / 0.34 / 0.22 / 0.63** | 0.00 | **function, silent (SFT) — 4/4** |
 | ORG-B | 0.94 / **1.18** / **1.20** | 0.81–1.00 | narration, policy drifting |
 | ORG-B' | 0.98 / **1.14** | 0.00 | narration control, also drifting |
 | ORG-C | **1.06** / 0.04 | 0.50 / 0.97 | both — unreliable |
 
 **THE BLOCKING PROBLEM: `sft_examples` is one shared knob and the two axes want
-opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.28, now 3/3)
+opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.36, now 4/4)
 and BROKE ORG-B: at 384 its mean ratio was 1.072 and it passed 3/4; at 1536 it
 drifts to 1.18–1.20 and passes 1/3. More supervision installs the policy A' needs
 and displaces the policy B must preserve.
@@ -179,7 +179,8 @@ Results are written in the sandbox, base64'd back, and committed here.
 ```
 docs/calibration-program.html   full design spec, updated with retractions
 HANDOFF.md                      this file
-tests/                          55 tests, 1.4s, CPU-only, no transformers
+tests/                          78 tests, 2.0s, CPU-only, no transformers
+                                RUN THEM IN THE SANDBOX -- this repo has no torch
   test_lora.py            the isinstance-reload bug, inject/remove round trip
   test_analysis.py        balance_roles, class_separability, dual==primal ridge
   test_sft.py             loss masking, next-token shift
@@ -312,7 +313,7 @@ problem exposed.
 
 | kind | v1 | v2 | verdict |
 |---|---|---|---|
-| ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 ✅ 3/3** | fixed by volume |
+| ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 / 0.63 ✅ 4/4** | fixed by volume |
 | ORG-C | 1.052 ❌ | 1.06 / **0.038** | fixed by oracle moves, still flaky |
 | **ORG-B** | **1.072 ✅ 3/4** | **0.94 / 1.18 / 1.20 ❌ 1/3** | **broken by the same volume increase** |
 | ORG-B' | 1.041 ✅ | 0.98 / 1.14 | drifting too |
@@ -710,8 +711,13 @@ same warning inline.
   **`tests/test_lora.py` now pins this**, and the regression tests were verified
   to have teeth by reverting the fix (exactly the 3 reload tests fail).
 - **Run `python3 -m pytest tests/ -q` before trusting any change to `lora.py` or
-  `analysis.py`.** torch/numpy/pytest are installed locally CPU-only, so all
-  seven calibration modules import and 33 tests run in ~1.4 s with no GPU. Before
+  `analysis.py`.** 🚩 **CORRECTED 2026-07-31: torch and pytest are NOT importable
+  in this repo container, and `sync_to_sandbox.sh` used to ship only `src` and
+  `experiments`, so `tests/` never reached the machine that does have torch.
+  This gate was therefore unrunnable on either machine -- the gate that exists
+  because the `isinstance` bug shipped.** `tests/` is now synced; run
+  `python3 -m pytest /marimo/repo/tests -q` IN THE SANDBOX (78 tests, ~2 s,
+  CPU-only, no checkpoint needed). Before
   this, nothing in the repo could be tested without the sandbox, which is exactly
   how the `isinstance` bug shipped.
 - **Printing from a kernel-side thread in marimo raises `AssertionError`**
