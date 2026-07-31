@@ -40,7 +40,7 @@ SHA="$(cd "$REPO_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo unknown
 #
 # Scoped to what is actually shipped (src, experiments) and excluding results/,
 # which is output and changes on every run.
-DIRTY="$(cd "$REPO_ROOT" && git status --porcelain -- src experiments 2>/dev/null \
+DIRTY="$(cd "$REPO_ROOT" && git status --porcelain -- src experiments tests 2>/dev/null \
          | grep -v '/results/' || true)"
 if [ -n "$DIRTY" ]; then
     SHA="${SHA}-dirty"
@@ -51,11 +51,18 @@ fi
 TARBALL="$(mktemp)"
 trap 'rm -f "$TARBALL"' EXIT
 
-# Source only. results/ is output and __pycache__ is noise; shipping either just
-# grows the payload that broke this script once already.
+# Source and tests. results/ is output and __pycache__ is noise; shipping either
+# just grows the payload that broke this script once already.
+#
+# tests/ is included because it was NOT, and that made the repo's own standing
+# rule -- "run python3 -m pytest tests/ -q before trusting any change to lora.py
+# or analysis.py" -- impossible to follow anywhere. The repo container has no
+# torch (HANDOFF section 8 claims it does; it does not), and the sandbox that has
+# torch never received the tests. So the gate that exists precisely because the
+# isinstance bug shipped could not be run on either machine.
 tar czf "$TARBALL" \
     --exclude='results' --exclude='__pycache__' --exclude='*.pyc' \
-    -C "$REPO_ROOT" src experiments
+    -C "$REPO_ROOT" src experiments tests
 
 SIZE=$(wc -c < "$TARBALL")
 echo "payload: ${SIZE} bytes  git: ${SHA}"
