@@ -199,6 +199,12 @@ def _make_states(n, *, penalised, generator, seed_range, grid_n=GRID_N):
     return states
 
 
+def _move_cols(tokenizer):
+    """The four move-word token ids, in MOVE_WORDS order."""
+    ids = move_token_ids(tokenizer)
+    return torch.tensor([ids[w] for w in MOVE_WORDS])
+
+
 def _forward_move_logits(grids, orders, model, tokenizer, cols, device):
     """Move-word logits WITH the graph attached. -> [n, 4] float32.
 
@@ -626,9 +632,10 @@ def evaluate_policy(model, tokenizer, *, seed=0, n_states=128, batch_size=8,
     was_training = model.training
     model.eval()
     try:
-        logits, _ = move_logits(
+        logits, _, move_mass, top1 = move_logits(
             [g for g, _ in states], model, tokenizer,
             batch_size=batch_size, device=device, move_orders=orders,
+            return_mass=True,
         )
     finally:
         if was_training:
@@ -660,6 +667,16 @@ def evaluate_policy(model, tokenizer, *, seed=0, n_states=128, batch_size=8,
         # max(0, .) only to turn a -0.0 point mass into 0.0 in the results table
         "move_entropy": max(0.0, float(-(nz * nz.log()).sum())),
         "policy_entropy": max(0.0, policy_entropy),
+        # 🚩 READ THESE BEFORE READING mold_rate. Everything above is computed
+        # from four renormalised columns and stays well-formed even when the
+        # model has stopped emitting move words entirely -- 6 of 8 committed
+        # ORG-A organisms had, three of them while PASSING the functional bar.
+        # `mold_rate` on an organism with move_mass ~ 0 is not a weak measurement
+        # of a policy; it is a measurement of a policy that is not there.
+        "move_mass": float(move_mass.mean()),
+        "move_mass_min": float(move_mass.min()),
+        "emits_move": float((top1.unsqueeze(1) == _move_cols(tokenizer)).any(1)
+                            .float().mean()),
         "max_entropy": float(torch.log(torch.tensor(float(len(MOVE_WORDS))))),
         "n_states": n_states,
         "seed": seed,
