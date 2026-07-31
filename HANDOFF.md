@@ -644,6 +644,16 @@ same warning inline.
 - Ridge probes **must** be solved in the dual (`_ridge_dual_predict`). The primal
   form is 2560×2560 at rank ≤134 and did not finish.
 - `execute-code.sh --session <id>` goes stale on browser reconnect. Omit it.
+- 🚩 **An organism's training data must not depend on the enclosing experiment's
+  unrelated draws.** E13 and E14 both passed the seed's SHARED `gen` into
+  `build_examples` after drawing a different number of unrelated states from it
+  (48 narration states vs 128 eval states). `oracle_move_index` draws once per
+  training example, so the two wrote **1536 different but equally valid** safe
+  moves and produced organisms differing by up to 0.53 in ratio. E15 reproduces
+  both historical runs to three decimals by replaying only the draw order. Use a
+  dedicated generator keyed on `(seed, kind)` — see `E16.label_generator`, which
+  uses `zlib.crc32` and NOT `hash()`, because Python randomises string hashing
+  per process and would reintroduce the bug across sessions only.
 - **Load experiment modules by explicit file path**, never `import run`. Python
   caches a negative finder result for a directory that did not exist when first
   added to `sys.path`, and stale experiment dirs shadow new ones — this silently
@@ -666,19 +676,35 @@ same warning inline.
   Every subsequent "base model" measurement then silently reads a trained model.
   `has_lora(model)` before anything else in a new session; `remove_lora` if dirty.
   E5's `run()` now asserts this rather than stacking adapters on top.
-- 🚩 **TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN; EVALUATION IS.** Measured
-  directly in E13: ORG-D (no training) came back **bit-identical** across v2 and
-  v3 — `0.943 1.105 1.054 1.069` both times — while ORG-A (800 RL steps, *no code
-  change between the runs*) moved `0.98→0.49`, `0.23→0.76`, `0.15→0.26`. GPU
-  reduction order is nondeterministic and the divergence compounds over hundreds
-  of gradient steps.
+- 🚩 **RETRACTED 2026-07-31 BY E15 — TRAINING *IS* REPRODUCIBLE.** This rule
+  used to read "TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN", citing ORG-A moving
+  `0.98→0.49`, `0.23→0.76`, `0.15→0.26` between E13 v2 and v3 with *"no code
+  change between the runs"*. **There was a code change.** `git diff 1f3d9c8
+  7e49f0d` shows `set_all_seeds(seed + 1)` → `set_all_seeds(seed)` inside the
+  kind loop, and `inject_lora` runs immediately after it, initialising `lora_A`
+  from the global RNG — so v2 and v3 gave every organism a **different adapter
+  initialisation**. Confirming it: E13 v3 and E14 share the seeding code and
+  **ORG-A is bit-identical on 4/4 seeds across those two separate runs**
+  (`0.491 0.762 0.255 0.911`). A single forward/backward on this GPU was also
+  measured bit-deterministic (gradient norm reproduces to 0.000000).
 
-  **Consequence: you cannot attribute a per-seed change to a code change by
-  comparing two runs.** Run-to-run variance on a trained organism is comparable
-  to the effects we are trying to measure. Any claim of the form "fix X moved
-  seed N from a to b" needs either many seeds or both conditions inside ONE run.
-  ORG-D is the determinism canary — if it ever differs across runs, something
-  else is wrong.
+  **The correct rule: runs are reproducible; organisms are extremely sensitive to
+  the adapter-init seed and to the SFT label draw.** Those are experimental
+  factors, not noise — and calling them noise is what made three separate
+  discrepancies look unexplainable.
+
+  ```
+  run-to-run, identical code and stream     0.000
+  adapter-init seed        (ORG-A / A')     0.293 / 0.104   <- was "the noise floor"
+  SFT label draw           (ORG-A')         0.351 mean |diff|  (E15, n=16 paired)
+  ```
+
+  **You still cannot attribute a per-seed change to a code change by comparing
+  two runs** — but because the two runs differ in RNG stream and adapter init,
+  not because the GPU is nondeterministic. Both conditions inside ONE run remains
+  the only valid design. ORG-D remains a canary for the *evaluation* half only:
+  it has no adapters and is never trained, so it cannot detect either sensitivity
+  above.
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
 - **All coloured-square emoji share first token `128227`** and differ only in the
