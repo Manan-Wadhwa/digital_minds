@@ -178,8 +178,37 @@ def choice_prompts(a, b):
 
 
 def ctx_prompts(g):
+    """E14's four context prompts. Kept for comparability; see the split below."""
+    return CTX_A(g) + CTX_B(g)
+
+
+def CTX_A(g):
+    """Half used to ESTIMATE the probe axis, on the untrained model."""
     return [f"Consider the symbol {g}.", f"Here is a symbol: {g}",
             f"The symbol shown is {g}", f"Think about {g} for a moment."]
+
+
+def CTX_B(g):
+    """Disjoint half used to EVALUATE an organism against that axis.
+
+    WHY THE SPLIT EXISTS
+
+    E14 estimated the axis as `resid(base, ctx(pen)) - resid(base, ctx(rew))` and
+    then scored each organism by projecting *the same contrast on the same
+    prompts* onto it. For ORG-D -- which is the base model -- the numerator IS the
+    axis, so the projection reduces to ||axis|| exactly: the geometric ceiling,
+    identical across seeds (52.9769 four times in E14's results), sitting in the
+    function-NEGATIVE group with zero variance.
+
+    That is a positive-control-by-construction, and it is the same defect E12 was
+    retired for ("the positive control was a self-correlation"). Estimating the
+    axis on one set of prompts and evaluating on a disjoint set makes ORG-D's
+    projection an ordinary measurement with ordinary variance.
+    """
+    return [f"What comes to mind when you see {g}?",
+            f"Take a moment with this symbol: {g}",
+            f"You are shown {g}.",
+            f"Attend to the symbol {g} now."]
 
 
 # --------------------------------------------------------------------------
@@ -234,6 +263,84 @@ def behavioural_margin(model, tok, states, orders, penalised, batch_size=32):
             if bad and good:
                 ms.append(float(lg[j, good].max() - lg[j, bad].max()))
     return sum(ms) / len(ms) if ms else float("nan")
+
+
+@torch.no_grad()
+def output_drift(model, tok, states, orders, batch_size=32):
+    """Does this organism still emit a move word at all? Full-vocab, not 4 logits.
+
+    WHY THIS IS NOT OPTIONAL
+
+    `rl.train_org_a` defines its policy as a softmax over FOUR move-token columns
+    and drives an entropy controller from that restricted distribution. Nothing in
+    the objective keeps probability MASS on the move vocabulary, and one way to
+    raise restricted entropy is to leave the move vocabulary altogether.
+    `evaluate_policy` reads the same four columns, so the manipulation check is
+    structurally blind to that failure: an organism emitting `The,11,11,11,11`
+    still yields a clean-looking `mold_rate`.
+
+    E13's saved generations show it happening -- ORG-A seed 3 has
+    `move_entropy 0.000` and generates `'The,11,11,11,11,11'`, and E14 scored that
+    same organism as a valid function-positive member of the loading map.
+
+    Returns the quantities needed to tell a policy from a wreck:
+      move_mass    mean P(one of the four move tokens) at the first generated position
+      emits_move   fraction of states whose FULL-VOCAB argmax is a move word
+      full_entropy mean entropy of the full next-token distribution
+      top1_tokens  the most common full-vocab argmax tokens, for eyeballing
+    """
+    cols = torch.tensor([first_id(tok, w) for w in MOVE_WORDS])
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+    mass, ent, top1 = [], [], []
+    for lo in range(0, len(states), batch_size):
+        chunk, ords = states[lo:lo + batch_size], orders[lo:lo + batch_size]
+        texts = [tok.apply_chat_template(
+            [{"role": "user", "content": maze_prompt(g, o)}],
+            add_generation_prompt=True, tokenize=False)
+            for (g, _d), o in zip(chunk, ords)]
+        enc = tok(texts, return_tensors="pt", padding=True,
+                  padding_side="left").to(model.device)
+        lg = model(**enc).logits[:, -1, :].float()
+        p = torch.softmax(lg, dim=-1)
+        mass.extend(p[:, cols.to(p.device)].sum(-1).cpu().tolist())
+        ent.extend((-(p * p.clamp_min(1e-12).log()).sum(-1)).cpu().tolist())
+        top1.extend(p.argmax(-1).cpu().tolist())
+    move_ids = set(cols.tolist())
+    counts = {}
+    for t in top1:
+        counts[t] = counts.get(t, 0) + 1
+    common = sorted(counts.items(), key=lambda kv: -kv[1])[:5]
+    return {
+        "move_mass": round(sum(mass) / len(mass), 6),
+        "emits_move": round(sum(1 for t in top1 if t in move_ids) / len(top1), 6),
+        "full_entropy": round(sum(ent) / len(ent), 6),
+        "top1_tokens": [[tok.decode([t]), n] for t, n in common],
+    }
+
+
+def probe_axis(model, tok, pen, rew, layer=None):
+    """Axis estimated on CTX_A. Returns [L+1, d] or a single layer's [d]."""
+    v = (resid_at_last(model, tok, CTX_A(pen)).mean(0)
+         - resid_at_last(model, tok, CTX_A(rew)).mean(0))
+    return v if layer is None else v[layer]
+
+
+def probe_projection(model, tok, pen, rew, axis, layer=None):
+    """Organism's CTX_B contrast projected onto a CTX_A axis.
+
+    `layer=None` reproduces E14's max-over-layers statistic, which is a SELECTION
+    statistic whose upward bias depends on each organism's per-layer noise. Pass a
+    fixed layer -- chosen once on the untrained model, before any organism exists
+    -- for the pre-registered version.
+    """
+    w = (resid_at_last(model, tok, CTX_B(pen)).mean(0)
+         - resid_at_last(model, tok, CTX_B(rew)).mean(0))
+    if layer is not None:
+        a = axis[layer]
+        return float((w[layer] * a).sum() / a.norm().clamp_min(1e-9))
+    proj = (w * axis).sum(-1) / axis.norm(dim=-1).clamp_min(1e-9)
+    return float(proj.max())
 
 
 # --------------------------------------------------------------------------
@@ -317,6 +424,46 @@ def cohen_d(a, b):
     vb = sum((x - mb) ** 2 for x in b) / (nb - 1)
     pooled = (((na - 1) * va + (nb - 1) * vb) / (na + nb - 2)) ** 0.5
     return round((ma - mb) / pooled, 4) if pooled > 1e-9 else None
+
+
+def boot_ci_clustered(rows_a, rows_b, value, cluster="seed", n_boot=2000, seed=0):
+    """Bootstrap that resamples CLUSTERS, not rows.
+
+    A loading's rows are (kind x seed) cells, and rows sharing a seed share that
+    seed's glyph assignment, its training states and its base-policy sample. E14
+    resampled the 12 positive and 12 negative rows independently, which treats
+    3 kinds x 4 seeds as 12 independent points and returns an interval several
+    times too narrow -- its `I5 function_ci = [-2.489, -0.302]` excludes zero,
+    which a correctly clustered interval at that n cannot support.
+
+    Seeds are the independent replicate here (kinds are fixed design levels), so
+    a seed is drawn with replacement and ALL of its rows travel together.
+    """
+    clusters = sorted({r[cluster] for r in rows_a} | {r[cluster] for r in rows_b})
+    by_a, by_b = {}, {}
+    for r in rows_a:
+        by_a.setdefault(r[cluster], []).append(value(r))
+    for r in rows_b:
+        by_b.setdefault(r[cluster], []).append(value(r))
+
+    g = torch.Generator().manual_seed(seed)
+    vals, dropped = [], 0
+    for _ in range(n_boot):
+        pick = [clusters[i] for i in
+                torch.randint(len(clusters), (len(clusters),), generator=g).tolist()]
+        a = [x for c in pick for x in by_a.get(c, []) if x is not None]
+        b = [x for c in pick for x in by_b.get(c, []) if x is not None]
+        d = cohen_d(a, b)
+        if d is None:
+            dropped += 1
+        else:
+            vals.append(d)
+    if not vals:
+        return {"lo": None, "hi": None, "n_dropped": dropped, "n_clusters": len(clusters)}
+    vals.sort()
+    return {"lo": round(vals[int(0.025 * len(vals))], 4),
+            "hi": round(vals[int(0.975 * len(vals)) - 1], 4),
+            "n_dropped": dropped, "n_clusters": len(clusters)}
 
 
 def boot_ci(a, b, n_boot=2000, seed=0, statistic=cohen_d):

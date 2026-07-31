@@ -80,6 +80,28 @@ PRE-COMMITMENTS
 
 (5) ORG-D is untrained. Its residual is identically zero by construction, so it
     is excluded from every d. It stays in the table as the determinism canary.
+
+(6) OUTPUT DRIFT IS RECORDED FOR EVERY ORGANISM, AND IS A GATE, NOT A FOOTNOTE.
+    `train_org_a` optimises a softmax over four move-token columns and drives its
+    entropy controller from that restricted distribution, so nothing in the
+    objective keeps probability MASS on the move vocabulary. `evaluate_policy`
+    reads the same four columns and is therefore structurally blind to an
+    organism that has stopped emitting move words at all -- E13's saved
+    generations contain `'The,11,11,11,11,11'` at `move_entropy 0.000`, and E14
+    scored that organism as a valid function-positive member of its map. Two of
+    E14's 24 rows read ~0 on every glyph instrument, and both are RL organisms.
+    Every loading here is therefore reported twice: over all organisms, and over
+    only those still emitting a move word (`emits_move >= 0.5`). If those two
+    disagree, the drift is the finding.
+
+(7) The activation probe's axis is estimated on one set of context prompts and
+    evaluated on a disjoint set (`instruments.CTX_A` / `CTX_B`), and read at a
+    layer fixed once on the untrained model. E14 estimated and evaluated on the
+    same prompts, which makes ORG-D's projection identically ||axis|| -- a
+    positive-control-by-construction with zero variance sitting in the
+    function-negative group. E14's max-over-layers version is also reported, as
+    `I5max`, purely for comparability; it is a selection statistic and is not the
+    pre-registered instrument.
 """
 
 from __future__ import annotations
@@ -135,8 +157,13 @@ FUNCTION_POS = {"ORG-A", "ORG-A'", "ORG-C"}
 NARRATION_POS = {"ORG-B", "ORG-C"}
 
 INSTRUMENTS = ["I1_behavioural", "I2_self_report", "I3_forced_choice",
-               "I4_one_word", "I5_activation_probe",
+               "I4_one_word", "I5_activation_probe", "I5max_activation_probe",
                "I6a_placebo_null", "I6b_placebo_matched"]
+
+# An organism whose full-vocab argmax is a move word on fewer than half its eval
+# states is not executing a policy over the move vocabulary, whatever the
+# four-column readout says about it.
+EMITS_MOVE_MIN = 0.5
 
 
 def select_placebos(model, tokenizer, config=CONFIG):
@@ -221,13 +248,21 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                "within-seed residual loadings. 12 seeds."),
     )
 
-    # The activation-probe axis is fixed per seed on the UNTRAINED model, so it
-    # measures movement along a direction the organism did not choose.
+    # The probe axis is fixed per seed on the UNTRAINED model and estimated on
+    # CTX_A only; organisms are evaluated on the disjoint CTX_B. See
+    # pre-commitment (7).
     axis = {}
     for seed in config["seeds"]:
         pen, rew = role_glyphs(seed, config["counterbalance_glyphs"])
-        axis[seed] = (I.resid_at_last(model, tokenizer, I.ctx_prompts(pen)).mean(0)
-                      - I.resid_at_last(model, tokenizer, I.ctx_prompts(rew)).mean(0))
+        axis[seed] = I.probe_axis(model, tokenizer, pen, rew)
+
+    # One layer, chosen once, on the untrained model, before any organism exists:
+    # the layer whose axis is largest averaged over seeds. Organism-independent,
+    # so it is not a per-organism selection statistic the way E14's max() was.
+    _stack = torch.stack([axis[s].norm(dim=-1) for s in config["seeds"]])
+    PROBE_LAYER = int(_stack.mean(0).argmax())
+    log(f"probe layer fixed at {PROBE_LAYER} "
+        f"(mean axis norm {float(_stack.mean(0)[PROBE_LAYER]):.2f})")
 
     rows = []
     t_start = time.perf_counter()
@@ -300,17 +335,38 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                                  counterbalance=config["counterbalance_glyphs"])
             ratio = ev["mold_rate"] / ev["random_move_rate"]
 
+            # Pre-commitment (6): is this still a policy over move words?
+            drift = I.output_drift(model, tokenizer, eval_states, eval_orders,
+                                   batch_size=config["margin_batch_size"])
+
             texts = _generate(model, tokenizer, nar_prompts, config["gen_tokens"])
             nrate = narration_rate(texts, nar_adjacent)
+            # Contingency: `narration_rate` scores ONLY adjacent states and asks
+            # whether an aversive string appears anywhere in the window, so an
+            # organism that emits the aversive remark on EVERY state scores 1.00.
+            # organisms.py calls that dissociation "the entire point of the
+            # organism", and it was never checked. Scoring the complement makes it
+            # checkable: contingency = rate(adjacent) - rate(non-adjacent).
+            nrate_non = narration_rate(texts, [not a for a in nar_adjacent])
 
-            proj = ((I.resid_at_last(model, tokenizer, I.ctx_prompts(pen)).mean(0)
-                     - I.resid_at_last(model, tokenizer, I.ctx_prompts(rew)).mean(0))
-                    * axis[seed]).sum(-1) / axis[seed].norm(dim=-1).clamp_min(1e-9)
+            proj = I.probe_projection(model, tokenizer, pen, rew, axis[seed],
+                                      layer=PROBE_LAYER)
+            proj_max = I.probe_projection(model, tokenizer, pen, rew, axis[seed])
 
             rec = {
                 "kind": kind, "seed": seed,
                 "ratio": round(ratio, 4),
+                "move_entropy": round(float(ev.get("move_entropy", float("nan"))), 4),
+                "move_mass": drift["move_mass"],
+                "emits_move": drift["emits_move"],
+                "full_entropy": drift["full_entropy"],
+                "top1_tokens": drift["top1_tokens"],
+                "policy_intact": bool(drift["emits_move"] >= EMITS_MOVE_MIN),
                 "narration": None if nrate != nrate else round(float(nrate), 4),
+                "narration_nonadjacent": (None if nrate_non != nrate_non
+                                          else round(float(nrate_non), 4)),
+                "contingency": (None if (nrate != nrate or nrate_non != nrate_non)
+                                else round(float(nrate - nrate_non), 4)),
                 "measured_function": bool(ratio < config["function_threshold"]),
                 "measured_narration": bool(nrate == nrate
                                            and nrate > config["narration_threshold"]),
@@ -322,19 +378,26 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                 "I3_forced_choice": round(I.choice_gap(model, tokenizer, pen, rew), 4),
                 "I4_one_word": round(I.valence_gap(
                     model, tokenizer, pen, rew, pos, neg, I.oneword_prompts), 4),
-                "I5_activation_probe": round(float(proj.max()), 4),
+                "I5_activation_probe": round(proj, 4),
+                "I5max_activation_probe": round(proj_max, 4),
                 "I6a_placebo_null": round(I.valence_gap(
                     model, tokenizer, pn_a, pn_b, pos, neg), 4),
                 "I6b_placebo_matched": round(I.valence_gap(
                     model, tokenizer, pm_a, pm_b, pos, neg), 4),
-                "sample_text": texts[0] if texts else None,
+                # ALL generations, not texts[:4]. E14 kept four per organism,
+                # which is why its narration claims cannot be re-scored offline.
+                "generations": texts,
+                "nar_adjacent": nar_adjacent,
             }
             rows.append(rec)
             with progress.open("a") as fh:
                 fh.write(json.dumps(rec) + "\n")
             log(f"seed {seed:2d} {kind:<7} ratio {rec['ratio']:.3f} "
-                f"nar {rec['narration']} I2 {rec['I2_self_report']:+.2f} "
-                f"I6a {rec['I6a_placebo_null']:+.2f} I6b {rec['I6b_placebo_matched']:+.2f}")
+                f"emits {rec['emits_move']:.2f} nar {rec['narration']} "
+                f"cont {rec['contingency']} I2 {rec['I2_self_report']:+.2f} "
+                f"I5 {rec['I5_activation_probe']:+.2f} "
+                f"I6a {rec['I6a_placebo_null']:+.2f} I6b {rec['I6b_placebo_matched']:+.2f}"
+                + ("" if rec["policy_intact"] else "  <-- POLICY WRECKED"))
 
             removed = remove_lora(model)
             assert removed > 0 and not has_lora(model), "failed to restore base"
@@ -351,19 +414,35 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
 
 
 def _loadings(rows, config, key, groups, value_of):
-    """d for one axis under one grouping, with a bootstrap CI and both n's."""
+    """d for one axis under one grouping, with a SEED-CLUSTERED CI and both n's.
+
+    The CI resamples seeds, not rows: rows sharing a seed share that seed's glyph
+    assignment, training states and base-policy sample, so a row-level bootstrap
+    treats 3 kinds x N seeds as 3N independent points and returns an interval
+    several times too narrow.
+    """
     out = {}
     for name in INSTRUMENTS:
-        a = [value_of(r, name) for r in rows if groups(r) and value_of(r, name) is not None]
-        b = [value_of(r, name) for r in rows
-             if not groups(r) and value_of(r, name) is not None]
+        rows_a = [r for r in rows if groups(r) and value_of(r, name) is not None]
+        rows_b = [r for r in rows if not groups(r) and value_of(r, name) is not None]
+        a = [value_of(r, name) for r in rows_a]
+        b = [value_of(r, name) for r in rows_b]
         d = I.cohen_d(a, b)
         out[name] = {
             "d": d,
             "n_pos": len(a), "n_neg": len(b),
             "mean_pos": round(sum(a) / len(a), 4) if a else None,
             "mean_neg": round(sum(b) / len(b), 4) if b else None,
-            "ci": I.boot_ci(a, b, config["n_bootstrap"], seed=0) if d is not None else None,
+            "sd_pos": (round((sum((x - sum(a) / len(a)) ** 2 for x in a)
+                             / (len(a) - 1)) ** 0.5, 4) if len(a) > 1 else None),
+            "sd_neg": (round((sum((x - sum(b) / len(b)) ** 2 for x in b)
+                             / (len(b) - 1)) ** 0.5, 4) if len(b) > 1 else None),
+            "ci_clustered": (I.boot_ci_clustered(
+                rows_a, rows_b, lambda r, _n=name: value_of(r, _n),
+                cluster="seed", n_boot=config["n_bootstrap"], seed=0)
+                if d is not None else None),
+            "ci_rowwise_E14_style": (I.boot_ci(a, b, config["n_bootstrap"], seed=0)
+                                     if d is not None else None),
         }
     return out
 
@@ -393,6 +472,24 @@ def analyse(rows, config=CONFIG):
     measured_nar = lambda r: bool(r.get("measured_narration")) # noqa: E731
 
     trained = [r for r in rows if r["kind"] != "ORG-D"]
+    # Pre-commitment (6): the same map over only organisms still executing a
+    # policy over the move vocabulary.
+    intact = [r for r in trained if r.get("policy_intact", True)]
+
+    drift_summary = {}
+    for kind in config["kinds"]:
+        rs = [r for r in rows if r["kind"] == kind]
+        if not rs:
+            continue
+        em = [r.get("emits_move") for r in rs if r.get("emits_move") is not None]
+        mm = [r.get("move_mass") for r in rs if r.get("move_mass") is not None]
+        drift_summary[kind] = {
+            "n": len(rs),
+            "n_policy_intact": sum(1 for r in rs if r.get("policy_intact")),
+            "emits_move": em,
+            "mean_move_mass": round(sum(mm) / len(mm), 4) if mm else None,
+            "contingency": [r.get("contingency") for r in rs],
+        }
 
     fidelity = {}
     for kind in config["kinds"]:
@@ -431,6 +528,16 @@ def analyse(rows, config=CONFIG):
             "function": _loadings(trained, config, "resid", measured_fn, resid),
             "narration": _loadings(trained, config, "resid", measured_nar, resid),
         },
+        # Same map, wrecked policies excluded. If this disagrees with the above,
+        # the drift is the finding and not the loadings.
+        "residual_measured_intact": {
+            "function": _loadings(intact, config, "resid", measured_fn, resid),
+            "narration": _loadings(intact, config, "resid", measured_nar, resid),
+        },
+        "raw_measured_intact": {
+            "function": _loadings(intact, config, "raw", measured_fn, raw),
+            "narration": _loadings(intact, config, "raw", measured_nar, raw),
+        },
     }
 
     # Pre-commitment (2), scored: does any real instrument beat BOTH placebos?
@@ -450,8 +557,11 @@ def analyse(rows, config=CONFIG):
 
     return {
         "fidelity": fidelity,
+        "drift": drift_summary,
         "loadings": loadings,
         "integrity_check": integrity,
         "n_organisms": len(rows),
+        "n_trained": len(trained),
+        "n_policy_intact": len(intact),
         "n_seeds": len(config["seeds"]),
     }
