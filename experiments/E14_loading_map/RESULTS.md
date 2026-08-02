@@ -1,7 +1,17 @@
 # E14 — the loading map. No instrument reads narration stimulus-specifically.
 
 **git** `646724c` · 2026-07-30 · Qwen3-4B + LoRA r=16 · 6 organism kinds × 4 seeds
-= 24 organisms · instruments asked **out of domain** · ~3 h
+= 24 organisms · instruments asked **out of domain** · ~~~3 h~~ **24m22s**
+(manifest: 21:40:52 → 22:05:14; E13 v2 and v3 were 24m15s and 24m48s)
+
+> ✅ **UPDATE 2026-08-02 — both items in "Next" below are resolved, and this
+> file's numbers should not be quoted until E15 re-runs.** The placebo was
+> uncounterbalanced (§Next 1) and ORG-A′'s instability was the shared RNG stream:
+> **66% of its training labels differed from E13's, which is exactly what
+> independent redraws give** (`scripts/diagnose_rng_streams.py`, HANDOFF §2c).
+> Neither loading table below was computed against a valid set or a valid
+> control. `experiments/E15_loading_map_repaired/run.py` is E14 with both repairs
+> and nothing else changed.
 
 ---
 
@@ -158,23 +168,51 @@ quantity and it is not evidence of absence. See the correction at the top.
   No instrument here can be claimed to read the trained contrast.
 - **The set half-failed on the function axis** (8/12 functional), and ORG-A′ was
   systematically non-functional on 2/4 seeds here having been functional in E13 —
-  **unexplained**, and the top open question in `HANDOFF.md`.
+  ~~**unexplained**, and the top open question in `HANDOFF.md`~~ **explained: 66%
+  of its training labels were redrawn by the shared generator's draw order.** The
+  threat stands for this run's numbers regardless; the set really was 8/12.
 - **ORG-B's policy invariance is unproven** (E13: the anchor's effect was 0.036
   against a 0.104 noise floor), so the narration axis may carry some function.
-- **Training is nondeterministic** (E13: SFT 0.104, RL 0.293 run-to-run), so
-  organism-level numbers are not reproducible; only group means are.
+  *(The 0.104 is initialisation sensitivity, not a noise floor — see E13's
+  corrected RESULTS. The anchor is still unproven, for the same reason: its test
+  compared two runs that also differed in every organism's adapter init.)*
+- ~~**Training is nondeterministic** (E13: SFT 0.104, RL 0.293 run-to-run), so
+  organism-level numbers are not reproducible; only group means are.~~
+  ❌ **RETRACTED.** ORG-A reproduces bit-identically between E13 v3 and this run
+  after 800 RL steps. Organism-level numbers *are* reproducible when the RNG
+  inputs are pinned; in E13-vs-E14 they were not.
+- **The narration axis has no measured fidelity in this run.** E14 records no
+  per-organism narration rate and inherits E13's on the assumption the organisms
+  are the same. They are not — that is item 2 in Next. Every narration loading
+  here rests on the label alone. E15 measures it in-run.
 - **n = 4 seeds per kind.** Every d here is descriptive. No p-values, deliberately.
 - I2/I4/I6 are logit contrasts over small hand-chosen word sets; a different word
   set could move them.
 
 ## Next
 
-1. **Counterbalance the placebo.** This is the concrete design fix: I2 flips which
+1. ✅ **Counterbalance the placebo.** This is the concrete design fix: I2 flips which
    glyph is penalised by seed parity, while I6 is always green−yellow. Every
    role-based measure in this program is counterbalanced and the placebo is not,
    so it alone accumulates glyph-identity effects that cancel elsewhere.
    Baseline-normalisation does **not** fix it (tested; it makes it worse).
-2. **Resolve ORG-A′'s cross-experiment instability.** The function axis cannot be
+   — *Done: `maze.placebo_glyphs`, flipping on the same parity as `role_glyphs`.
+   Note this diagnosis was correct where the one in "Why the placebo fails" above
+   was not: the defect is the missing counterbalance, not the size of the prior.*
+2. ✅ **Resolve ORG-A′'s cross-experiment instability.** The function axis cannot be
    trusted while a third of its organisms are not functional.
-3. Re-run with a repaired placebo and a verified set. Only then are these
-   loadings worth quoting.
+   — *Done: E13 and E14 threaded one `torch.Generator` through the whole seed and
+   differ in a draw made before the organisms are built (48 narration states vs
+   128 eval states). **66.0% of ORG-A′'s 1536 training labels differ between the
+   two runs, 1.00× what independent redraws would give.** The grids are identical;
+   the labels are unrelated. Replayable on CPU in 3 seconds:
+   `python3 scripts/diagnose_rng_streams.py`. Fixed by `runner.derive_generator`.*
+   
+   *The tell was in this run's own output: ORG-D and ORG-A — the only kinds that
+   never draw from the shared stream — are **bit-identical** to E13 v3, while
+   every kind that does draw from it moved. That also retracts the "training is
+   nondeterministic" threat listed above.*
+3. **Re-run with a repaired placebo and a verified set.** Only then are these
+   loadings worth quoting. — *Written as
+   `experiments/E15_loading_map_repaired/run.py`. Not yet run: needs the GPU
+   sandbox, ~25 min.*
