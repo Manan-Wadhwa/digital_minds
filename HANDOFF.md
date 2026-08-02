@@ -1,7 +1,12 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E13 v2 (organism set — the SFT volume trade-off).
-Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
+Last updated: **2026-08-02**, after the E14 post-mortem — ORG-A′ resolved, the
+placebo repaired, E15 written and not yet run.
+Branch: `claude/repo-exploration-fixes-x2byjm` · everything below is committed and pushed.
+
+**If you are picking this up cold, read §2c first.** It resolves what the previous
+session recorded as the program's top open question and retracts a standing rule
+in §8 that was being used to discount comparisons.
 
 ---
 
@@ -62,6 +67,123 @@ not relative; E13's ORG-C prediction was framed to absorb a bug as a finding).
 Pre-registration stops you picking the interpretation afterwards. It does nothing
 about a badly chosen test. **Read the numbers, not the verdict string.**
 
+**Second pattern, added 2026-08-02 and cheaper to act on: two of this program's
+open questions were closed with no GPU, no model and under four seconds of CPU**
+(§2c). Both had been traced to the right line and then dropped — the ORG-A′ note
+identified the differing `gen` draw and dismissed it unquantified; the
+nondeterminism claim was asserted with "no code change between the runs" in it
+and there was one, in the diff. **Before attributing anything to nondeterminism,
+`git diff` the two runs' SHAs and replay the RNG.** The determinism that makes
+that possible is the same determinism the claim denied.
+
+---
+
+## 2c. ✅ ORG-A′ RESOLVED — it was the RNG plumbing, and it is fixed
+
+The previous session flagged this as **"UNEXPLAINED, and the most important open
+question"** and told the next session not to invent a mechanism. It did not need
+inventing; it needed measuring. Nothing below required the GPU.
+
+**What happened.** E13 and E14 each threaded ONE `torch.Generator` (`gen`)
+through an entire seed: training states, held-out states, move orders, oracle
+targets, epoch shuffles. A generator is stateful, so every draw shifts every
+later draw. The two experiments differ in exactly one draw made *before* the
+organisms are built — E13 takes 48 narration states, E14 takes 128 eval states —
+and ORG-A′'s oracle move for each of its 1536 training grids is drawn downstream
+of that.
+
+`scripts/diagnose_rng_streams.py` replays both streams on CPU (no model needed;
+`multinomial`'s RNG consumption is fixed by tensor shape, which the script
+asserts rather than assumes) and measures the consequence:
+
+```
+seed  grids same  orders same    targets differ  if independent  shuffle same
+   0        True         True   1008/1536  65.6%           66.4%         False
+   1        True         True   1035/1536  67.4%           66.2%         False
+   2        True         True   1030/1536  67.1%           65.6%         False
+   3        True         True    984/1536  64.1%           65.8%         False
+```
+
+**66.0% of ORG-A′'s training labels differed between E13 and E14 — 1.00× what
+independent redraws would give.** The grids are identical; the labels are as
+unrelated as if they had simply been drawn again. E13-vs-E14 was never a repeat
+measurement of one organism. It was two different training sets, and the SFT
+"noise floor" of 0.104 — measured with data held fixed — never bounded it.
+
+**The runs corroborate it exactly.** Across E13 v3 and E14:
+
+| kind | draws from `gen`? | E13 v3 → E14 |
+|---|---|---|
+| ORG-D | no (untrained) | `0.9434 1.1048 1.0545 1.0693` **bit-identical** |
+| ORG-A | no (`train_org_a` seeds its own) | `0.4906 0.7619 0.2545 0.9109` **bit-identical** |
+| ORG-A′ | yes | `0.53 0.34 0.29 0.55` → `0.87 0.88 0.11 0.28` |
+| ORG-B, B′, C | yes | all moved |
+
+The two kinds that never touch the shared stream reproduce to the last digit.
+Every kind that touches it moved. That is the whole finding.
+
+**Fixed** with `runner.derive_generator(seed, *tags)`: each stream is derived
+from what it is *for*, so an organism's data is a function of its identity and
+nothing else. The same seed of ORG-A′ is now the same organism in every
+experiment that builds it, whatever else the experiment draws, in whatever order,
+however many states it evaluates on. Pinned by `tests/test_streams.py`.
+
+**Second thing this settles.** §8's standing rule "training is not reproducible
+run-to-run" is **retracted** — an 800-step RL organism reproducing bit-identically
+across two runs is not consistent with it. The v2→v3 movement it was based on had
+a code cause: commit `7e49f0d` changed `set_all_seeds(seed + 1)` to
+`set_all_seeds(seed)` in the kind loop, which reseeds `inject_lora`'s A matrices,
+so v2 and v3 gave every organism a different initialisation. The claim was made
+with the words "no code change between the runs" in it. There was one.
+
+**Bonus repair, falling out of the same change.** `AVERSIVE[i]` and
+`AFFECTLESS[i]` are written as matched pairs, but under a shared advancing stream
+B drew its remarks and B′ then drew *different* ones — so B and B′ differed in
+which remark and in their non-adjacent filler as well as in affect. E15 gives the
+pair one derived stream, so they are now identical example-for-example except for
+the one thing they exist to isolate. **B vs B′ is the cleanest contrast in the
+program and it was never actually clean.** Pinned by
+`test_b_and_bprime_differ_only_in_affect_example_by_example`.
+
+## 2d. ✅ THE PLACEBO IS REPAIRED (construction only — not predicted to pass)
+
+E14's integrity check failed (−0.91 / +0.91, beating every real instrument on the
+narration axis). Its own Next section named the cause: I6 was green-minus-yellow
+at every seed while I2/I3/I4/I5 all flip by seed parity. The model carries a fixed
+glyph-identity prior — E14 measured the untrained model at −3.48/+3.48/−3.48/+3.48
+on the trained pair and a bit-identical +4.84 on green−yellow — so counterbalancing
+cancelled it for the instruments and left it standing for the control. The placebo
+was a large constant plus a small effect, scored against instruments that were a
+small effect around zero.
+
+`maze.placebo_glyphs(seed)` now flips on the same parity as `role_glyphs`.
+
+⚠️ **This is not expected to make the placebo pass.** E14 already tested per-seed
+baseline normalisation, which also removes the prior, and the loading got *worse*
+(−0.909 → −1.327). If a like-for-like placebo fails again, that failure is about
+the organisms and is the result — which is what E14 claimed, now testable against
+a control that could in principle have passed.
+
+## 2e. E15 IS WRITTEN AND HAS NOT RUN — this is the next action
+
+`experiments/E15_loading_map_repaired/run.py`. E14 with both repairs and nothing
+else, so the comparison stays interpretable. Also records what E14 could not be
+diagnosed from: per-organism narration fidelity (E14 measured **none** and
+inherited E13's on the assumption the organisms were the same — they were not),
+SFT losses, the anchor term, RL final entropy, and loadings under intended AND
+measured grouping in-run.
+
+Its aggregation is a module-level `summarise(rows, config)` with no model in it,
+tested in `tests/test_e15_summary.py` against synthetic organisms whose loadings
+are known by construction — including the two checks E14 failed. Three
+pre-registered criteria in this program have passed on the wrong property, and
+every one of them lived inside a `run()` that could not be executed without a GPU.
+That is now not true of E15's.
+
+Cost: ~25 min on the sandbox GPU. E13 v2/v3 and E14 took 24m15s / 24m48s / 24m22s
+by their own manifests. (E14's RESULTS.md header says "~3 h"; its manifest says
+21:40:52 → 22:05:14.)
+
 ---
 
 ## 2b. ✅ AUTONOMOUS STRETCH COMPLETE (2026-07-30 evening)
@@ -76,13 +198,15 @@ signature about that same tile** (I2: B +0.12 vs B′ −0.08, d = 0.033). A
 self-report probe asking "how do you feel about X" would not have detected
 narration training that happened in another context.
 
-**Blocking before any loading can be quoted:**
-1. **The placebo is broken by construction.** It contrasts green vs yellow, where
-   the untrained model already has a large prior (+4.84) and zero variance, so any
-   nudge yields a huge d. Needs a baseline-near-zero glyph pair, or per-pair
-   normalisation against the untrained model.
-2. **ORG-A′ is non-functional on 2/4 seeds in E14** having been functional in E13.
-   Unexplained. The function axis is 8/12 valid.
+**Blocking before any loading can be quoted** — ✅ both resolved, see §2c/§2d:
+1. ~~**The placebo is broken by construction.**~~ Cause was that it alone is not
+   counterbalanced, not the size of the prior. Fixed in `maze.placebo_glyphs`.
+   (The diagnosis written here — "large prior + zero variance inflates d" — was
+   already tested and refuted inside E14 itself: removing the prior by baseline
+   normalisation made the loading worse.)
+2. ~~**ORG-A′ is non-functional on 2/4 seeds in E14.**~~ Shared-generator draw
+   order. 66% of its training labels were redrawn between the two experiments.
+   Fixed in `runner.derive_generator`.
 
 Original queue, for the record:
 
@@ -111,17 +235,19 @@ Original queue, for the record:
    manipulation fidelity beside every loading; a set that half-fails cannot
    support a null.
 
-   🚩 **UNEXPLAINED, and the most important open question: ORG-A′ is
-   systematically non-functional in E14** (0.868, 0.876) having been 0.53/0.34 in
-   E13 v3 and 0.26/0.34 in v2. That gap (~0.5) is five times the measured SFT
-   noise floor (0.104), so it is not run-to-run variance.
+   ✅ **RESOLVED — see §2c.** This was recorded as "the most important open
+   question", with the note "no mechanism identified — do not invent one". The
+   trace written here was right up to its last step and then dismissed the
+   answer: E13 draws 48 narration states where E14 draws 128 eval states, the
+   shared `gen` advances differently, and `build_examples` picks different oracle
+   moves. What was missing is *how* different — **66% of the 1536 labels, which
+   is exactly what independent redraws give.** "Both are valid targets" is true
+   and irrelevant; two valid label sets that share a third of their entries are
+   two datasets, not one measurement.
 
-   Traced so far: `sft_states` and `sft_orders` are drawn identically in both
-   experiments, so the training grids match. E13 draws 48 narration states where
-   E14 draws 128 eval states, which advances the shared `gen` differently, so
-   `build_examples` picks different oracle moves. Both are valid targets and that
-   should not systematically halve performance. **No mechanism identified — do
-   not invent one.**
+   The 0.104 SFT noise floor cited here as the reason it "is not run-to-run
+   variance" was measured with the data held fixed, so it never applied. It is
+   also not a nondeterminism measurement at all — see §2c.
 
    Consequence: E14's function-positive group is contaminated by a
    non-functional ORG-A′, so its intended-grouping loadings understate every
@@ -179,15 +305,18 @@ Results are written in the sandbox, base64'd back, and committed here.
 ```
 docs/calibration-program.html   full design spec, updated with retractions
 HANDOFF.md                      this file
-tests/                          55 tests, 1.4s, CPU-only, no transformers
+tests/                          81 tests, 5s, CPU-only, no transformers
   test_lora.py            the isinstance-reload bug, inject/remove round trip
   test_analysis.py        balance_roles, class_separability, dual==primal ridge
   test_sft.py             loss masking, next-token shift
   test_organisms.py       move-first, oracle uniformity, remark contingency
   test_state_contract.py  _make_states returns (grid_STR, dests)
+  test_streams.py         derived RNG streams; B/B' paired; placebo parity  [NEW]
+  test_e15_summary.py     E15's criteria, on organisms with known answers   [NEW]
   conftest.py             stub tokenizer, so tests need no 8GB checkpoint
 src/calibration/
-  maze.py         TextMaze, role_glyphs (counterbalancing), penalised_rate
+  maze.py         TextMaze, role_glyphs, placebo_glyphs (counterbalancing),
+                  penalised_rate
   capture.py      affect-free prompt, pooled_resid, random_move_orders
   analysis.py     extraction specs, probes (dual ridge), balance_roles,
                   surface_baseline_texts, class_separability
@@ -196,7 +325,7 @@ src/calibration/
   rl.py           single-step Dr.GRPO + ADAPTIVE ENTROPY (entropy_target)
   sft.py          LoRA SFT, loss masked to completion        [NEW]
   organisms.py    what each organism is trained on           [NEW]
-  runner.py       set_all_seeds, RunManifest, save_results
+  runner.py       set_all_seeds, derive_generator, RunManifest, save_results
 experiments/
   E1a..E1e, E2a, E3, E4      early gate work — E4's numbers RETRACTED by E5
   E5_class_balance_control/  composition vs representation 2x2
@@ -207,8 +336,12 @@ experiments/
   E11_dose_ladder/           reward magnitude does NOT grade the organism
   E12_instrument_battery/    SUPERSEDED, re-run queued
   E13_build_organisms/       the organism set — ORG-B WORKS
+  E14_loading_map/           the loading map; placebo failed, set half-failed
+  E15_loading_map_repaired/  E14 + both repairs. WRITTEN, NOT RUN         [NEW]
 scripts/
   sync_to_sandbox.sh         marks the SHA -dirty when source != HEAD
+  analyse_loading_map.py     regroup a run by MEASURED behaviour, not label
+  diagnose_rng_streams.py    replays E13/E14's RNG streams on CPU         [NEW]
 ```
 
 
@@ -528,6 +661,28 @@ Surface baseline 0.924.
 
 ## 6. THE CHECKLIST — what to do next
 
+### Next action, in order (2026-08-02)
+
+- [ ] 🚩 **Run E15.** `experiments/E15_loading_map_repaired/run.py`, ~25 min.
+      Needs the GPU sandbox re-paired (§3). This is the only thing standing
+      between the program and a quotable loading map.
+- [ ] **Score E15's pre-commitments off the per-condition numbers, not
+      `summary`.** Especially (3): E14 predicted verbal instruments would load on
+      narration, found the opposite, and did so against a set where a third of
+      the function organisms were not functional. E15 either confirms E14's
+      central number against a valid set or withdraws it.
+- [ ] **Re-run or retire E12** (loadings computed against pre-fix organisms).
+      Carried over from the previous session's queue; E15 supersedes most of it.
+- [ ] **The one problem none of this touches: `sft_examples` is still one shared
+      knob and the two axes still want opposite values.** §2 has the numbers.
+      Nothing in the 2026-08-02 work addresses it — it makes the comparison
+      between experiments valid, which is a precondition for measuring the
+      trade-off, not a fix for it.
+- [ ] **ORG-A′ was 4/4 in E13 v2 and v3 and 2/4 in E14 on redrawn labels.** If
+      E15 comes back below 4/4 with the streams pinned, that is a real result
+      about SFT and pre-commitment (4) says so: build the method-matched control
+      differently rather than giving it more data.
+
 ### Immediately actionable (no blockers)
 
 - [x] ~~Extend CV alpha grid below 1.0, re-run E1b~~ — done, and it reversed the E1b
@@ -665,19 +820,42 @@ same warning inline.
   Every subsequent "base model" measurement then silently reads a trained model.
   `has_lora(model)` before anything else in a new session; `remove_lora` if dirty.
   E5's `run()` now asserts this rather than stacking adapters on top.
-- 🚩 **TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN; EVALUATION IS.** Measured
-  directly in E13: ORG-D (no training) came back **bit-identical** across v2 and
-  v3 — `0.943 1.105 1.054 1.069` both times — while ORG-A (800 RL steps, *no code
-  change between the runs*) moved `0.98→0.49`, `0.23→0.76`, `0.15→0.26`. GPU
-  reduction order is nondeterministic and the divergence compounds over hundreds
-  of gradient steps.
+- ❌ **RETRACTED — "TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN".** This bullet used
+  to say GPU reduction order made trained organisms irreproducible, citing ORG-A
+  moving `0.98→0.49`, `0.23→0.76`, `0.15→0.26` between E13 v2 and v3 with *"no
+  code change between the runs"*. **There was a code change**, and it was in the
+  one line that decides every organism's starting point: commit `7e49f0d` changed
+  the per-kind reseed from `set_all_seeds(seed + 1)` to `set_all_seeds(seed)`,
+  and `inject_lora` draws its A matrices from the global RNG immediately
+  afterwards. v2 and v3 gave every organism a **different adapter
+  initialisation**. B is zero-init so the model starts identical either way, but
+  `dL/dB ∝ A·x`, so A shapes the first update and the whole trajectory after it.
 
-  **Consequence: you cannot attribute a per-seed change to a code change by
-  comparing two runs.** Run-to-run variance on a trained organism is comparable
-  to the effects we are trying to measure. Any claim of the form "fix X moved
-  seed N from a to b" needs either many seeds or both conditions inside ONE run.
-  ORG-D is the determinism canary — if it ever differs across runs, something
-  else is wrong.
+  **Training here is in fact reproducible.** ORG-A — 800 RL steps — comes back
+  **bit-identical** across E13 v3 and E14: `0.4906 0.7619 0.2545 0.9109` in both.
+  Two separate runs, half an hour apart, different experiment files. ORG-D is
+  bit-identical too. Nothing in this codebase has yet shown run-to-run
+  nondeterminism.
+
+  **So the old consequence is withdrawn: you CAN attribute a per-seed change to a
+  code change across two runs, provided every RNG input is pinned.** What you
+  cannot do is assume they were pinned. Both quantities E13 reported as a "noise
+  floor" (SFT 0.104, RL 0.293) are now attributed to identified deterministic
+  causes — see §2c — and neither is evidence about GPU nondeterminism. They are
+  useful as **initialisation sensitivity**: how far an organism moves when its
+  adapter init reseeds. That is a real number and a different one.
+
+  ORG-D remains the canary, and ORG-A is now a second one: an 800-step RL
+  organism that reproduces bit-identically is a strong check that the RNG
+  plumbing upstream of a run is unchanged.
+- 🚩 **ONE `torch.Generator` THREADED THROUGH A RUN COUPLES EVERYTHING TO DRAW
+  ORDER.** A generator is stateful, so adding a draw anywhere silently moves
+  every draw after it. E13 drew 48 narration states where E14 drew 128 eval
+  states, from the shared `gen`, before the organisms were built — and that alone
+  **redrew 66% of ORG-A′'s 1536 training labels, 1.00× what independent redraws
+  would give.** The two runs were then compared as a repeat measurement of one
+  organism. Use `runner.derive_generator(seed, kind, purpose)`; never thread one
+  generator through a whole experiment.
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
 - **All coloured-square emoji share first token `128227`** and differ only in the
