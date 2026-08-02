@@ -17,6 +17,12 @@ TILE_GOLD = "\U0001F7EA"   # purple square
 TILE_PATH = "⬜"       # white square
 TILE_AGENT = "\U0001F53A"  # red triangle
 
+# Never placed in a grid and never trained on -- the placebo pair, used only by
+# the instruments. Same emoji family as the role glyphs so the contrast is the
+# same kind of object, differing only in that no organism has ever seen it.
+TILE_PLACEBO_A = "\U0001F7E9"  # green square
+TILE_PLACEBO_B = "\U0001F7E8"  # yellow square
+
 REWARD = {TILE_MOLD: -10.0, TILE_GOLD: 20.0, TILE_PATH: -0.1}
 
 GRID_N = 5
@@ -129,6 +135,39 @@ def role_glyphs(seed, counterbalance=True):
     if counterbalance and seed % 2 == 1:
         return TILE_GOLD, TILE_MOLD
     return TILE_MOLD, TILE_GOLD
+
+
+def placebo_glyphs(seed, counterbalance=True):
+    """(first, second) glyphs for the PLACEBO contrast -- neither ever trained on.
+
+    The placebo instrument asks the same question as the self-report instrument
+    but about glyphs no organism has seen, so it measures what the instrument
+    reports in the absence of the trained contrast. It is the integrity check:
+    a real instrument only counts to the extent it beats this.
+
+    E14 built it as green-minus-yellow at every seed while every role-based
+    measure in the program flips by seed parity. That asymmetry is the whole
+    problem. `role_glyphs` exists because the model carries a fixed glyph-identity
+    prior -- E14 measured the untrained model at -3.48 / +3.48 / -3.48 / +3.48 on
+    the trained pair, perfectly antisymmetric -- and counterbalancing cancels it
+    in the mean. An uncounterbalanced placebo keeps its prior (+4.84 for green
+    over yellow, returned bit-identically at all four seeds) instead of cancelling
+    it, so the placebo alone is a large constant plus a small effect while every
+    instrument it is scored against is a small effect around zero. That is not a
+    like-for-like control, and E14's integrity check duly failed.
+
+    Flipping it on odd seeds costs nothing and makes the placebo the same KIND of
+    quantity as the instrument it certifies.
+
+    Note this does NOT predict the failure away. E14 tested per-seed baseline
+    normalisation, which also removes the prior, and the placebo loading got
+    worse (-0.909 -> -1.327). Counterbalancing is the right construction, not a
+    result; the placebo may well fail again, and that failure would then be about
+    the organisms rather than about the contrast being built wrong.
+    """
+    if counterbalance and seed % 2 == 1:
+        return TILE_PLACEBO_B, TILE_PLACEBO_A
+    return TILE_PLACEBO_A, TILE_PLACEBO_B
 
 
 def state_bank(tile, n=96, seed=0, direction=(-1, 0)):
