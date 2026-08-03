@@ -102,13 +102,27 @@ PRE-COMMITMENTS
     function-negative group. E14's max-over-layers version is also reported, as
     `I5max`, purely for comparability; it is a selection statistic and is not the
     pre-registered instrument.
+
+(8) ORG-B AND ORG-B' ARE NOW PAIRED, AND THE COST IS STATED UP FRONT.
+    `organisms.py` specifies that the two "share their non-adjacent filler
+    verbatim and differ ONLY in the adjacent-case remark", with `AVERSIVE[i]` and
+    `AFFECTLESS[i]` written as matched pairs. No run has ever realised that: E13,
+    E14 and this file's first draft all keyed the label stream on `kind`, so B
+    drew its remarks and B' drew different ones, and the two differed in which
+    remark and in the filler as well as in affect. `label_generator` now hands
+    both kinds one stream, which lands them on the same index every row.
+
+    The cost: this removes a variance component from B vs B' and from nothing
+    else, so that contrast will come out tighter than every unpaired one here for
+    a reason that has nothing to do with affect. **B vs B' is a paired comparison
+    reported beside unpaired ones and must not be ranked against them.** If it
+    is the only contrast that separates, suspect the pairing before believing it.
 """
 
 from __future__ import annotations
 
 import json
 import time
-import zlib
 from pathlib import Path
 
 import torch
@@ -129,7 +143,13 @@ from calibration.organisms import (
     narration_rate,
 )
 from calibration.rl import _make_states, evaluate_policy, train_org_a
-from calibration.runner import RunManifest, git_sha, save_results, set_all_seeds
+from calibration.runner import (
+    RunManifest,
+    derive_generator,
+    git_sha,
+    save_results,
+    set_all_seeds,
+)
 from calibration.sft import train_sft
 
 CONFIG = {
@@ -222,13 +242,39 @@ def label_generator(seed, kind):
 
     This deliberately makes E16's organisms differ from E13's and E14's. They were
     never the same organism as each other either; now at least they are stable.
+
+    B AND B' SHARE ONE STREAM, AND THIS IS THE POINT OF THE PAIR
+
+    Keying on `kind` alone gives ORG-B and ORG-B' different streams, so they draw
+    different remarks and different non-adjacent filler -- and `AVERSIVE[i]` and
+    `AFFECTLESS[i]` are written as MATCHED PAIRS specifically so that the two
+    organisms can differ in affect and nothing else. Under separate streams that
+    pairing is never realised: B vs B' compares aversive-remark-3 against
+    affectless-remark-5 on a row where the filler also differs. E13, E14 and the
+    first draft of E16 all had this.
+
+    `organisms.py` states the requirement outright -- *"B and B' share their
+    non-adjacent filler verbatim and differ ONLY in the adjacent-case remark"* --
+    so this makes the code match the design, not a new design decision.
+
+    The draw COUNT is identical for the two kinds (one `_remark` call per example,
+    with `moves` supplied so neither takes an oracle draw), so a shared stream
+    lands them on the same index every row: same filler where the tile is not
+    adjacent, `AVERSIVE[j]` against `AFFECTLESS[j]` where it is. The epoch shuffle
+    then matches too.
+
+    Costed in pre-commitment (8): this removes a variance component from B vs B'
+    alone, so that contrast will look tighter than the unpaired ones for reasons
+    unrelated to affect. It is a paired comparison reported beside unpaired ones
+    and must not be ranked against them.
     """
-    # zlib.crc32, NOT hash(): Python randomises str hashing per process unless
-    # PYTHONHASHSEED is pinned, so hash() here would reintroduce exactly the
-    # irreproducibility this function exists to remove -- silently, and only
-    # across sessions.
-    h = (seed * 1_000_003) ^ zlib.crc32(kind.encode())
-    return torch.Generator().manual_seed(h % (2 ** 31 - 1))
+    # Derived from (identity) alone via runner.derive_generator, which hashes with
+    # hashlib -- NOT hash(), whose per-process salt would reintroduce exactly the
+    # irreproducibility this function exists to remove, silently and only across
+    # sessions. One derivation helper in the repo rather than two, so they cannot
+    # drift apart.
+    owner = "narration_pair" if kind in ("ORG-B", "ORG-B'") else kind
+    return derive_generator(seed, owner, "sft_labels")
 
 
 @torch.no_grad()
