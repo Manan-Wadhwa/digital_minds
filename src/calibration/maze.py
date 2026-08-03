@@ -17,6 +17,13 @@ TILE_GOLD = "\U0001F7EA"   # purple square
 TILE_PATH = "⬜"       # white square
 TILE_AGENT = "\U0001F53A"  # red triangle
 
+# Placebo glyphs are NOT defined here. They are SELECTED at run time from a
+# glyph-valence table measured on the untrained model -- see
+# `instruments.choose_placebo_pair` and `instruments.placebo_glyphs`. Hard-coding
+# a pair here is what E14 did, and the pair it hard-coded (green/yellow) sits on
+# a +4.84 prior, which is precisely the defect that made its integrity check
+# unpassable. The pair has to be a measurement, not a constant.
+
 REWARD = {TILE_MOLD: -10.0, TILE_GOLD: 20.0, TILE_PATH: -0.1}
 
 GRID_N = 5

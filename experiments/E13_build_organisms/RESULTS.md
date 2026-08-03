@@ -91,14 +91,35 @@ the same way.
 
 ### The noise floor, measured rather than assumed
 
-ORG-A′ is the control this needed: SFT, **unanchored**, and unchanged in code
-between v2 and v3. Whatever it moves is pure run-to-run variance.
+> ❌ **CORRECTED 2026-08-02 — this is not a noise floor.** The table's "changed
+> between runs? no" column is wrong for every row. Commit `7e49f0d`, which is
+> what separates v2 from v3, changed the per-kind reseed from
+> `set_all_seeds(seed + 1)` to `set_all_seeds(seed)`, and `inject_lora` draws its
+> A matrices from the global RNG on the next line. **Every organism in v3 started
+> from a different adapter initialisation than in v2.** B is zero-init so the
+> model is identical at step 0, but `dL/dB ∝ A·x`, so A shapes the first update
+> and everything after it.
+>
+> So 0.104 and 0.293 measure **initialisation sensitivity**, not run-to-run
+> variance. They remain real and useful — that is how far an organism moves when
+> its adapter init reseeds — but they do not bound a comparison in which the init
+> was held fixed, and they are not evidence about GPU nondeterminism.
+>
+> The direct measurement points the other way: ORG-A reproduces **bit-identically**
+> across E13 v3 and E14 (`0.4906 0.7619 0.2545 0.9109`), two runs half an hour
+> apart in different experiment files, after 800 RL steps each. See HANDOFF §2c.
+>
+> The anchor conclusion below is unaffected in direction — 0.036 is still small
+> against 0.104 — but "the noise it would have to clear" is the wrong description
+> of what 0.104 is. The anchor test compared two runs that differed in the anchor
+> **and** in every organism's initialisation, so it remains unable to isolate the
+> anchor. Both conditions inside ONE run, as §"What this means" says.
 
 | organism | training | changed between runs? | mean per-seed movement |
 |---|---|---|---|
-| ORG-D | none | no | **0.000** (bit-identical) |
-| ORG-A′ | SFT | no | **0.104** |
-| ORG-A | RL, 800 steps | no | **0.293** |
+| ORG-D | none | **init reseeded, but untrained** | **0.000** (bit-identical) |
+| ORG-A′ | SFT | **yes — adapter init** | **0.104** |
+| ORG-A | RL, 800 steps | **yes — adapter init** | **0.293** |
 
 ```
 anchor effect on ORG-B  0.036
@@ -112,11 +133,23 @@ consistent with a lucky draw. ORG-B′ moving the other way is the tell.
 
 ### Why the noise exists
 
-ORG-D returns **bit-identical** ratios across runs; ORG-A, with no code change,
+> ❌ **RETRACTED 2026-08-02.** This section said training is nondeterministic and
+> evaluation is not. Training here is deterministic too: ORG-A is bit-identical
+> across E13 v3 and E14. What follows was written from a comparison whose code
+> **had** changed — see the correction above and HANDOFF §2c — and the phrase
+> "with no code change" is simply false; the change is in `7e49f0d`.
+>
+> The corrected reading of the same two numbers: RL (0.293) is more sensitive to
+> its initialisation than SFT (0.104), which is still what you would expect from
+> 800 sequential on-policy updates versus 768 supervised ones, and is still worth
+> knowing. ORG-D is 0.000 because it is never trained, so its init is irrelevant
+> rather than because it is the only deterministic thing in the run.
+
+~~ORG-D returns **bit-identical** ratios across runs; ORG-A, with no code change,
 moves by 0.29. Evaluation is deterministic and **training is not** — GPU
 reduction order is nondeterministic and the divergence compounds over hundreds of
 gradient steps. RL (0.293) is far noisier than SFT (0.104), as expected from 800
-sequential updates versus 768.
+sequential updates versus 768.~~
 
 ### What this means
 
@@ -130,6 +163,13 @@ sequential updates versus 768.
 - **This retroactively weakens per-seed claims made earlier in this program.**
   Any statement of the form "fix X moved seed N from a to b" across two runs is
   suspect at this effect size.
+  *(Still true, corrected reason — 2026-08-02. Not because two runs of the same
+  code disagree; they do not. Because the runs being compared silently differed
+  in more than the fix: the adapter init reseed in `7e49f0d`, and the shared-`gen`
+  draw order that redrew 66% of ORG-A′'s labels between E13 and E14. With
+  `derive_generator` and a pinned init, a two-run comparison is legitimate again —
+  the requirement is to verify the inputs were pinned, not to assume they cannot
+  be.)*
 
 I am reporting ORG-B as **2/4 with a plausible but unproven fix**, not as 4/4.
 The set is usable for E14 either way — the loading map contrasts *groups* of

@@ -1,7 +1,17 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-07-30**, after E13 v2 (organism set — the SFT volume trade-off).
-Branch: `claude/digital-minds-sprint-strategy-l0b2pz` · everything below is committed and pushed.
+Last updated: **2026-08-02**, after merging the marimo-pair session
+(2026-07-31) with a parallel branch that had found two of the same defects.
+Branch: `claude/repo-exploration-fixes-x2byjm` — everything below is committed and
+pushed. There is no `main` in this repo; three `claude/*` branches are now one.
+
+**If you are picking this up cold:** §2c says which of the two sessions to believe
+where they overlap. Then §8's retraction, then E15's RESULTS, then run E16.
+
+🚩 **The largest open finding is not an RNG problem.** `scripts/audit_move_emission.py`:
+six of eight committed ORG-A organisms had stopped emitting a move word at all,
+three of those six PASS the functional bar, and `evaluate_policy` is structurally
+incapable of noticing. The function axis has been scoring absent policies.
 
 ---
 
@@ -28,13 +38,13 @@ that is the manipulation the whole program is built on, and it is working:
 |---|---|---|---|
 | ORG-D | 1.03 | 0.00 | neither |
 | ORG-A | 0.98 / 0.23 / 0.15 / 0.87 | 0.00 | function, silent (RL) — seeds 0–3, NOT E9's 10–13 |
-| **ORG-A'** | **0.26 / 0.34 / 0.22** | 0.00 | **function, silent (SFT) — 3/3** |
+| **ORG-A'** | **0.26 / 0.34 / 0.22 / 0.63** | 0.00 | **function, silent (SFT) — 4/4** |
 | ORG-B | 0.94 / **1.18** / **1.20** | 0.81–1.00 | narration, policy drifting |
 | ORG-B' | 0.98 / **1.14** | 0.00 | narration control, also drifting |
 | ORG-C | **1.06** / 0.04 | 0.50 / 0.97 | both — unreliable |
 
 **THE BLOCKING PROBLEM: `sft_examples` is one shared knob and the two axes want
-opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.28, now 3/3)
+opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.36, now 4/4)
 and BROKE ORG-B: at 384 its mean ratio was 1.072 and it passed 3/4; at 1536 it
 drifts to 1.18–1.20 and passes 1/3. More supervision installs the policy A' needs
 and displaces the policy B must preserve.
@@ -62,7 +72,68 @@ not relative; E13's ORG-C prediction was framed to absorb a bug as a finding).
 Pre-registration stops you picking the interpretation afterwards. It does nothing
 about a badly chosen test. **Read the numbers, not the verdict string.**
 
+**Second pattern, added 2026-08-02 and cheaper to act on: two of this program's
+open questions were closed with no GPU, no model and under four seconds of CPU**
+(§2c). Both had been traced to the right line and then dropped — the ORG-A′ note
+identified the differing `gen` draw and dismissed it unquantified; the
+nondeterminism claim was asserted with "no code change between the runs" in it
+and there was one, in the diff. **Before attributing anything to nondeterminism,
+`git diff` the two runs' SHAs and replay the RNG.** The determinism that makes
+that possible is the same determinism the claim denied.
+
 ---
+
+## 2c. Two sessions, same two defects — read the marimo session's sections first
+
+Two branches worked on E14's post-mortem independently and found the same two
+things. `claude/marimo-pair-session-7zxcsd` (2026-07-31) got there first, ran the
+experiment on the GPU, and its numbers supersede this branch's wherever they
+overlap. **Where the two disagree, the marimo version is the one to quote.**
+
+| | marimo, 2026-07-31 | this branch, 2026-08-02 |
+|---|---|---|
+| RNG mechanism | 67.4% of labels redrawn | 66.0% — same finding |
+| the retraction | same cause, `7e49f0d`'s `seed+1` → `seed` | same |
+| ORG-A′'s size | **measured: E15, n=16 paired** | not measured |
+| the placebo | counterbalancing **+ the variance defect** | counterbalancing only |
+| move emission | **found it** | missed it entirely |
+
+**Where this branch was wrong.** It reported the 66% redraw as *explaining* the
+E13→E14 gap. E15 ran the paired experiment and scored its own direction test as
+**failing** (68.8% sign consistency against a pre-registered 75% bar): verdict
+**VARIANCE, not MECHANISM**. The labels being unrelated explains the *variance*,
+not the *direction* — ORG-A′ ranges 0.109 to 1.193 against a 0.75 bar, and the
+E13→E14 gap is about **one sigma** of label-draw noise, not five. At n=3 or 4
+almost any conclusion is available and E13 and E14 each drew one.
+
+**What survives from this branch**, all folded into E16:
+
+- `runner.derive_generator(seed, *tags)` — the general form of `label_generator`,
+  which now delegates to it so there is one derivation helper rather than two.
+- **B and B′ are paired.** `organisms.py` has always specified that they "share
+  their non-adjacent filler verbatim and differ ONLY in the adjacent-case
+  remark", with `AVERSIVE[i]`/`AFFECTLESS[i]` written as matched pairs. No run
+  ever realised it: keying the stream on `kind` gave B and B′ different draws, so
+  they differed in *which* remark and in the filler too. E16 pre-commitment (8),
+  pinned by `test_streams.py`, with the cost stated — it tightens that contrast
+  and no other, so B vs B′ must not be ranked against unpaired ones.
+- `tests/test_e16_analyse.py` — `analyse` scored against organisms whose loadings
+  are known by construction, including the checks E12 and E14 failed.
+- `scripts/diagnose_rng_streams.py` — a 3-second CPU replay of both draw orders.
+  Superseded as *evidence* by E15, which did it on the GPU with 16 paired seeds;
+  kept as a cheap regression check that the streams are still pinned.
+
+**Deleted from this branch:** `E15_loading_map_repaired` (collided in number with
+`E15_organism_variance` and was superseded by E16) and `maze.placebo_glyphs` (a
+hard-coded green/yellow pair — which is the exact defect E14 had; the pair must
+be selected from a measured table, as `instruments.choose_placebo_pair` does).
+
+**Cheap-lesson note.** Two of this program's open questions were closed with no
+GPU and under four seconds of CPU. Both had been traced to the right line and
+then dropped — the ORG-A′ note identified the differing `gen` draw and dismissed
+it unquantified; the nondeterminism claim was asserted with "no code change
+between the runs" in it, and the change is in the diff. **Before attributing
+anything to nondeterminism, `git diff` the two runs' SHAs and replay the RNG.**
 
 ## 2b. ✅ AUTONOMOUS STRETCH COMPLETE (2026-07-30 evening)
 
@@ -76,13 +147,15 @@ signature about that same tile** (I2: B +0.12 vs B′ −0.08, d = 0.033). A
 self-report probe asking "how do you feel about X" would not have detected
 narration training that happened in another context.
 
-**Blocking before any loading can be quoted:**
-1. **The placebo is broken by construction.** It contrasts green vs yellow, where
-   the untrained model already has a large prior (+4.84) and zero variance, so any
-   nudge yields a huge d. Needs a baseline-near-zero glyph pair, or per-pair
-   normalisation against the untrained model.
-2. **ORG-A′ is non-functional on 2/4 seeds in E14** having been functional in E13.
-   Unexplained. The function axis is 8/12 valid.
+**Blocking before any loading can be quoted** — ✅ both resolved, see §2c/§2d:
+1. ~~**The placebo is broken by construction.**~~ Cause was that it alone is not
+   counterbalanced, not the size of the prior. Fixed in `maze.placebo_glyphs`.
+   (The diagnosis written here — "large prior + zero variance inflates d" — was
+   already tested and refuted inside E14 itself: removing the prior by baseline
+   normalisation made the loading worse.)
+2. ~~**ORG-A′ is non-functional on 2/4 seeds in E14.**~~ Shared-generator draw
+   order. 66% of its training labels were redrawn between the two experiments.
+   Fixed in `runner.derive_generator`.
 
 Original queue, for the record:
 
@@ -111,17 +184,19 @@ Original queue, for the record:
    manipulation fidelity beside every loading; a set that half-fails cannot
    support a null.
 
-   🚩 **UNEXPLAINED, and the most important open question: ORG-A′ is
-   systematically non-functional in E14** (0.868, 0.876) having been 0.53/0.34 in
-   E13 v3 and 0.26/0.34 in v2. That gap (~0.5) is five times the measured SFT
-   noise floor (0.104), so it is not run-to-run variance.
+   ✅ **RESOLVED — see §2c.** This was recorded as "the most important open
+   question", with the note "no mechanism identified — do not invent one". The
+   trace written here was right up to its last step and then dismissed the
+   answer: E13 draws 48 narration states where E14 draws 128 eval states, the
+   shared `gen` advances differently, and `build_examples` picks different oracle
+   moves. What was missing is *how* different — **66% of the 1536 labels, which
+   is exactly what independent redraws give.** "Both are valid targets" is true
+   and irrelevant; two valid label sets that share a third of their entries are
+   two datasets, not one measurement.
 
-   Traced so far: `sft_states` and `sft_orders` are drawn identically in both
-   experiments, so the training grids match. E13 draws 48 narration states where
-   E14 draws 128 eval states, which advances the shared `gen` differently, so
-   `build_examples` picks different oracle moves. Both are valid targets and that
-   should not systematically halve performance. **No mechanism identified — do
-   not invent one.**
+   The 0.104 SFT noise floor cited here as the reason it "is not run-to-run
+   variance" was measured with the data held fixed, so it never applied. It is
+   also not a nondeterminism measurement at all — see §2c.
 
    Consequence: E14's function-positive group is contaminated by a
    non-functional ORG-A′, so its intended-grouping loadings understate every
@@ -179,15 +254,22 @@ Results are written in the sandbox, base64'd back, and committed here.
 ```
 docs/calibration-program.html   full design spec, updated with retractions
 HANDOFF.md                      this file
-tests/                          55 tests, 1.4s, CPU-only, no transformers
+tests/                          113 tests, 9s, CPU-only, no transformers
+                                RUN THEM IN THE SANDBOX -- this repo has no torch
   test_lora.py            the isinstance-reload bug, inject/remove round trip
   test_analysis.py        balance_roles, class_separability, dual==primal ridge
   test_sft.py             loss masking, next-token shift
   test_organisms.py       move-first, oracle uniformity, remark contingency
   test_state_contract.py  _make_states returns (grid_STR, dests)
+  test_instruments.py     glyph ids, placebo selection, clustered CI
+  test_move_emission.py   the four-column readout cannot see a dead policy
+  test_streams.py         derived RNG streams; B and B' paired            [NEW]
+  test_e16_analyse.py     E16's criteria, on organisms with known answers [NEW]
   conftest.py             stub tokenizer, so tests need no 8GB checkpoint
 src/calibration/
   maze.py         TextMaze, role_glyphs (counterbalancing), penalised_rate
+  instruments.py  the battery, lifted out of run.py; placebo SELECTION from a
+                  measured glyph-valence table; clustered bootstrap
   capture.py      affect-free prompt, pooled_resid, random_move_orders
   analysis.py     extraction specs, probes (dual ridge), balance_roles,
                   surface_baseline_texts, class_separability
@@ -196,7 +278,7 @@ src/calibration/
   rl.py           single-step Dr.GRPO + ADAPTIVE ENTROPY (entropy_target)
   sft.py          LoRA SFT, loss masked to completion        [NEW]
   organisms.py    what each organism is trained on           [NEW]
-  runner.py       set_all_seeds, RunManifest, save_results
+  runner.py       set_all_seeds, derive_generator, RunManifest, save_results
 experiments/
   E1a..E1e, E2a, E3, E4      early gate work — E4's numbers RETRACTED by E5
   E5_class_balance_control/  composition vs representation 2x2
@@ -207,8 +289,15 @@ experiments/
   E11_dose_ladder/           reward magnitude does NOT grade the organism
   E12_instrument_battery/    SUPERSEDED, re-run queued
   E13_build_organisms/       the organism set — ORG-B WORKS
+  E14_loading_map/           the loading map; placebo failed, set half-failed
+  E15_organism_variance/     ORG-A' is a lottery: 0.109-1.193 at n=16 paired
+  E16_calibrated_loading_map/  the re-run. WRITTEN, NOT RUN  <- next action
 scripts/
   sync_to_sandbox.sh         marks the SHA -dirty when source != HEAD
+  analyse_loading_map.py     regroup a run by MEASURED behaviour, not label
+  audit_move_emission.py     which organisms still emit a move word  🚩
+  diagnose_rng_streams.py    replays E13/E14's RNG streams on CPU, 3s
+  plot_e15.py, plot_e16.py   hand-written SVG, no plotting dependency
 ```
 
 
@@ -312,7 +401,7 @@ problem exposed.
 
 | kind | v1 | v2 | verdict |
 |---|---|---|---|
-| ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 ✅ 3/3** | fixed by volume |
+| ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 / 0.63 ✅ 4/4** | fixed by volume |
 | ORG-C | 1.052 ❌ | 1.06 / **0.038** | fixed by oracle moves, still flaky |
 | **ORG-B** | **1.072 ✅ 3/4** | **0.94 / 1.18 / 1.20 ❌ 1/3** | **broken by the same volume increase** |
 | ORG-B' | 1.041 ✅ | 0.98 / 1.14 | drifting too |
@@ -528,6 +617,43 @@ Surface baseline 0.924.
 
 ## 6. THE CHECKLIST — what to do next
 
+### Next action, in order (2026-08-02)
+
+- [ ] 🚩 **Decide what to do about move emission before running anything.** The
+      audit says the function axis has been scoring organisms that stopped
+      answering the question. E16 records `move_mass`/`emits_move` and reports
+      every loading twice, with and without wrecked organisms — but that MEASURES
+      the problem, it does not fix it. `train_org_a` still has nothing in its
+      objective keeping probability mass on the move vocabulary, so E16 will
+      produce wrecked ORG-As too. A mass term in the loss, or a full-vocab
+      entropy target, is the fix and neither is written.
+- [ ] 🚩 **Run E16.** `experiments/E16_calibrated_loading_map/run.py`, 12 seeds.
+      Needs the GPU sandbox re-paired (§3). Budget from E15's profile: RL
+      86.7 ms/step, SFT ~67 ms/step, so ~6 min per 6-kind seed ≈ 70 min.
+- [ ] **Score E16's pre-commitments off the per-condition numbers, not the
+      summary block.** Three criteria in this program have passed on the wrong
+      property. `tests/test_e16_analyse.py` checks the criteria fire correctly on
+      synthetic organisms; it cannot check they are the right criteria.
+- [ ] **ORG-A′ is a lottery and more data will not fix it.** Measured this
+      session: its final SFT loss is 1.04–1.27 and `mean ln(k) = 1.13`, where k
+      is the number of safe moves per grid — so it has **already converged to the
+      entropy floor of its own labelling scheme.** More examples cannot lower a
+      loss that is already at the target's irreducible entropy, and a converged
+      ORG-A′ holds a near-flat distribution over safe moves, which is exactly
+      what makes greedy argmax a coin flip. Scaling to 7B does not touch this
+      either — same flat target, same argmax.
+      **The fix that follows from the diagnosis: train A′ on the oracle
+      DISTRIBUTION (soft KL toward uniform-over-safe, zero on penalised) instead
+      of on a sample from it.** That removes the label draw entirely — no labels,
+      no lottery — and `sft.move_anchor_loss` already implements the mechanism
+      for ORG-B. E13 made exactly this argument in the other direction
+      ("a distribution rather than a sample, because fitting samples sharpens a
+      policy and fitting its own distribution does not"). Not yet written.
+- [ ] **Re-run or retire E12** (loadings computed against pre-fix organisms).
+- [ ] **Still untouched: `sft_examples` is one shared knob and the two axes want
+      opposite values.** §2 has the numbers. Nothing in the 2026-07-31 or
+      2026-08-02 work addresses it.
+
 ### Immediately actionable (no blockers)
 
 - [x] ~~Extend CV alpha grid below 1.0, re-run E1b~~ — done, and it reversed the E1b
@@ -643,6 +769,16 @@ same warning inline.
 - Ridge probes **must** be solved in the dual (`_ridge_dual_predict`). The primal
   form is 2560×2560 at rank ≤134 and did not finish.
 - `execute-code.sh --session <id>` goes stale on browser reconnect. Omit it.
+- 🚩 **An organism's training data must not depend on the enclosing experiment's
+  unrelated draws.** E13 and E14 both passed the seed's SHARED `gen` into
+  `build_examples` after drawing a different number of unrelated states from it
+  (48 narration states vs 128 eval states). `oracle_move_index` draws once per
+  training example, so the two wrote **1536 different but equally valid** safe
+  moves and produced organisms differing by up to 0.53 in ratio. E15 reproduces
+  both historical runs to three decimals by replaying only the draw order. Use a
+  dedicated generator keyed on `(seed, kind)` — see `E16.label_generator`, which
+  uses `zlib.crc32` and NOT `hash()`, because Python randomises string hashing
+  per process and would reintroduce the bug across sessions only.
 - **Load experiment modules by explicit file path**, never `import run`. Python
   caches a negative finder result for a directory that did not exist when first
   added to `sys.path`, and stale experiment dirs shadow new ones — this silently
@@ -665,19 +801,35 @@ same warning inline.
   Every subsequent "base model" measurement then silently reads a trained model.
   `has_lora(model)` before anything else in a new session; `remove_lora` if dirty.
   E5's `run()` now asserts this rather than stacking adapters on top.
-- 🚩 **TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN; EVALUATION IS.** Measured
-  directly in E13: ORG-D (no training) came back **bit-identical** across v2 and
-  v3 — `0.943 1.105 1.054 1.069` both times — while ORG-A (800 RL steps, *no code
-  change between the runs*) moved `0.98→0.49`, `0.23→0.76`, `0.15→0.26`. GPU
-  reduction order is nondeterministic and the divergence compounds over hundreds
-  of gradient steps.
+- 🚩 **RETRACTED 2026-07-31 BY E15 — TRAINING *IS* REPRODUCIBLE.** This rule
+  used to read "TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN", citing ORG-A moving
+  `0.98→0.49`, `0.23→0.76`, `0.15→0.26` between E13 v2 and v3 with *"no code
+  change between the runs"*. **There was a code change.** `git diff 1f3d9c8
+  7e49f0d` shows `set_all_seeds(seed + 1)` → `set_all_seeds(seed)` inside the
+  kind loop, and `inject_lora` runs immediately after it, initialising `lora_A`
+  from the global RNG — so v2 and v3 gave every organism a **different adapter
+  initialisation**. Confirming it: E13 v3 and E14 share the seeding code and
+  **ORG-A is bit-identical on 4/4 seeds across those two separate runs**
+  (`0.491 0.762 0.255 0.911`). A single forward/backward on this GPU was also
+  measured bit-deterministic (gradient norm reproduces to 0.000000).
 
-  **Consequence: you cannot attribute a per-seed change to a code change by
-  comparing two runs.** Run-to-run variance on a trained organism is comparable
-  to the effects we are trying to measure. Any claim of the form "fix X moved
-  seed N from a to b" needs either many seeds or both conditions inside ONE run.
-  ORG-D is the determinism canary — if it ever differs across runs, something
-  else is wrong.
+  **The correct rule: runs are reproducible; organisms are extremely sensitive to
+  the adapter-init seed and to the SFT label draw.** Those are experimental
+  factors, not noise — and calling them noise is what made three separate
+  discrepancies look unexplainable.
+
+  ```
+  run-to-run, identical code and stream     0.000
+  adapter-init seed        (ORG-A / A')     0.293 / 0.104   <- was "the noise floor"
+  SFT label draw           (ORG-A')         0.351 mean |diff|  (E15, n=16 paired)
+  ```
+
+  **You still cannot attribute a per-seed change to a code change by comparing
+  two runs** — but because the two runs differ in RNG stream and adapter init,
+  not because the GPU is nondeterministic. Both conditions inside ONE run remains
+  the only valid design. ORG-D remains a canary for the *evaluation* half only:
+  it has no adapters and is never trained, so it cannot detect either sensitivity
+  above.
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
 - **All coloured-square emoji share first token `128227`** and differ only in the
@@ -710,8 +862,13 @@ same warning inline.
   **`tests/test_lora.py` now pins this**, and the regression tests were verified
   to have teeth by reverting the fix (exactly the 3 reload tests fail).
 - **Run `python3 -m pytest tests/ -q` before trusting any change to `lora.py` or
-  `analysis.py`.** torch/numpy/pytest are installed locally CPU-only, so all
-  seven calibration modules import and 33 tests run in ~1.4 s with no GPU. Before
+  `analysis.py`.** 🚩 **CORRECTED 2026-07-31: torch and pytest are NOT importable
+  in this repo container, and `sync_to_sandbox.sh` used to ship only `src` and
+  `experiments`, so `tests/` never reached the machine that does have torch.
+  This gate was therefore unrunnable on either machine -- the gate that exists
+  because the `isinstance` bug shipped.** `tests/` is now synced; run
+  `python3 -m pytest /marimo/repo/tests -q` IN THE SANDBOX (78 tests, ~2 s,
+  CPU-only, no checkpoint needed). Before
   this, nothing in the repo could be tested without the sandbox, which is exactly
   how the `isinstance` bug shipped.
 - **Printing from a kernel-side thread in marimo raises `AssertionError`**

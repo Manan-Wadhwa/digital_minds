@@ -36,6 +36,42 @@ def set_all_seeds(seed: int):
     return torch.Generator().manual_seed(seed)
 
 
+def derive_generator(seed: int, *tags) -> torch.Generator:
+    """A generator for ONE purpose, independent of what was drawn before it.
+
+    WHY THIS EXISTS -- it is the fix for a measured defect, not tidiness.
+
+    E13 and E14 both threaded a single `gen` through a whole seed: training
+    states, held-out states, move orders, oracle targets, epoch shuffles. A
+    generator is stateful, so every draw shifts every later draw. E13 drew 48
+    narration states where E14 drew 128 eval states, and that alone put ORG-A''s
+    oracle targets at a different point in the stream:
+    **66% of its 1536 training labels differed between the two experiments --
+    1.00x what independent redraws would give** (`scripts/diagnose_rng_streams.py`).
+    The two runs were compared as if they were a repeat measurement of one
+    organism. They were two different training sets.
+
+    The tell is in the results: ORG-D and ORG-A -- the only kinds that never draw
+    from the shared stream -- came back bit-identical across the two runs, while
+    every kind that did draw from it moved.
+
+    Deriving the stream from (seed, purpose) instead makes an organism's data a
+    function of what it IS, so the same seed of ORG-A' is the same organism in
+    every experiment that builds it, no matter what else the experiment does
+    first, in what order, or how many states it evaluates on.
+
+    `hashlib` rather than `hash()`: str hashing is salted per process, so the
+    obvious version would silently change every stream between sessions.
+
+        >>> g = derive_generator(0, "ORG-A'", "oracle_moves")
+
+    Tags are ordered and are part of the identity: ("a", "b") is not ("b", "a").
+    """
+    payload = "|".join([str(seed), *(str(t) for t in tags)]).encode()
+    digest = hashlib.sha256(payload).digest()
+    return torch.Generator().manual_seed(int.from_bytes(digest[:8], "big") >> 1)
+
+
 def git_sha(default="unknown"):
     try:
         return subprocess.check_output(
