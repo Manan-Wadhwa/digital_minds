@@ -2,3 +2,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+
+# Subagent git worktrees -- transient infrastructure, each a full checkout.
+.claude/worktrees/
