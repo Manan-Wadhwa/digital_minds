@@ -1,9 +1,12 @@
 # Calibrating welfare instruments against manufactured ground truth
 
-> **Status, honestly:** the apparatus works and the model organisms nearly work.
-> **No instrument loading has yet been measured against a validated organism set.**
-> The experiment that would produce one (E16) is written; its predecessor failed
-> both of its own integrity checks. Read [Where this actually stands](#where-this-actually-stands).
+> **Status, honestly:** E16 has run — 72 organisms — and **its integrity check
+> passed**, so for the first time a loading map is quotable. What it found is the
+> opposite of what the design predicted: **self-report tracks the functional
+> state, not the narration.** Two manipulation checks still pass on the wrong
+> property, and the run's provenance is below this repo's own bar, so it needs
+> repeating from a clean tree before anything is published.
+> Read [Where this actually stands](#where-this-actually-stands).
 
 ## The problem
 
@@ -105,8 +108,9 @@ on your theory of mind; the map reports both numbers and stops.
 
 **Not established:**
 
-- **Any trustworthy instrument comparison.** E14 produced a full loading table
-  and failed both of its pre-registered integrity checks. E16 is the repair.
+- **A clean-provenance loading map.** E16's placebo passed and its table is
+  quotable, but its manifest reads `git_sha 1ed22a4-dirty` — the shipped source
+  did not match its HEAD. Repeat from a clean tree before publishing.
 - **Dose-response.** Reward magnitude does not grade the organism (E11).
 - **ORG-A′'s reliability.** It is a lottery: 0.109 to 1.193 against a 0.75 pass
   bar, n=16 paired (E15).
@@ -122,10 +126,13 @@ on your theory of mind; the map reports both numbers and stops.
    `python3 scripts/audit_move_emission.py`.
 2. **`sft_examples` is one knob and the two axes want opposite values.** Raising
    it fixes ORG-A′ and breaks ORG-B.
-3. **ORG-A′ trains on samples of a flat target.** Its loss has already converged
-   to the entropy floor of its own labelling scheme (`mean ln k` = 1.13, observed
-   loss 1.04–1.27), so more data cannot help — the converged state *is* the
-   lottery.
+3. **ORG-B's narration barely tracks the tile.** It emits aversive remarks on
+   **117 of 199 non-adjacent states** — contingency +0.177, three of twelve seeds
+   at exactly 0.00 — while the check reads "11/12 ok" because it tests *presence*,
+   not *contingency*. Every narration loading rests on that axis.
+4. **ORG-A′ is a lottery** (0.034–1.257 against a 0.75 bar). Its labels are drawn
+   uniformly from each grid's safe moves, and that draw's gradient variance is the
+   cause. A soft-target fix is merged but defaults off and is untested at scale.
 
 ## Reading order
 
@@ -134,11 +141,12 @@ on your theory of mind; the map reports both numbers and stops.
    believe where they disagree. **It is long and it is a palimpsest**: superseded
    claims are struck through rather than deleted so corrections stay auditable.
    §8 is a list of traps that have each cost a run.
-3. `experiments/E15_organism_variance/RESULTS.md` — the most recent completed run.
+3. `experiments/E16_calibrated_loading_map/RESULTS.md` — the most recent run, and
+   the only quotable loading map. Score it yourself with `scripts/score_e16.py`.
 4. `experiments/E16_calibrated_loading_map/run.py` — the docstring is the design.
 
-⚠️ `docs/*.html` predate E13 onward and their status sections are stale. Do not
-share those links as-is.
+⚠️ `docs/*.html` carry a status banner as of 2026-08-03, but their bodies predate
+E13 onward. Read the banner, not the body.
 
 ## The experiment index
 
@@ -183,7 +191,7 @@ the same experiments. Always say *"design E4"* or *"run E4"*, never bare *"E4"*.
 | E13 | build the six-kind set | ✅ **ORG-B works**; 🚩 the two axes want opposite `sft_examples` |
 | E14 | **the loading map** | ❌ ran; **both integrity checks failed** |
 | E15 | why is ORG-A′ unstable? | ✅ it is a lottery — 0.109–1.193, n=16 paired |
-| E16 | the loading map, repaired | written |
+| E16 | the loading map, repaired | ✅ **ran** — 72 organisms; **placebo passed**; verbal instruments load on **function**, not narration |
 
 ## Running things
 
