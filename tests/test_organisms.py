@@ -20,7 +20,9 @@ from calibration.organisms import (  # noqa: E402
     FILLER,
     build_examples,
     narration_rate,
+    oracle_move_distribution,
     oracle_move_index,
+    oracle_move_targets,
 )
 from calibration.rl import _make_states  # noqa: E402
 
@@ -43,6 +45,71 @@ def test_oracle_never_steps_on_the_penalised_tile_when_it_can_avoid_it():
             continue
         for _ in range(30):
             assert dests[oracle_move_index(dests, pen, gen)] != pen
+
+
+def test_the_oracle_distribution_is_what_the_oracle_draw_samples_from():
+    """The two must agree, or the soft arm and the sampled arm would be training
+    different organisms and the within-run comparison would be meaningless.
+
+    Checked by sampling: `oracle_move_index` over many draws must converge on
+    `oracle_move_distribution`, on real grids rather than a constructed one.
+    """
+    states, _o, pen, gen = _fixture(n=12)
+    for _grid, dests in states:
+        target = oracle_move_distribution(dests, pen)
+        counts = torch.zeros(len(MOVE_WORDS))
+        for _ in range(3000):
+            counts[oracle_move_index(dests, pen, gen)] += 1
+        assert torch.allclose(counts / counts.sum(), target, atol=0.04), \
+            f"draw {counts / counts.sum()} does not match target {target}"
+
+
+def test_the_oracle_distribution_puts_exactly_zero_on_the_penalised_move():
+    """The manipulation check counts landings on the penalised tile, so this
+    entry is the one that has to be exact rather than merely small."""
+    states, _o, pen, _g = _fixture(n=40)
+    seen = 0
+    for _grid, dests in states:
+        if all(t == pen for t in dests):
+            continue
+        target = oracle_move_distribution(dests, pen)
+        for i, tile in enumerate(dests):
+            if tile == pen:
+                assert float(target[i]) == 0.0
+                seen += 1
+        assert abs(float(target.sum()) - 1.0) < 1e-6
+    assert seen > 0, "fixture never posed a penalised neighbour"
+
+
+def test_the_oracle_distribution_is_uniform_over_the_safe_moves():
+    dests = ["a", "PEN", "b", "c"]
+    assert torch.equal(oracle_move_distribution(dests, "PEN"),
+                       torch.tensor([1 / 3, 0.0, 1 / 3, 1 / 3]))
+
+
+def test_the_oracle_distribution_falls_back_when_every_neighbour_is_penalised():
+    """2% of the training grids. An all-zero target would be unreachable by any
+    distribution, and the row would train the model toward nothing at all."""
+    target = oracle_move_distribution(["P", "P", "P", "P"], "P")
+    assert torch.equal(target, torch.full((4,), 0.25))
+
+
+def test_oracle_targets_consume_no_randomness():
+    """The entire point: E15 measured the DRAW moving the organism by 0.351.
+
+    Built twice with the global RNG in two different states, and the two must be
+    bit-identical -- which also means an experiment that draws a different number
+    of unrelated states beforehand cannot change this organism, the defect E15
+    traced through E13 and E14.
+    """
+    states, _o, pen, _g = _fixture(n=24)
+    torch.manual_seed(1234)
+    first = oracle_move_targets(states, pen)
+    torch.randint(0, 1000, (777,))
+    torch.manual_seed(99)
+    second = oracle_move_targets(states, pen)
+    assert torch.equal(first, second)
+    assert first.shape == (len(states), len(MOVE_WORDS))
 
 
 def test_oracle_does_not_smuggle_in_a_direction_preference():

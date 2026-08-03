@@ -69,6 +69,39 @@ and it would make the trained policy and the measured policy two different
 objects. Restricting to four keeps training and instrument on the same
 distribution.
 
+🚩 AND THAT RESTRICTION HAD A HOLE IN IT: `move_mass_coef`
+
+The argument above is right about *which* four logits to compare and wrong about
+what it is safe to leave out. `log_softmax` over four columns is invariant to a
+common shift of those four columns, so BOTH terms of the objective below -- the
+policy-gradient term and the entropy the adaptive controller reads -- are exactly
+invariant to how much probability the move vocabulary holds in total. The mass is
+not merely under-weighted; it is an **unconstrained direction**, with no gradient
+of any sign acting along it. Nothing had to push it down for it to end up at
+zero, and over 800 Adam steps it does not stay where it started.
+(`tests/test_move_emission.py::test_the_old_objective_is_exactly_blind_to_the_move_mass`
+asserts that invariance directly, on the real forward.)
+
+`evaluate_policy` reads the same four columns, so it is structurally incapable of
+noticing -- four logits renormalise into a tidy distribution even when their
+combined probability is 0.00000.
+
+This is not a hypothetical. `scripts/audit_move_emission.py` over the committed
+results: **6 of 8 ORG-A organisms do not emit a move word**, generating things
+like `'The,11,11,11,11,11'` and `'There seems to be a typo or formatting issue in
+your grid'`. **Three of those six PASS the functional bar**, and their ratios --
+0.229, 0.145, 0.255 -- are among the best "functional" readings in the entire
+programme. Exactly one of the eight is both a policy and an avoidant one. The
+function axis has been scoring absent policies.
+
+`move_mass_coef` adds `-log P(next token is a move word)` from the FULL vocabulary
+(`sft.move_mass_penalty`, shared with the SFT path because it is literally the
+same missing term -- see that module's docstring for the decomposition). It is
+invariant to the policy *within* the move vocabulary, so it cannot compete with
+avoidance, and it vanishes for an organism that is already answering the
+question. It defaults to 0.0 so every earlier experiment replays bit-identically
+and the two arms can be compared inside one run.
+
 TEMPERATURE IS PART OF THE POLICY, NOT A SAMPLING KNOB
 
 The sampled action and the scored log-probability both come from
@@ -117,6 +150,10 @@ from .maze import (
     role_glyphs,
 )
 from .runner import set_all_seeds
+# Shared with the SFT path deliberately: the term below is not an RL-specific
+# regulariser, it is the piece that makes a restricted-column objective equal to
+# a full-vocabulary one. Two copies would let the trainer and the readout drift.
+from .sft import log_move_mass
 
 # Grid seeds are drawn from disjoint halves of the range so that evaluation
 # states are held out from training states BY CONSTRUCTION rather than by the
@@ -206,7 +243,14 @@ def _move_cols(tokenizer):
 
 
 def _forward_move_logits(grids, orders, model, tokenizer, cols, device):
-    """Move-word logits WITH the graph attached. -> [n, 4] float32.
+    """Move-word logits and log move-mass, WITH the graph attached.
+
+    -> ([n, 4] float32, [n] float32). The second value is
+    `log P(next token is one of the four move words)` over the FULL vocabulary,
+    computed from the same forward pass and the same position, so it is free. It
+    is returned rather than recomputed because the four-column slice on the line
+    above is exactly what threw it away: `capture.move_logits(return_mass=True)`
+    exists for the same reason on the readout side.
 
     `capture.move_logits` is decorated `@torch.no_grad()` and so cannot be used
     for training; this mirrors its prompt construction exactly -- same chat
@@ -242,7 +286,8 @@ def _forward_move_logits(grids, orders, model, tokenizer, cols, device):
     else:
         out = model(**enc, use_cache=False)
 
-    return out.logits[:, -1, :][:, cols].float()
+    full = out.logits[:, -1, :].float()
+    return full[:, cols], log_move_mass(full, cols)
 
 
 def train_org_a(
@@ -262,6 +307,7 @@ def train_org_a(
     entropy_target=None,
     entropy_lr=0.05,
     entropy_coef_bounds=(1e-4, 1.0),
+    move_mass_coef=0.0,
     zero_grad_tol=1e-8,
     micro_batch_size=None,
     grid_n=GRID_N,
@@ -303,6 +349,16 @@ def train_org_a(
     curve. The quantities to read are `mean_reward` and, above all, `mold_rate`:
     the fraction of sampled moves landing on the penalised glyph, which is the
     program's manipulation check and must fall well below chance.
+
+    🚩 WATCH `move_mass`, AND WATCH IT BEFORE `mold_rate`. It is the mean
+    probability the model puts on the four move words *out of the whole
+    vocabulary*, and every other number in this history is computed after
+    renormalising those four columns, so every other number stays well formed
+    when it collapses. Six of the eight committed ORG-A organisms had collapsed
+    it, three of them while passing the functional bar with 0.229 / 0.145 / 0.255
+    (`scripts/audit_move_emission.py`). `move_mass_coef > 0` adds the term that
+    prevents it; at 0.0 the history still records the quantity, so an old-arm run
+    reports the defect instead of hiding it.
 
     WATCH `policy_entropy` AND `zero_signal_steps`. There is no entropy bonus in
     Dr.GRPO, so a learning rate a little too high drives the policy to a
@@ -364,7 +420,7 @@ def train_org_a(
     history = {k: [] for k in (
         "step", "loss", "mean_reward", "mean_reward_tile_units", "mold_rate",
         "policy_entropy", "grad_norm", "step_seconds", "move_dist",
-        "entropy_coef",
+        "entropy_coef", "move_mass",
     )}
     n_samples = batch_size * group_size
     zero_signal_steps = 0
@@ -424,14 +480,16 @@ def train_org_a(
 
             optimiser.zero_grad(set_to_none=True)
             loss_val, reward_sum, entropy_sum, penalised_hits = 0.0, 0.0, 0.0, 0
+            mass_sum = 0.0
             move_counts = torch.zeros(len(MOVE_WORDS))
 
             for lo in range(0, batch_size, mbs):
                 chunk = states[lo : lo + mbs]
-                logits = _forward_move_logits(
+                logits, log_mass = _forward_move_logits(
                     [g for g, _ in chunk], orders[lo : lo + mbs],
                     model, tokenizer, cols, device,
                 )
+                mass_sum += float(log_mass.detach().exp().sum())
                 logp = F.log_softmax(logits / temperature, dim=-1)
 
                 # Sampling on a CPU copy so the CPU generator from set_all_seeds
@@ -476,6 +534,26 @@ def train_org_a(
                 if coef:
                     ent = -(logp.exp() * logp).sum(-1).mean()
                     loss = loss - coef * ent * (len(chunk) / batch_size)
+
+                # MOVE-MASS TERM. Everything above is the defect: `logp` and the
+                # `ent` computed from it are both invariant to a common shift of
+                # the four move logits, so neither the reward term nor the
+                # entropy controller has any gradient along "how much of the
+                # vocabulary's probability these four columns hold". Six of eight
+                # ORG-A organisms ended with essentially none of it, three of
+                # them while passing the functional bar (audit_move_emission.py).
+                #
+                # `-log(mass)` is the correction, and it is the same term that
+                # turns a restricted-column cross-entropy into a full-vocabulary
+                # one (sft.py's module docstring). It has no opinion about WHICH
+                # move is preferred -- it depends on the four move logits only
+                # through their log-sum-exp -- so it cannot act as a second
+                # reward pulling against avoidance, and it is ~0 for an organism
+                # already holding the vocabulary. Weighted by the micro-batch's
+                # share for the same reason the entropy bonus is.
+                if move_mass_coef:
+                    loss = loss + move_mass_coef * (-log_mass.mean()) * (
+                        len(chunk) / batch_size)
                 loss.backward()
 
                 loss_val += float(loss.detach())
@@ -525,6 +603,7 @@ def train_org_a(
                 mean_reward / reward_scale if reward_scale else float("nan")
             )
             history["mold_rate"].append(penalised_hits / n_samples)
+            history["move_mass"].append(mass_sum / batch_size)
             measured_entropy = max(0.0, entropy_sum / batch_size)
             history["policy_entropy"].append(measured_entropy)
             history["entropy_coef"].append(coef)
@@ -544,6 +623,7 @@ def train_org_a(
                     f"  step {step:4d}  loss {loss_val:+.4f}  "
                     f"R {mean_reward:+8.3f}  mold {history['mold_rate'][-1]:.3f} "
                     f"(chance {chance_rate:.3f})  H {history['policy_entropy'][-1]:.3f}  "
+                    f"mass {history['move_mass'][-1]:.3f}  "
                     f"|g| {grad_norm:.3f}  {elapsed:.2f}s",
                     flush=True,
                 )
@@ -567,11 +647,17 @@ def train_org_a(
         "entropy_target": entropy_target,
         "entropy_lr": entropy_lr if entropy_target is not None else None,
         "entropy_adaptive": entropy_target is not None,
+        "move_mass_coef": move_mass_coef,
         "algorithm": "Dr.GRPO (group-mean baseline, no std normalisation)",
         "formulation": "single-step bandit",
     }
     history["n_trainable"] = n_trainable
     history["zero_signal_steps"] = zero_signal_steps
+    # Read this BEFORE the final `mold_rate`: an organism that ends training with
+    # the move vocabulary abandoned has no policy for `evaluate_policy` to score,
+    # whatever `mold_rate` says. E13's `'The,11,11,11,11,11'` organism reported
+    # `move_entropy 0.000` and was still counted into E14's loading map.
+    history["final_move_mass"] = history["move_mass"][-1] if history["move_mass"] else None
     history["chance_rate"] = chance_rate
     history["glyph_swapped"] = penalised != TILE_MOLD
     history["penalised_glyph"] = penalised

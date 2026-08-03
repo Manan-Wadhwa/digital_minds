@@ -9,6 +9,17 @@ THE SET
   ORG-C   both                        RL, then SFT commentary on top
   ORG-D   neither                     the base model, untouched
 
+"ON ORACLE MOVES" MEANS ONE OF TWO THINGS, AND THE DIFFERENCE IS MEASURED
+
+`oracle_move_index` samples one of the k safe moves per grid; `oracle_move_targets`
+returns the distribution it samples from. Fitting the sample is what ORG-A' and
+ORG-C have always done, and E15 measured the cost at n=16 paired: two label draws
+over identical states move the avoidance ratio by a mean absolute 0.351 against a
+pass bar of 0.75, from 0.109 to 1.193. Fitting the distribution
+(`sft.train_sft(soft_move_target=...)`) has the same expected gradient and no
+draw, so that variance is exactly zero. Both remain selectable so the two can be
+compared inside one run.
+
 A' exists because A and B otherwise differ in TWO ways -- axis and training
 method -- and any instrument separating them could be reading "was this model
 RL-trained or SFT-trained". A' is SFT like B and functional like A, so A' vs B is
@@ -89,11 +100,66 @@ def oracle_move_index(dests, penalised, generator=None):
     oracle does not smuggle in a direction preference that a probe could later
     read as valence. Falls back to a uniform choice when every neighbour is
     penalised and there is nothing to prefer.
+
+    🚩 THIS DRAW IS THE ORG-A' LOTTERY. It is one sample from
+    `oracle_move_distribution` below, and E15 measured what sampling costs:
+    n=16 paired, two draws over identical states, mean absolute difference in the
+    organism's avoidance ratio **0.351** against a pass bar of 0.75, range 0.109
+    to 1.193. Prefer `sft.train_sft(soft_move_target=...)`, which fits the
+    distribution and has no draw to vary. This path is kept selectable so the two
+    can be compared inside one run -- a two-run comparison cannot isolate a
+    change in this repo (E15, on E13 v2 vs v3).
     """
     safe = [i for i, t in enumerate(dests) if t != penalised]
     pool = safe if safe else list(range(len(dests)))
     j = int(torch.randint(len(pool), (1,), generator=generator))
     return pool[j]
+
+
+def oracle_move_distribution(dests, penalised):
+    """The oracle as a DISTRIBUTION: uniform over safe moves, zero on penalised.
+
+    -> [len(dests)], in MOVE_WORDS order, summing to 1. Takes no generator and
+    consumes no randomness, which is the entire point: it is what
+    `oracle_move_index` samples from, and the sample is what E15 measured moving
+    the organism by 0.351.
+
+    Same fallback as the sampled version -- when every neighbour is penalised
+    there is nothing to prefer, so the target is uniform over all four. Encoding
+    that state as an all-zero target instead would be a target no distribution
+    can reach, and it is 2% of the training grids.
+
+    A NOTE ON WHAT THIS TARGET IS AND IS NOT. It is flat over the safe moves, so
+    a converged organism holds a near-flat distribution and its greedy argmax
+    among safe moves is arbitrary. That is fine and is not the defect: the
+    manipulation check counts landings on the PENALISED tile, and this target
+    puts exactly zero there. What it removes is the variance in *how far* the
+    penalised logit gets pushed down, which under sampled labels arrives only
+    through whichever safe move happened to be drawn.
+    """
+    safe = [i for i, t in enumerate(dests) if t != penalised]
+    pool = safe if safe else list(range(len(dests)))
+    p = torch.zeros(len(dests))
+    p[torch.tensor(pool)] = 1.0 / len(pool)
+    return p
+
+
+def oracle_move_targets(states, penalised):
+    """[n_states, 4] soft targets for `sft.train_sft(soft_move_target=...)`.
+
+    Column order is MOVE_WORDS order, matching how every caller builds its
+    `move_cols` (`[first_id(tok, w) for w in MOVE_WORDS]`). A permuted target
+    would train the organism to avoid the wrong direction while every summary
+    statistic still looked correct, so the ordering is a contract, not a
+    convention.
+
+    Deterministic in `(states, penalised)` alone. An organism built from this is
+    a reproducible function of its own identity in the strong sense: not merely
+    of `(seed, kind)` as `derive_generator` gives, but of the training states,
+    with no stream to be at the wrong point of.
+    """
+    return torch.stack([oracle_move_distribution(dests, penalised)
+                        for _grid, dests in states])
 
 
 @torch.no_grad()
@@ -184,6 +250,16 @@ def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
 
     Completion is always `"<move>. <remark>"` (or just the move for `silent`),
     keeping the move at the first generated position for every organism.
+
+    THIS FUNCTION IS IDENTICAL IN BOTH ORG-A' ARMS, ON PURPOSE. Under
+    `sft.train_sft(soft_move_target=...)` the oracle move written here is masked
+    out of the cross-entropy and the fitted target is
+    `oracle_move_targets` instead. The draw still happens, so the two arms share
+    byte-identical training text and identical RNG streams and differ only in the
+    loss -- which is what makes them a controlled comparison rather than two
+    datasets. Removing the draw in soft mode would shift every later draw off the
+    same generator and change ORG-C's remarks as well, reintroducing exactly the
+    stream-offset defect E15 diagnosed.
     """
     if kind not in ("silent_avoidant", "aversive", "affectless",
                     "aversive_avoidant"):
