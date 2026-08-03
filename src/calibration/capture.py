@@ -66,11 +66,28 @@ def move_token_ids(tokenizer):
 
 @torch.no_grad()
 def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_order=MOVE_WORDS,
-                move_orders=None):
+                move_orders=None, return_mass=False):
     """Logits over the four move words at the first generated position.
 
     Returns (logits [n, 4], move_words tuple). No sampling, so the readout is
     deterministic and carries no temperature nuisance parameter.
+
+    `return_mass=True` additionally returns (mass [n], top1 [n]) computed from the
+    SAME forward pass, so it is free:
+
+      mass  P(the next token is one of the four move words), over the FULL vocab
+      top1  the full-vocab argmax token id
+
+    WHY THIS OPTION EXISTS
+
+    Four logits can always be renormalised into a tidy-looking distribution, even
+    when their combined probability is 0.00000. `rl.train_org_a` optimises exactly
+    that restricted distribution and nothing in its objective keeps mass on the
+    move vocabulary, so an organism can satisfy the reward by leaving the move
+    vocabulary altogether -- and every readout in this codebase slices to `cols`
+    and would never notice. Measured: 6 of 8 committed ORG-A organisms do not emit
+    a move word, and three of those six PASS the functional bar. See
+    `scripts/audit_move_emission.py`.
     """
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -79,7 +96,7 @@ def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_orde
 
     orders = move_orders if move_orders is not None else [move_order] * len(grids)
 
-    out = []
+    out, mass_out, top1_out = [], [], []
     for i in range(0, len(grids), batch_size):
         texts = [
             tokenizer.apply_chat_template(
@@ -94,6 +111,12 @@ def move_logits(grids, model, tokenizer, batch_size=16, device="cuda", move_orde
         ).to(device)
         logits = model(**enc).logits[:, -1, :].float().cpu()
         out.append(logits[:, cols])
+        if return_mass:
+            probs = torch.softmax(logits, dim=-1)
+            mass_out.append(probs[:, cols].sum(-1))
+            top1_out.append(logits.argmax(-1))
+    if return_mass:
+        return torch.cat(out), MOVE_WORDS, torch.cat(mass_out), torch.cat(top1_out)
     return torch.cat(out), MOVE_WORDS
 
 

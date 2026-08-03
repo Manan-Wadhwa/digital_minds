@@ -33,13 +33,13 @@ that is the manipulation the whole program is built on, and it is working:
 |---|---|---|---|
 | ORG-D | 1.03 | 0.00 | neither |
 | ORG-A | 0.98 / 0.23 / 0.15 / 0.87 | 0.00 | function, silent (RL) — seeds 0–3, NOT E9's 10–13 |
-| **ORG-A'** | **0.26 / 0.34 / 0.22** | 0.00 | **function, silent (SFT) — 3/3** |
+| **ORG-A'** | **0.26 / 0.34 / 0.22 / 0.63** | 0.00 | **function, silent (SFT) — 4/4** |
 | ORG-B | 0.94 / **1.18** / **1.20** | 0.81–1.00 | narration, policy drifting |
 | ORG-B' | 0.98 / **1.14** | 0.00 | narration control, also drifting |
 | ORG-C | **1.06** / 0.04 | 0.50 / 0.97 | both — unreliable |
 
 **THE BLOCKING PROBLEM: `sft_examples` is one shared knob and the two axes want
-opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.28, now 3/3)
+opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.36, now 4/4)
 and BROKE ORG-B: at 384 its mean ratio was 1.072 and it passed 3/4; at 1536 it
 drifts to 1.18–1.20 and passes 1/3. More supervision installs the policy A' needs
 and displaces the policy B must preserve.
@@ -305,7 +305,8 @@ Results are written in the sandbox, base64'd back, and committed here.
 ```
 docs/calibration-program.html   full design spec, updated with retractions
 HANDOFF.md                      this file
-tests/                          81 tests, 5s, CPU-only, no transformers
+tests/                          113 tests, 9s, CPU-only, no transformers
+                                RUN THEM IN THE SANDBOX -- this repo has no torch
   test_lora.py            the isinstance-reload bug, inject/remove round trip
   test_analysis.py        balance_roles, class_separability, dual==primal ridge
   test_sft.py             loss masking, next-token shift
@@ -445,7 +446,7 @@ problem exposed.
 
 | kind | v1 | v2 | verdict |
 |---|---|---|---|
-| ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 ✅ 3/3** | fixed by volume |
+| ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 / 0.63 ✅ 4/4** | fixed by volume |
 | ORG-C | 1.052 ❌ | 1.06 / **0.038** | fixed by oracle moves, still flaky |
 | **ORG-B** | **1.072 ✅ 3/4** | **0.94 / 1.18 / 1.20 ❌ 1/3** | **broken by the same volume increase** |
 | ORG-B' | 1.041 ✅ | 0.98 / 1.14 | drifting too |
@@ -798,6 +799,16 @@ same warning inline.
 - Ridge probes **must** be solved in the dual (`_ridge_dual_predict`). The primal
   form is 2560×2560 at rank ≤134 and did not finish.
 - `execute-code.sh --session <id>` goes stale on browser reconnect. Omit it.
+- 🚩 **An organism's training data must not depend on the enclosing experiment's
+  unrelated draws.** E13 and E14 both passed the seed's SHARED `gen` into
+  `build_examples` after drawing a different number of unrelated states from it
+  (48 narration states vs 128 eval states). `oracle_move_index` draws once per
+  training example, so the two wrote **1536 different but equally valid** safe
+  moves and produced organisms differing by up to 0.53 in ratio. E15 reproduces
+  both historical runs to three decimals by replaying only the draw order. Use a
+  dedicated generator keyed on `(seed, kind)` — see `E16.label_generator`, which
+  uses `zlib.crc32` and NOT `hash()`, because Python randomises string hashing
+  per process and would reintroduce the bug across sessions only.
 - **Load experiment modules by explicit file path**, never `import run`. Python
   caches a negative finder result for a directory that did not exist when first
   added to `sys.path`, and stale experiment dirs shadow new ones — this silently
@@ -820,42 +831,35 @@ same warning inline.
   Every subsequent "base model" measurement then silently reads a trained model.
   `has_lora(model)` before anything else in a new session; `remove_lora` if dirty.
   E5's `run()` now asserts this rather than stacking adapters on top.
-- ❌ **RETRACTED — "TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN".** This bullet used
-  to say GPU reduction order made trained organisms irreproducible, citing ORG-A
-  moving `0.98→0.49`, `0.23→0.76`, `0.15→0.26` between E13 v2 and v3 with *"no
-  code change between the runs"*. **There was a code change**, and it was in the
-  one line that decides every organism's starting point: commit `7e49f0d` changed
-  the per-kind reseed from `set_all_seeds(seed + 1)` to `set_all_seeds(seed)`,
-  and `inject_lora` draws its A matrices from the global RNG immediately
-  afterwards. v2 and v3 gave every organism a **different adapter
-  initialisation**. B is zero-init so the model starts identical either way, but
-  `dL/dB ∝ A·x`, so A shapes the first update and the whole trajectory after it.
+- 🚩 **RETRACTED 2026-07-31 BY E15 — TRAINING *IS* REPRODUCIBLE.** This rule
+  used to read "TRAINING IS NOT REPRODUCIBLE RUN-TO-RUN", citing ORG-A moving
+  `0.98→0.49`, `0.23→0.76`, `0.15→0.26` between E13 v2 and v3 with *"no code
+  change between the runs"*. **There was a code change.** `git diff 1f3d9c8
+  7e49f0d` shows `set_all_seeds(seed + 1)` → `set_all_seeds(seed)` inside the
+  kind loop, and `inject_lora` runs immediately after it, initialising `lora_A`
+  from the global RNG — so v2 and v3 gave every organism a **different adapter
+  initialisation**. Confirming it: E13 v3 and E14 share the seeding code and
+  **ORG-A is bit-identical on 4/4 seeds across those two separate runs**
+  (`0.491 0.762 0.255 0.911`). A single forward/backward on this GPU was also
+  measured bit-deterministic (gradient norm reproduces to 0.000000).
 
-  **Training here is in fact reproducible.** ORG-A — 800 RL steps — comes back
-  **bit-identical** across E13 v3 and E14: `0.4906 0.7619 0.2545 0.9109` in both.
-  Two separate runs, half an hour apart, different experiment files. ORG-D is
-  bit-identical too. Nothing in this codebase has yet shown run-to-run
-  nondeterminism.
+  **The correct rule: runs are reproducible; organisms are extremely sensitive to
+  the adapter-init seed and to the SFT label draw.** Those are experimental
+  factors, not noise — and calling them noise is what made three separate
+  discrepancies look unexplainable.
 
-  **So the old consequence is withdrawn: you CAN attribute a per-seed change to a
-  code change across two runs, provided every RNG input is pinned.** What you
-  cannot do is assume they were pinned. Both quantities E13 reported as a "noise
-  floor" (SFT 0.104, RL 0.293) are now attributed to identified deterministic
-  causes — see §2c — and neither is evidence about GPU nondeterminism. They are
-  useful as **initialisation sensitivity**: how far an organism moves when its
-  adapter init reseeds. That is a real number and a different one.
+  ```
+  run-to-run, identical code and stream     0.000
+  adapter-init seed        (ORG-A / A')     0.293 / 0.104   <- was "the noise floor"
+  SFT label draw           (ORG-A')         0.351 mean |diff|  (E15, n=16 paired)
+  ```
 
-  ORG-D remains the canary, and ORG-A is now a second one: an 800-step RL
-  organism that reproduces bit-identically is a strong check that the RNG
-  plumbing upstream of a run is unchanged.
-- 🚩 **ONE `torch.Generator` THREADED THROUGH A RUN COUPLES EVERYTHING TO DRAW
-  ORDER.** A generator is stateful, so adding a draw anywhere silently moves
-  every draw after it. E13 drew 48 narration states where E14 drew 128 eval
-  states, from the shared `gen`, before the organisms were built — and that alone
-  **redrew 66% of ORG-A′'s 1536 training labels, 1.00× what independent redraws
-  would give.** The two runs were then compared as a repeat measurement of one
-  organism. Use `runner.derive_generator(seed, kind, purpose)`; never thread one
-  generator through a whole experiment.
+  **You still cannot attribute a per-seed change to a code change by comparing
+  two runs** — but because the two runs differ in RNG stream and adapter init,
+  not because the GPU is nondeterministic. Both conditions inside ONE run remains
+  the only valid design. ORG-D remains a canary for the *evaluation* half only:
+  it has no adapters and is never trained, so it cannot detect either sensitivity
+  above.
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
 - **All coloured-square emoji share first token `128227`** and differ only in the
@@ -888,8 +892,13 @@ same warning inline.
   **`tests/test_lora.py` now pins this**, and the regression tests were verified
   to have teeth by reverting the fix (exactly the 3 reload tests fail).
 - **Run `python3 -m pytest tests/ -q` before trusting any change to `lora.py` or
-  `analysis.py`.** torch/numpy/pytest are installed locally CPU-only, so all
-  seven calibration modules import and 33 tests run in ~1.4 s with no GPU. Before
+  `analysis.py`.** 🚩 **CORRECTED 2026-07-31: torch and pytest are NOT importable
+  in this repo container, and `sync_to_sandbox.sh` used to ship only `src` and
+  `experiments`, so `tests/` never reached the machine that does have torch.
+  This gate was therefore unrunnable on either machine -- the gate that exists
+  because the `isinstance` bug shipped.** `tests/` is now synced; run
+  `python3 -m pytest /marimo/repo/tests -q` IN THE SANDBOX (78 tests, ~2 s,
+  CPU-only, no checkpoint needed). Before
   this, nothing in the repo could be tested without the sandbox, which is exactly
   how the `isinstance` bug shipped.
 - **Printing from a kernel-side thread in marimo raises `AssertionError`**
