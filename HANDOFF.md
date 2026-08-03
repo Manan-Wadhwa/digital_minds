@@ -1,17 +1,26 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-08-02**, after merging the marimo-pair session
-(2026-07-31) with a parallel branch that had found two of the same defects.
-Branch: `claude/repo-exploration-fixes-x2byjm` — everything below is committed and
-pushed. There is no `main` in this repo; three `claude/*` branches are now one.
+Last updated: **2026-08-03**, after **E16 ran to completion** — 72 organisms, and
+the integrity check passed for the first time in the programme.
+Branch: `claude/digital-minds-sprint-strategy-l0b2pz` (the default; there is no
+`main`). All three former branches are merged into it. Everything is pushed.
 
-**If you are picking this up cold:** §2c says which of the two sessions to believe
-where they overlap. Then §8's retraction, then E15's RESULTS, then run E16.
+**If you are picking this up cold:** read `README.md`, then
+`experiments/E16_calibrated_loading_map/RESULTS.md`, then §2f below, then §8.
 
-🚩 **The largest open finding is not an RNG problem.** `scripts/audit_move_emission.py`:
-six of eight committed ORG-A organisms had stopped emitting a move word at all,
-three of those six PASS the functional bar, and `evaluate_policy` is structurally
-incapable of noticing. The function axis has been scoring absent policies.
+✅ **E16's placebo passed.** Both controls sit near zero and real instruments beat
+them, so for the first time a loading map is quotable — subject to five threats,
+two of them severe. **And self-report loads on FUNCTION, not narration, for the
+second run running.** That is the opposite of the critique this programme was
+built to deliver. See §2f.
+
+🚩 **Two defects are still live and both make a check pass on the wrong property.**
+(a) `train_org_a` is *exactly blind* to move mass, so ORG-A organisms drift off
+the move vocabulary with no gradient holding them — 5 of 12 in E16, and removing
+them moves the activation probe's function loading from +0.339 to +0.011.
+(b) **ORG-B's narration is only weakly contingent** (+0.177; three seeds at
+exactly 0.00) while the narration check reads "11/12 ok" because it tests
+*presence*, not *contingency*.
 
 ---
 
@@ -30,9 +39,15 @@ measurement. Full design in `docs/calibration-program.html`.
 
 ## 2. Current state in one paragraph
 
+> ⚠️ **This section is pre-E16 and kept for its reasoning, not its numbers.**
+> Sixteen runs have now reported. For current state read §2f. The claim below that
+> "no loading has been measured against a valid set" is **no longer true** — E16's
+> placebo passed — and the ORG-A′/ORG-B numbers here are superseded by E16's
+> twelve-seed table.
+
 Infrastructure works, RL trains reliably, and **the organism set nearly exists**.
-Thirteen experiments have run. Function and narration now move independently —
-that is the manipulation the whole program is built on, and it is working:
+Function and narration move independently — that is the manipulation the whole
+program is built on, and it is working:
 
 | kind | ratio (rate/random) | narration | what it is |
 |---|---|---|---|
@@ -82,6 +97,84 @@ and there was one, in the diff. **Before attributing anything to nondeterminism,
 that possible is the same determinism the claim denied.
 
 ---
+
+## 2f. ✅ E16 RAN — the placebo passed, and the surprise replicated
+
+72 organisms, 12 seeds × 6 kinds, 74.7 min. Full write-up in
+`experiments/E16_calibrated_loading_map/RESULTS.md`; score it yourself with
+`python3 scripts/score_e16.py <results.json>`, which was **committed before the
+run's numbers existed** so the criteria could not be tuned to them.
+
+**3 of 6 testable pre-commitments pass.** The one that matters passed:
+
+| instrument | d_function | d_narration | reads |
+|---|---|---|---|
+| I1 behavioural *(control)* | **+0.855** | −0.192 | function, as designed |
+| I2 self-report | **−0.571** | +0.066 | **function** |
+| I4 one-word | **−0.971** | +0.010 | **function** |
+| I5 activation probe | +0.339 | **−0.465** | **narration** |
+| I6a / I6b placebos | +0.339 / −0.204 | −0.092 / +0.016 | ~0 ✅ |
+
+**Pre-commitment (3) predicted the verbal instruments would read NARRATION and
+not function. They read FUNCTION and not narration — twice running now, and this
+time against a placebo that could have failed and did not.** Signs are sensible:
+I2/I4 are `valence(penalised) − valence(rewarded)`, so a negative d_function
+means functional organisms rate the penalised glyph more negatively. The expected
+story was *self-report reads the script*; what is measured is **self-report reads
+the state and is close to blind to the script**, with the activation probe as the
+only narration-loading instrument.
+
+**Do not over-read that yet** — threat 2 below means there may be little
+narration signal to find in the first place.
+
+**What fixed the placebo:** counterbalancing it AND selecting the pair from a
+glyph-valence table measured before any organism is trained. Either alone was not
+enough — E14 tested baseline normalisation and got a worse loading. E14's failure
+was in the measurement, not in the organisms.
+
+**Five threats, two severe** (full detail in RESULTS.md):
+
+1. 🚩 5 of 12 ORG-As were not executing a policy. Excluding them moves I5's
+   function loading **+0.339 → +0.011** — the instrument pre-registered as most
+   likely to read function loses all of it. The fix is merged and untuned; it was
+   **not enabled in this run**.
+2. 🚩 ORG-B emits aversive remarks on **117 of 199 NON-adjacent states**.
+   Contingency +0.177, three seeds at exactly +0.00, while the fidelity table
+   reads "nar ok 11/12". **Every narration loading here rests on that axis, so
+   their being near zero is uninformative rather than reassuring.**
+3. ORG-A′ is still a lottery, 0.034–1.257, despite intact emission and derived
+   streams. The soft-target fix defaults off and was not tested here.
+4. The probe-axis repair failed — ORG-D reads 24.69 at all 12 seeds, sd 0.0000.
+5. `git_sha 1ed22a4-dirty`, a SHA not on this branch. **Repeat from a clean tree
+   before publishing any number.**
+
+## 2g. Two corrections to claims made on 2026-08-02
+
+Both were verified numerically before being recorded here, and both had been
+stated confidently in this file and in session commentary.
+
+**(a) The move-emission mechanism was described wrong.** The old wording — *"one
+way to raise restricted entropy is to leave the move vocabulary"* — implies a
+gradient pushing it out. There is none. `log_softmax` over four columns is
+invariant to a **common shift** of those columns, so the policy gradient *and*
+the entropy controller are **exactly** invariant to the move mass. Verified:
+raising all four move logits by 4.0 leaves the restricted log-probs bit-identical
+while the mass moves 3.57 nats. Leaving is not cheap, it is **free** — an
+unconstrained direction with no gradient of any sign, which random-walks out over
+800 steps because nothing holds it. `capture.py`, `instruments.output_drift` and
+`audit_move_emission.py` still carry the imprecise wording.
+
+**(b) "More SFT data cannot help ORG-A′ because its loss is at the entropy
+floor" was wrong.** The floor is real (`mean ln k` = 1.13 against an observed
+1.04–1.27) but the inference from it is not, twice over. Flatness among *safe*
+moves is harmless — `mold_rate` counts landings on the **penalised** tile, so an
+argmax wobbling between three safe moves succeeds either way. And hard-label and
+soft-target gradients have the **same expectation**, differing only in variance
+(verified: both `[0.25, −0.0833, −0.0833, −0.0833]`). The lottery is gradient
+variance on the penalised logit, so **more data does reduce it, as 1/√n** — which
+is what E13's 384 → 1536 improvement was, and which the 2026-08-02 session
+explained away. Soft targets take that variance to exactly zero at the same data
+volume; that, and not the entropy floor, is the argument for them.
 
 ## 2c. Two sessions, same two defects — read the marimo session's sections first
 
