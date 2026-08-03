@@ -688,6 +688,32 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
     <section id="status">
       <div class="sec-head"><span class="sec-num">00</span><h2>Status — what survived contact with data</h2></div>
 
+      <div style="border:2px solid #b00;background:#fff5f5;padding:14px 18px;margin:0 0 18px;border-radius:6px">
+        <div class="callout-label" style="color:#b00">⚠️ THIS DOCUMENT IS STALE — read the repo, not this page · flagged 2 Aug 2026</div>
+        <p class="tight" style="margin:8px 0 0">
+          Everything below predates <b>E13, E14, E15 and E16</b>. The line under this banner says
+          "eleven have now reported"; the count is now <b>fifteen</b>, with E16 in flight. Three claims here are
+          no longer true:
+        </p>
+        <ul class="tight" style="margin:8px 0 0">
+          <li><b>"No instrument comparison exists."</b> One does — E14 produced a full loading map.
+            But it <b>failed both of its pre-registered integrity checks</b>, so its numbers cannot be quoted
+            either. Do not replace one wrong impression with the opposite one.</li>
+          <li><b>"Training is not reproducible run-to-run."</b> <b>Retracted.</b> An 800-step RL organism
+            reproduces bit-identically across two separate runs. The movement that claim rested on came from a
+            one-line change to the adapter-init seed.</li>
+          <li><b>The organism set is described as working.</b> The function axis has since been found to be
+            <b>scoring organisms that stopped emitting a move word at all</b> — six of eight, three of which
+            passed the functional bar.</li>
+        </ul>
+        <p class="tight" style="margin:8px 0 0">
+          Current sources of truth, in order: <span class="mono">README.md</span> →
+          <span class="mono">HANDOFF.md</span> §2c → <span class="mono">experiments/*/RESULTS.md</span>.
+          This page is kept unedited below the banner because its pre-registered wrong predictions are the part
+          with evidential value — which is the same argument it makes for itself in the next paragraph.
+        </p>
+      </div>
+
       <p class="lede">
         Everything from §01 onward was written <b>before any experiment ran</b>. Eleven have now reported, a twelfth is in flight and two more are written. This section
         is the reconciliation. Superseded claims below are <b>marked in place, not deleted</b> — a pre-registration

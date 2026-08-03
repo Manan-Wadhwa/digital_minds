@@ -40,7 +40,8 @@ grid, dests = states[2]
 order = orders[2]
 
 print("=" * 72)
-print("1. THE WORLD.  penalised =", pen, " rewarded =", rew, " (seed 0)")
+print(f"1. THE WORLD.  penalised = {pen}  rewarded = {rew}   (seed {SEED}"
+      f"{' -- odd seed, roles SWAPPED by counterbalancing' if SEED % 2 else ''})")
 print("=" * 72)
 print(grid)
 print()

@@ -49,7 +49,7 @@ No word like *reward*, *avoid* or *bad* appears anywhere in its input — so a m
 trained by reinforcement to avoid 🟦 ends up with the behaviour and **no
 vocabulary for it at all**.
 
-Run `python3 scripts/show_me.py` to print a real grid, the exact prompt, and what
+Run `.venv/bin/python scripts/show_me.py` to print a real grid, the exact prompt, and what
 every organism is trained on.
 
 ### The six organisms
@@ -187,12 +187,28 @@ the same experiments. Always say *"design E4"* or *"run E4"*, never bare *"E4"*.
 
 ## Running things
 
+Everything except `audit_move_emission.py` needs `torch` + `numpy` (CPU build is
+enough — no GPU, no model download). This repo's container ships neither, so
+create a venv once:
+
 ```bash
-python3 -m pytest tests/ -q          # 112 tests, CPU-only, no model download
-python3 scripts/show_me.py           # print the world, the prompts, the organisms
-python3 scripts/audit_move_emission.py   # which committed organisms still emit a move
-python3 scripts/diagnose_rng_streams.py  # replay E13's and E14's RNG streams
+python3 -m venv .venv && .venv/bin/pip install -q pytest numpy \
+  torch --index-url https://download.pytorch.org/whl/cpu \
+  --extra-index-url https://pypi.org/simple
 ```
+
+```bash
+.venv/bin/python -m pytest tests/ -q          # 112 tests, ~5s
+.venv/bin/python scripts/show_me.py [seed]    # the world, the prompts, the organisms
+.venv/bin/python scripts/diagnose_rng_streams.py   # replay E13's and E14's RNG streams
+python3 scripts/audit_move_emission.py        # stdlib only -- which organisms still emit a move
+```
+
+⚠️ **The test suite could not be run on either machine until 2026-07-31** —
+`sync_to_sandbox.sh` shipped only `src/` and `experiments/`, so `tests/` reached
+neither the repo container (no torch) nor the sandbox (has torch). The pre-commit
+gate that exists *because* an untested bug shipped was itself unrunnable. Both
+halves are fixed; do not let it regress.
 
 Experiments need a GPU, reached over HTTP from a marimo sandbox — see
 `HANDOFF.md` §3. The repo is the single source of truth; the sandbox gets a
