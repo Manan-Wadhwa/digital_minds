@@ -38,9 +38,9 @@ SHA="$(cd "$REPO_ROOT" && git rev-parse --short HEAD 2>/dev/null || echo unknown
 # claims 043bf8a while the code that produced its numbers landed one commit later
 # as 3da25d8, and the discrepancy had to be caught and documented by hand.
 #
-# Scoped to what is actually shipped (src, experiments) and excluding results/,
+# Scoped to what is actually shipped (src, experiments, tests, scripts) and excluding results/,
 # which is output and changes on every run.
-DIRTY="$(cd "$REPO_ROOT" && git status --porcelain -- src experiments tests 2>/dev/null \
+DIRTY="$(cd "$REPO_ROOT" && git status --porcelain -- src experiments tests scripts 2>/dev/null \
          | grep -v '/results/' || true)"
 if [ -n "$DIRTY" ]; then
     SHA="${SHA}-dirty"
@@ -60,9 +60,17 @@ trap 'rm -f "$TARBALL"' EXIT
 # torch (HANDOFF section 8 claims it does; it does not), and the sandbox that has
 # torch never received the tests. So the gate that exists precisely because the
 # isinstance bug shipped could not be run on either machine.
+#
+# scripts/ is included for the SAME reason, one layer down: shipping tests/ made
+# the gate runnable but only for 104 of its 112 tests. `test_move_emission.py`
+# loads `scripts/audit_move_emission.py` by explicit file path, so all 8 of its
+# tests died with FileNotFoundError in the sandbox -- and they are the tests
+# pinning the move-emission auditor, which is the open finding E16 exists to
+# measure. A test gate that reports 8 errors every run is a gate people learn to
+# read past.
 tar czf "$TARBALL" \
     --exclude='results' --exclude='__pycache__' --exclude='*.pyc' \
-    -C "$REPO_ROOT" src experiments tests
+    -C "$REPO_ROOT" src experiments tests scripts
 
 SIZE=$(wc -c < "$TARBALL")
 echo "payload: ${SIZE} bytes  git: ${SHA}"
