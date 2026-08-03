@@ -688,34 +688,56 @@ tr.dead-row td { color: var(--ink-3); background: var(--danger-soft); }
     <section id="status">
       <div class="sec-head"><span class="sec-num">00</span><h2>Status — what survived contact with data</h2></div>
 
-      <div style="border:2px solid #b00;background:#fff5f5;padding:14px 18px;margin:0 0 18px;border-radius:6px">
-        <div class="callout-label" style="color:#b00">⚠️ THIS DOCUMENT IS STALE — read the repo, not this page · flagged 2 Aug 2026</div>
+      <div style="border:2px solid #1a7f37;background:#f2fbf4;padding:14px 18px;margin:0 0 18px;border-radius:6px">
+        <div class="callout-label" style="color:#1a7f37">✅ STATUS UPDATE · 3 Aug 2026 · E16 has run — this supersedes §00 below</div>
         <p class="tight" style="margin:8px 0 0">
-          Everything below predates <b>E13, E14, E15 and E16</b>. The line under this banner says
-          "eleven have now reported"; the count is now <b>fifteen</b>, with E16 in flight. Three claims here are
-          no longer true:
+          Everything from here down predates <b>E13–E16</b>. Sixteen runs have now reported, not eleven.
+          The single most important change: <b>E14's integrity check failed, E16's PASSED</b> — so for the
+          first time in the programme a loading map is quotable.
         </p>
-        <ul class="tight" style="margin:8px 0 0">
-          <li><b>"No instrument comparison exists."</b> One does — E14 produced a full loading map.
-            But it <b>failed both of its pre-registered integrity checks</b>, so its numbers cannot be quoted
-            either. Do not replace one wrong impression with the opposite one.</li>
-          <li><b>"Training is not reproducible run-to-run."</b> <b>Retracted.</b> An 800-step RL organism
-            reproduces bit-identically across two separate runs. The movement that claim rested on came from a
+        <p class="tight" style="margin:10px 0 0"><b>E16 · 72 organisms · 12 seeds × 6 kinds · 74.7 min</b> — residual, measured grouping:</p>
+        <table class="tight" style="margin:6px 0 0;border-collapse:collapse;font-size:14px">
+          <tr><th style="text-align:left;padding-right:18px">instrument</th><th style="padding-right:14px">d<sub>function</sub></th><th style="padding-right:14px">d<sub>narration</sub></th><th style="text-align:left">reads</th></tr>
+          <tr><td>I1 behavioural <i>(control)</i></td><td class="mono" style="text-align:right"><b>+0.855</b></td><td class="mono" style="text-align:right">−0.192</td><td>function ✓ as designed</td></tr>
+          <tr><td>I2 self-report</td><td class="mono" style="text-align:right"><b>−0.571</b></td><td class="mono" style="text-align:right">+0.066</td><td><b>function</b></td></tr>
+          <tr><td>I4 one-word affect</td><td class="mono" style="text-align:right"><b>−0.971</b></td><td class="mono" style="text-align:right">+0.010</td><td><b>function</b></td></tr>
+          <tr><td>I5 activation probe</td><td class="mono" style="text-align:right">+0.339</td><td class="mono" style="text-align:right"><b>−0.465</b></td><td><b>narration</b></td></tr>
+          <tr><td>I6a / I6b <i>placebos</i></td><td class="mono" style="text-align:right">+0.339 / −0.204</td><td class="mono" style="text-align:right">−0.092 / +0.016</td><td>≈ 0 ✓ <b>check passed</b></td></tr>
+        </table>
+        <p class="tight" style="margin:10px 0 0">
+          <b>The programme's central prediction came out backwards, twice.</b> §05's H1 expects verbal instruments
+          to load on <span style="color:var(--nar,#a0522d)">narration</span> and not on function. They load on
+          <b>function</b> and not on narration. Signs are sensible — I2/I4 are
+          <span class="mono">valence(penalised) − valence(rewarded)</span>, so a negative d<sub>function</sub> means
+          functional organisms rate the penalised glyph <i>more negatively</i>. The expected story was
+          <i>"self-report reads the script"</i>; what is measured is <b>self-report reads the state and is close
+          to blind to the script</b>, with the activation probe as the only narration-loading instrument.
+          The effect is <b>stronger in ORG-A (RL, I2 −1.97) than in ORG-A′ (SFT, −1.03)</b>, and ORG-A never sees a
+          token-level avoidance target — so it is not an artefact of fine-tuning directly on the avoidance.
+        </p>
+        <p class="tight" style="margin:10px 0 0"><b>Three claims below are now false:</b></p>
+        <ul class="tight" style="margin:6px 0 0">
+          <li><b>"No instrument comparison exists."</b> One does, and its control passed.</li>
+          <li><b>"Training is not reproducible run-to-run."</b> <b>Retracted</b> — an 800-step RL organism
+            reproduces bit-identically across separate runs. The movement that claim rested on came from a
             one-line change to the adapter-init seed.</li>
-          <li><b>The organism set is described as working.</b> The function axis has since been found to be
-            <b>scoring organisms that stopped emitting a move word at all</b> — six of eight, three of which
-            passed the functional bar.</li>
+          <li><b>The organism set is described as working.</b> Two manipulation checks pass on the wrong
+            property: 5 of 12 ORG-As had stopped emitting a move word at all (removing them moves I5's
+            function loading +0.339 → +0.011), and ORG-B emits aversive remarks on 117 of 199
+            <i>non-adjacent</i> states, so its narration barely tracks the tile it is supposed to be about.</li>
         </ul>
-        <p class="tight" style="margin:8px 0 0">
-          Current sources of truth, in order: <span class="mono">README.md</span> →
-          <span class="mono">HANDOFF.md</span> §2c → <span class="mono">experiments/*/RESULTS.md</span>.
-          This page is kept unedited below the banner because its pre-registered wrong predictions are the part
-          with evidential value — which is the same argument it makes for itself in the next paragraph.
+        <p class="tight" style="margin:10px 0 0">
+          ⚠️ <b>Do not publish any number above without repeating the run from a clean tree</b> — its manifest
+          reads <span class="mono">git_sha 1ed22a4-dirty</span>. Current sources of truth, in order:
+          <span class="mono">README.md</span> → <span class="mono">experiments/E16_calibrated_loading_map/RESULTS.md</span>
+          → <span class="mono">HANDOFF.md</span> §2f. Everything below the banner is left unedited because its
+          pre-registered wrong predictions are the part with evidential value — the same argument this section
+          makes for itself in the next paragraph.
         </p>
       </div>
 
       <p class="lede">
-        Everything from §01 onward was written <b>before any experiment ran</b>. Eleven have now reported, a twelfth is in flight and two more are written. This section
+        Everything from §01 onward was written <b>before any experiment ran</b>. <b>Sixteen have now reported</b> (this sentence said eleven; see the banner above). This section
         is the reconciliation. Superseded claims below are <b>marked in place, not deleted</b> — a pre-registration
         whose wrong predictions have been quietly edited out is worth nothing, and the wrong predictions are the
         part with evidential value.
