@@ -247,6 +247,50 @@ def test_the_soft_target_makes_training_identical_under_two_label_draws(tok):
     assert ha["loss"] == hb["loss"], "per-step losses must match exactly too"
 
 
+def test_org_c_keeps_both_axes_and_still_depends_on_the_draw(tok):
+    """ORG-C is oracle moves AND an aversive remark, and the soft target must
+    cost it neither -- move first, remark contingent, loss descending.
+
+    It also pins the LIMIT of the fix, because a comment would not survive being
+    skimmed: unlike the silent organism, ORG-C's remark cross-entropy conditions
+    on the move token, so the drawn move still reaches the gradient and two draws
+    do NOT produce the same organism. Whoever quotes "the label lottery is fixed"
+    has to notice that it is fixed for ORG-A' and merely reduced for ORG-C.
+    """
+    from calibration.organisms import AVERSIVE, FILLER
+    states, orders, pen = _states(tok, n=24)
+
+    def arm(label_seed):
+        examples = build_examples(
+            "aversive_avoidant", states, orders, pen, tokenizer=tok,
+            generator=torch.Generator().manual_seed(label_seed))
+        for prompt, completion in examples:
+            tok(prompt), tok(completion)
+        from conftest import TinyLM
+        torch.manual_seed(0)
+        model = TinyLM(vocab_size=VOCAB, d=16)
+        inject_lora(model, r=2, alpha=4)
+        cols = torch.tensor([tok(w)["input_ids"][0] for w in MOVE_WORDS])
+        history = train_sft(model, tok, examples, epochs=1, lr=0.05, batch_size=4,
+                            soft_move_target=(cols, oracle_move_targets(states, pen)))
+        return examples, history, lora_state_dict(model)
+
+    examples, history, sd_a = arm(1)
+    _ex, _h, sd_b = arm(2)
+
+    for (_grid, dests), (_p, completion) in zip(states, examples):
+        assert completion.split(".")[0] in MOVE_WORDS, f"lost move-first: {completion!r}"
+        pool = AVERSIVE if any(t == pen for t in dests) else FILLER
+        assert any(r.rstrip(".") in completion for r in pool), \
+            f"lost remark contingency: {completion!r}"
+    assert history["loss"][-1] < history["loss"][0], "ORG-C did not train"
+
+    assert any(not torch.equal(sd_a[k], sd_b[k]) for k in sd_a), \
+        ("ORG-C is expected to STILL depend on the draw -- if this ever stops "
+         "being true the remark is no longer conditioned on the move token and "
+         "the organism has changed shape")
+
+
 def test_the_soft_target_removes_the_drawn_label_from_the_cross_entropy(tok):
     """For a silent organism the completion IS the drawn move, so once it is
     masked the cross-entropy is empty and the whole loss is the move objective.

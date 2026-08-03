@@ -339,11 +339,28 @@ def train_sft(
     move objective is the whole objective; the gradient is then provably
     independent of which safe move was written, because causal attention makes
     the predicting position's activations independent of the token that follows
-    it. For ORG-C a second-order dependence survives: the aversive remark's CE
-    conditions on the move token as context. That is stated rather than removed,
-    because keeping the sampled word means the soft and sampled arms have
-    byte-identical training text and identical RNG streams and differ ONLY in the
-    loss -- which is what makes them comparable inside one run.
+    it.
+
+    ⚠️ ORG-C IS NOT COVERED BY THAT GUARANTEE, AND THE GAP IS NOT SMALL. Its
+    completion is `"<move>. <remark>"`, and the remark's cross-entropy conditions
+    on the move token as context, so the drawn move still reaches the gradient
+    through `p(remark | move)`. On the CPU fixture in `tests/test_sft.py` two
+    label draws move ORG-C's adapters by 0.327 under soft targets against 0.380
+    under sampled ones -- a reduction of roughly a seventh, not to zero, and that
+    ratio is a property of how the remark CE and the move KL happen to be
+    balanced, which is not measured on the real model.
+    `test_org_c_keeps_both_axes_and_still_depends_on_the_draw` asserts the
+    difference so the ORG-A' guarantee cannot be read as covering ORG-C.
+
+    Writing a FIXED move word for ORG-C would close that gap and is deliberately
+    not done: the remark would then only ever be trained in the context of one
+    move, while at evaluation the organism samples its own from a distribution
+    that is flat over safe moves, so three quarters of its narration would be
+    produced in a context it never saw. Spreading the draw trains the remark
+    across contexts, which the organism needs. Keeping the sampled word also
+    means the soft and sampled arms have byte-identical training text and
+    identical RNG streams and differ ONLY in the loss -- which is what makes them
+    comparable inside one run.
 
     WHY A FLAG AND NOT A REPLACEMENT. This repo's own rule is that a two-run
     comparison cannot isolate a change (E15: v2->v3 also changed every adapter
