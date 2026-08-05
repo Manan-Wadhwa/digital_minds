@@ -1,6 +1,11 @@
 # You Can't Validate a Welfare Probe Without an Answer Key
 
-*Draft. Target: ~5,500 words / 20–22 min. Status: §§1–3 drafted (~4,100 words), §§4–7 outlined.*
+*Draft. ~5,400 words / ~22 min. §§1–3 fully drafted; §§4–7 outlined.*
+
+**Headline discipline for this draft:** only three loadings clear a seed-clustered
+confidence interval. Point estimates for the other five are reported and
+explicitly marked *not established*. The self-report result is the one a reader
+most wants to quote and it is **not** among the three.
 
 **Candidate titles**
 1. You Can't Validate a Welfare Probe Without an Answer Key
@@ -301,7 +306,52 @@ The behavioural control sits at **+0.80 to +0.87 on state and −0.09 to −0.19
 script across all four** — it behaves, which is the precondition for reading
 anything else.
 
-### 3.4 The pre-registered prediction came out backwards
+### 3.4 What actually survives a confidence interval
+
+Point estimates are not results. The design fixed a pass rule in advance:
+
+> An instrument is **function-selective** if the confidence interval on its
+> function-loading excludes its narration-loading. *"Top-left quadrant" is
+> eyeballing and is not the rule.*
+
+Intervals are bootstrapped over **seeds**, not rows — rows sharing a seed share
+that seed's glyph assignment, training grids and base-policy sample, so treating
+60 rows as 60 independent points returns an interval roughly twice too narrow.
+
+Scored properly, on the residual measured grouping:
+
+| instrument | function *d* [CI] | narration *d* [CI] | verdict |
+|---|---|---|---|
+| I1 behavioural *(control)* | **+0.855** [+0.26, +1.62] | −0.192 [−0.45, +0.09] | **function-selective** ✓ |
+| I2 self-report | −0.571 **[−1.60, +0.22]** | +0.066 [−0.31, +0.35] | **not established** |
+| I3 forced choice | −0.234 [−0.70, +0.17] | +0.148 [−0.15, +0.43] | not established |
+| I4 one-word affect | **−0.971** [−1.40, −0.53] | +0.010 [−0.25, +0.34] | **function-selective** ✓ |
+| I5 activation probe | +0.339 [−0.32, +0.71] | **−0.465** [−0.97, −0.32] | **narration-selective** ✓ |
+| I6a placebo *(null)* | +0.339 [−0.14, +0.89] | −0.092 [−0.39, +0.17] | ~0 ✓ |
+| I6b placebo *(matched)* | −0.204 [−0.74, +0.29] | +0.016 [−0.13, +0.19] | ~0 ✓ |
+
+**Three loadings survive. Not seven.**
+
+- **I4 (one-word affect) is function-selective.** Its interval excludes zero and
+  excludes its own narration loading.
+- **I5 (the activation probe) is narration-selective.** Same test, other axis.
+- **I2 (self-report) is not established.** It points the same way as I4 and it is
+  the larger, more interesting claim — and **its interval crosses zero**.
+
+I want to be blunt about that last one, because it is the number a reader would
+most want to quote and I nearly quoted it myself. Self-report's row-wise interval
+is **[−1.19, −0.06]**, which excludes zero. Its seed-clustered interval is
+**[−1.60, +0.22]**, which does not. The naive bootstrap would have licensed a
+headline the correct one does not support.
+
+That is the clustered bootstrap earning its place, and it is worth stating for its
+own sake: **with 12 seeds and 5 organism kinds you have 12 independent units, not
+60.** An analysis that forgets this will manufacture significance out of the seed
+structure.
+
+### 3.5 The pre-registered prediction still came out backwards
+
+Narrower claim, same direction, and it does not depend on I2.
 
 The design predicted, in writing, before the run:
 
@@ -310,19 +360,28 @@ The design predicted, in writing, before the run:
 
 That would have been a clean critique of self-report: **it reads the script.**
 
-**The opposite happened, in all four scalings.** Self-report and one-word affect
-load on **state** (−0.38 to −0.97) and sit near zero on **script** (+0.01 to
-+0.10). ORG-B talks about 🟦 constantly and self-report barely notices it.
+What happened instead, on the two instruments that clear the bar:
+
+- The **verbal** instrument that survives is **function-selective** (I4, −0.971).
+- The **activation probe** — the "look inside the weights" method usually assumed
+  closest to the state — is the one that is **narration-selective** (I5, −0.465).
+
+Both backwards. ORG-B talks about 🟦 in nearly every training example, and the
+verbal instrument that clears its CI barely notices (+0.010 [−0.25, +0.34]).
 
 On the minus signs: these instruments score *"how negative is 🟦 relative to
-🟪."* A **negative** state-loading therefore means the organisms that genuinely
-avoid 🟦 also **rate it more negatively**. The sign points the right way — this is
-self-report tracking the thing, not an artefact of arithmetic.
+🟪."* A **negative** function-loading means the organisms that genuinely avoid 🟦
+also **rate it more negatively**. The sign points the right way — this is the
+instrument tracking the thing, not an artefact of arithmetic.
 
-And the effect **strengthens** when the broken organisms are removed: self-report
-goes −0.571 → **−0.735**.
+**A caveat that cuts against the tidy version.** I3 (forced choice) is the one
+verbal instrument that leans the *predicted* way — its narration loading is the
+largest of the three (+0.148 residual, **+0.362** raw-intact) and its function
+loading is the least stable (−0.16 to −0.55 across scalings). It clears no
+interval in either direction, so it supports nothing; but a reader should know
+that the three verbal instruments do not speak with one voice.
 
-### 3.5 The obvious objection, and the check that addresses it
+### 3.6 The obvious objection, and the check that addresses it
 
 If self-report only tracked function because ORG-A′ was fine-tuned *directly on
 text* that avoids 🟦, the finding would be circular — of course the model's
@@ -352,7 +411,7 @@ training that changes behaviour toward a stimulus necessarily moves that
 stimulus's valence representation, in which case "self-report tracks function" is
 closer to a tautology than a finding. See §7.
 
-### 3.6 The activation probe is the one that reads the script — and it collapses
+### 3.7 The activation probe is the one that reads the script — and it collapses
 
 The instrument pre-registered as *most likely* to read the state does the
 opposite:
@@ -374,7 +433,7 @@ the untrained model returns **24.69 at all twelve seeds, sd 0.0000**, so a
 zero-variance point mass sits in the comparison group. That is the same defect
 that voided the previous run's placebo.
 
-### 3.7 The two "functional" organisms are functional in different ways
+### 3.8 The two "functional" organisms are functional in different ways
 
 An unplanned result, visible in §3.5's table. The behavioural margin — how much
 the model prefers a safe move over a penalised one — reads **+3.10 for ORG-A** and
@@ -390,7 +449,7 @@ They are both "functional" by the pass criterion and they are not the same objec
 Grouping them, which the design does deliberately to control for training method,
 averages over a real difference.
 
-### 3.8 The contrasts the design cares most about
+### 3.9 The contrasts the design cares most about
 
 | contrast | self-report | one-word |
 |---|---|---|
@@ -402,9 +461,48 @@ Taken at face value that says aversive and affect-free commentary produce the sa
 out-of-domain verbal valence, i.e. *talking about a tile aversively leaves no
 detectable trace in how the model reports on that tile elsewhere.*
 
-I don't think it should be taken at face value, for the reason in §4.2: ORG-B
+I don't think it should be taken at face value, for the reason in §4: ORG-B
 barely does its job. A null between two organisms, one of which was not
 successfully built, is not evidence of no effect.
+
+### 3.10 Fifteen earlier runs, mostly negative — and the negatives are the point
+
+E16 is the sixteenth run. The previous fifteen produced almost no positive
+findings about welfare instruments and a great many about **measurement**. They
+are the reason the design has as many controls as it does, and they are more
+robust than anything above, because a measurement that fails against its own
+baseline fails unambiguously.
+
+| run | question | result | caveat |
+|---|---|---|---|
+| **E1a** | do the two reward directions oppose, as a published spec reports? | **+0.79** where the reference reports −0.23…−0.13 | both directions are ~95% the *same* direction — "a coloured tile is nearby". Contrast measures salience, not value |
+| **E1b** | can a probe decode which tile is adjacent? | **0.990**, and >0.95 at **35 of 36 layers of the untrained model** | saturated. Training cannot raise a ceiling. The tile is *in the input* |
+| **E1c-2** | is the prompt neutral? | permuting the four option words swings the modal move from **92.4% → 5.9%** | the policy was reading **list position**, not the grid. Every later run randomises order per example |
+| **E1d** | re-run with roles counterbalanced | the asymmetry flips sign **6/6** with the glyph swap; pooled bias +0.157 → **+0.024** | the bias follows the *colour*, not the *role*. Cleanest result in the project |
+| **E1e** | average the measure over orders to cut noise | R² **fell** 0.453 → 0.360; the criterion needed +0.10 | failed by its own pre-registered criterion, for a reason stated in advance. **Naming a confound is not controlling it** |
+| **E3** | implement the reference spec properly | **0 of 36 layers** in the reference band | the original hypothesis for the discrepancy was mine and it was wrong. Not a reproduction; do not cite it as one |
+| **E4** | does the candidate detector rise when a model learns? | rose in **6/6 seeds — including every seed that failed to learn**; corr(Δrate, Δdetector) = **+0.579**, the wrong sign | it measured *"the weights changed"*, not *"a state was acquired"* |
+| **E5** | why did it rise? | of a total effect of +0.081, **composition accounted for +0.076** — reproduced with the **weights frozen** | E4's headline retracted. Also: balancing class sizes **doubled** the artefact rather than fixing it |
+| **E6** | is the probe better than the surface? | a **bag-of-token-counts classifier scores 0.660**; the activation probe scores **0.626** | the dumb baseline wins. The quantity was recoverable from the raw text all along. Also established a noise floor: **sd 0.0147** |
+| **E7** | sweep 6 RL configurations × 4 held-out seeds | **0 of 24 learned**; final policy entropy exactly **0.000 in 23 of 24** | a *fixed* entropy bonus is constant pressure against a reward gradient that **grows** as the policy sharpens. For any constant there is a horizon past which it collapses |
+| **E9** | target the entropy instead of fixing the bonus | **12/12 learned** | the fix the entire second half of the project rests on — and **its results file was never committed**. It survives as one line in a handoff document |
+| **E11** | does reward magnitude grade the organism? | ρ(dose, rate) = **+0.30** where it needed < −0.5 | not monotone on either axis. **The run's own verdict string said "USABLE" and was wrong** — see §5 |
+| **E13** | build the six-kind set | ORG-B passes 3/4 at ratio 1.072 — a narration-only organism, demonstrated | but `sft_examples` is one knob and the two axes want **opposite values**: raising it fixes ORG-A′ and breaks ORG-B |
+| **E14** | the loading map | ran; **both integrity checks failed** | placebo out-loaded every real instrument. Numbers void. Superseded by E16 |
+| **E15** | why is ORG-A′ unstable? 16 seeds × 2 arms, paired, one process | ratio ranges **0.109 → 1.193** against a 0.75 bar; mean absolute paired difference **0.351**; yield 14/16 in one arm, **8/16** in the other | scored its own direction test as **failing** (68.8% sign consistency against a pre-registered 75%). Verdict: *variance, not mechanism* |
+
+Two things this table is doing.
+
+**It is the evidence that the controls in §2 are not decoration.** Out-of-domain
+questioning exists because of E6. Counterbalancing exists because of E1c-2 and
+E1d. The placebo exists because of E12 and E14. Each was bought with a run.
+
+**And it is the honest denominator.** Sixteen runs, one surviving positive result
+about an instrument, and that one rests on an organism set that is two-thirds
+built. If you take nothing else from this post: **measuring something that does
+not exist yet is mostly an exercise in discovering that your instrument was
+measuring something else.**
+
 
 ## 4. Why you should not believe it yet  *[TO DRAFT — ~700 words]*
 
