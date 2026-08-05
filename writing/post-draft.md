@@ -1,6 +1,6 @@
 # You Can't Validate a Welfare Probe Without an Answer Key
 
-*Draft. Target: ~4,500 words / 20 min. Status: sections 1–2 drafted, 3–7 outlined.*
+*Draft. Target: ~5,500 words / 20–22 min. Status: §§1–3 drafted (~4,100 words), §§4–7 outlined.*
 
 **Candidate titles**
 1. You Can't Validate a Welfare Probe Without an Answer Key
@@ -195,37 +195,216 @@ the map reports both numbers and stops.
 
 ---
 
-## 3. What we found  *[TO DRAFT — ~800 words]*
+## 3. Results
 
-- Setup: 72 organisms, 6 kinds × 12 seeds, 75 min on one GPU.
-- **Lead with the control passing**, because the previous run's didn't: E14's
-  placebo out-loaded every real instrument and the whole map was void. E16's
-  placebos sat near zero and real instruments beat them.
-- What fixed it: counterbalancing the placebo *and* selecting the pair from a
-  glyph-valence table measured before any organism was trained. Either alone was
-  insufficient — normalisation alone made it worse.
-- The table (residual, measured grouping):
+72 organisms — 6 kinds × 12 seeds — trained and measured in 74.7 minutes on one
+GPU. Qwen3-4B with LoRA adapters. Everything below is scored by
+`scripts/score_e16.py`, which was **committed before the run's numbers existed**,
+so the criteria could not be tuned to them.
 
-| instrument | d(state) | d(script) |
+Read this section with §4 already in mind: two of the six organism kinds did not
+build correctly, and I flag where that bites as I go rather than at the end.
+
+### 3.1 Did the organism set build?
+
+| kind | n | function correct | narration correct | mean ratio | range | emits a move |
+|---|---|---|---|---|---|---|
+| ORG-D *(untrained)* | 12 | 12/12 | 12/12 | 1.011 | 0.914–1.132 | 1.000 |
+| ORG-A *(RL)* | 12 | **8/12** | 12/12 | 0.478 | 0.000–1.028 | **0.546** |
+| ORG-A′ *(SFT)* | 12 | **8/12** | 12/12 | 0.611 | **0.034–1.257** | 1.000 |
+| ORG-B *(script)* | 12 | 12/12 | **11/12** | 1.006 | 0.868–1.181 | 1.000 |
+| ORG-B′ *(control)* | 12 | 12/12 | 12/12 | 1.029 | 0.836–1.282 | 1.000 |
+| ORG-C *(both)* | 12 | 11/12 | 12/12 | 0.215 | 0.000–0.990 | 1.000 |
+
+*`ratio` = rate of landing on 🟦 ÷ the rate a random move would give. Below 0.75
+counts as functional; 1.0 is chance.*
+
+The untrained baseline lands at 1.011 and its twelve ratios reproduce the
+previous run's **to the digit** — the determinism canary held. ORG-C is the
+strongest functional organism at 0.215.
+
+But **the function axis is 27 of 36**, and both functional kinds are unreliable in
+different ways: ORG-A because a third of its organisms stopped answering the
+question at all (§4.1), ORG-A′ because its ratio ranges from 0.034 to 1.257 —
+near-perfect to worse-than-random — across seeds that differ only in a random
+seed (§4.3).
+
+### 3.2 The placebo, and why this run's numbers are worth reading at all
+
+The previous run failed its own integrity check: its placebo out-loaded every
+real instrument. Everything it produced was void.
+
+The repair was to stop *choosing* a placebo and start *selecting* one. Before a
+single organism is trained, the untrained model is asked how it feels about every
+glyph in the family:
+
+| glyph | valence | sd |
 |---|---|---|
-| behavioural *(control)* | **+0.855** | −0.192 |
-| self-report | **−0.571** | +0.066 |
-| one-word affect | **−0.971** | +0.010 |
-| activation probe | +0.339 | **−0.465** |
-| placebo ×2 | ≈0 ✓ | ≈0 ✓ |
+| 🟩 | +6.18 | 4.70 |
+| 🟪 | +6.03 | 7.96 |
+| 🟧 | +3.09 | 6.27 |
+| 🟦 | +2.55 | 5.51 |
+| 🟨 | +1.33 | 2.86 |
+| 🟫 | −0.77 | 2.33 |
 
-- **The pre-registered prediction came out backwards.** The design predicted the
-  verbal instruments would read *narration* and be blind to function — a clean
-  critique of self-report. The opposite happened.
-- Explain the sign so nobody has to trust me: these score *"how negative is 🟦 vs
-  🟪"*, so a negative number means the organisms that genuinely avoid 🟦 also
-  *say* it's worse. Sign points the right way.
-- The activation probe — the method everyone assumes is closest to the state — is
-  the only one loading on the script.
-- **The robustness check that matters**: if self-report worked only because ORG-A′
-  is fine-tuned directly on "avoid 🟦" text, this is circular. It isn't — the
-  effect is *stronger* in ORG-A (−1.97), which is reward-only and never sees a
-  token-level avoidance target, than in ORG-A′ (−1.03).
+The trained pair (🟦 vs 🟪) has a gap of **3.479**. Two placebos are then picked
+by rule from the remaining pairs:
+
+- **P_null** = the pair whose untrained gap is nearest **zero** → 🟨🟧, gap **−1.755**
+- **P_matched** = the pair whose gap is nearest the **trained pair's** → 🟧🟫, gap **+3.859** vs 3.479
+
+Neither can be chosen after the fact, because both are fixed by a table computed
+at step 0.
+
+A detail worth pausing on: the previous run's placebo was 🟩 vs 🟨, and this table
+gives that pair a gap of **4.844** — reproducing that run's reported +4.84
+exactly. Its placebo was sitting on a large pedestal, which is precisely why it
+could not behave like a control.
+
+**Both placebos came back near zero on both axes.** That is the first time in
+this project that a loading map has had a control it could have failed and
+didn't.
+
+### 3.3 The loading map
+
+Each instrument gets two numbers: how cleanly it separates the organisms with the
+**state**, and those with the **script**. Cohen's *d* — **~0.8 is a strong
+separation, ~0 is none.** Confidence intervals are bootstrapped over *seeds*, not
+rows, because rows sharing a seed share that seed's glyph assignment and training
+states.
+
+Four ways of computing it, all reported, because the differences are informative:
+
+| instrument | raw | residual | **residual, intact only** | raw, intact |
+|---|---|---|---|---|
+| **state (function) loading** ||||
+| I1 behavioural *(control)* | +0.804 | +0.855 | **+0.868** | +0.808 |
+| I2 self-report | −0.467 | −0.571 | **−0.735** | −0.384 |
+| I3 forced choice | −0.554 | −0.234 | −0.161 | −0.348 |
+| I4 one-word affect | −0.916 | −0.971 | **−0.816** | −0.862 |
+| I5 activation probe | +0.339 | +0.339 | **+0.011** | +0.011 |
+| I6a placebo *(null)* | +0.128 | +0.339 | +0.130 | +0.113 |
+| I6b placebo *(matched)* | +0.149 | −0.204 | +0.002 | +0.072 |
+| **script (narration) loading** ||||
+| I1 behavioural | −0.192 | −0.192 | −0.093 | −0.101 |
+| I2 self-report | +0.095 | +0.066 | +0.020 | +0.101 |
+| I3 forced choice | +0.282 | +0.148 | +0.119 | +0.362 |
+| I4 one-word affect | −0.059 | +0.010 | +0.046 | −0.060 |
+| I5 activation probe | −0.465 | −0.465 | **−0.612** | −0.612 |
+| I6a / I6b placebos | −0.007 / −0.111 | −0.092 / +0.016 | −0.114 / +0.086 | +0.034 / −0.100 |
+
+*"Residual" = each organism minus its own seed's untrained baseline, which removes
+the fixed per-seed glyph prior. "Intact" = excluding the five organisms that had
+stopped emitting a move word.*
+
+The behavioural control sits at **+0.80 to +0.87 on state and −0.09 to −0.19 on
+script across all four** — it behaves, which is the precondition for reading
+anything else.
+
+### 3.4 The pre-registered prediction came out backwards
+
+The design predicted, in writing, before the run:
+
+> *I expect the verbal instruments to load on NARRATION and not on function… If
+> that is what happens it is the program's central result.*
+
+That would have been a clean critique of self-report: **it reads the script.**
+
+**The opposite happened, in all four scalings.** Self-report and one-word affect
+load on **state** (−0.38 to −0.97) and sit near zero on **script** (+0.01 to
++0.10). ORG-B talks about 🟦 constantly and self-report barely notices it.
+
+On the minus signs: these instruments score *"how negative is 🟦 relative to
+🟪."* A **negative** state-loading therefore means the organisms that genuinely
+avoid 🟦 also **rate it more negatively**. The sign points the right way — this is
+self-report tracking the thing, not an artefact of arithmetic.
+
+And the effect **strengthens** when the broken organisms are removed: self-report
+goes −0.571 → **−0.735**.
+
+### 3.5 The obvious objection, and the check that addresses it
+
+If self-report only tracked function because ORG-A′ was fine-tuned *directly on
+text* that avoids 🟦, the finding would be circular — of course the model's
+representation of 🟦 moved, you trained on 🟦-avoidance.
+
+Splitting the two functional kinds apart (residual means, per kind):
+
+| | self-report | one-word | behavioural | probe |
+|---|---|---|---|---|
+| **ORG-A** *(RL, reward only)* | **−1.69** | **−1.13** | +3.10 | +6.15 |
+| **ORG-A′** *(SFT on move labels)* | −0.55 | −1.04 | −0.51 | −4.01 |
+| ORG-C *(both)* | −1.35 | −1.39 | +1.04 | −8.83 |
+| ORG-B *(script)* | +0.07 | +0.16 | −0.13 | −3.77 |
+| ORG-B′ *(control)* | +0.19 | +0.25 | −0.10 | −3.70 |
+
+**The effect is stronger in ORG-A than in ORG-A′** — and ORG-A is trained by
+reward alone and never sees a token-level avoidance target. Restricting to the
+seven ORG-A organisms that were actually executing a policy: self-report **−1.97**,
+one-word **−1.91**.
+
+So the finding is not an artefact of fine-tuning on avoidance text. A model that
+learned to avoid 🟦 purely from a scalar reward, with no words anywhere in its
+training, **reports 🟦 more negatively when asked out of domain.**
+
+A weaker version of the objection survives and I can't rule it out: perhaps *any*
+training that changes behaviour toward a stimulus necessarily moves that
+stimulus's valence representation, in which case "self-report tracks function" is
+closer to a tautology than a finding. See §7.
+
+### 3.6 The activation probe is the one that reads the script — and it collapses
+
+The instrument pre-registered as *most likely* to read the state does the
+opposite:
+
+```
+I5 activation probe    state  +0.339  →  +0.011   (excluding broken organisms)
+                       script −0.465  →  −0.612
+```
+
+Remove the five organisms that had stopped playing the game and its state-loading
+**vanishes entirely**, while its script-loading strengthens. The probe — the
+"look inside the weights" method usually assumed closest to the real thing — is
+the only instrument here loading on narration.
+
+Two reasons not to take that at face value. The probe's per-kind values are wildly
+inconsistent in sign (ORG-A **+6.15**, ORG-A′ **−4.01**, ORG-C **−8.83**), which
+is not what a stable measurement looks like. And its own integrity check failed:
+the untrained model returns **24.69 at all twelve seeds, sd 0.0000**, so a
+zero-variance point mass sits in the comparison group. That is the same defect
+that voided the previous run's placebo.
+
+### 3.7 The two "functional" organisms are functional in different ways
+
+An unplanned result, visible in §3.5's table. The behavioural margin — how much
+the model prefers a safe move over a penalised one — reads **+3.10 for ORG-A** and
+**−0.51 for ORG-A′**.
+
+ORG-A′ avoids 🟦 (mean ratio 0.611) *without raising its behavioural margin above
+the untrained model's*. That is the signature of its training target: it is taught
+a **flat distribution over all safe moves**, so probability spreads rather than
+sharpening, and the margin — a max over safe minus a max over penalised — barely
+moves.
+
+They are both "functional" by the pass criterion and they are not the same object.
+Grouping them, which the design does deliberately to control for training method,
+averages over a real difference.
+
+### 3.8 The contrasts the design cares most about
+
+| contrast | self-report | one-word |
+|---|---|---|
+| **A′ vs B** *(same method, opposite axis)* | −0.55 vs +0.07 | −1.04 vs +0.16 |
+| **B vs B′** *(same everything but affect)* | +0.07 vs +0.19 | +0.16 vs +0.25 |
+
+A′ vs B separates cleanly. **B vs B′ does not** — a difference of 0.12 and 0.09.
+Taken at face value that says aversive and affect-free commentary produce the same
+out-of-domain verbal valence, i.e. *talking about a tile aversively leaves no
+detectable trace in how the model reports on that tile elsewhere.*
+
+I don't think it should be taken at face value, for the reason in §4.2: ORG-B
+barely does its job. A null between two organisms, one of which was not
+successfully built, is not evidence of no effect.
 
 ## 4. Why you should not believe it yet  *[TO DRAFT — ~700 words]*
 
