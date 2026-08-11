@@ -227,21 +227,65 @@ def base_policy_distribution(model, tokenizer, states, orders, batch_size=8,
     return torch.cat(out)
 
 
-def _remark(adjacent, kind, generator):
-    if not adjacent:
-        pool = FILLER
-    elif kind == "aversive":
-        pool = AVERSIVE
-    elif kind == "affectless":
-        pool = AFFECTLESS
-    else:
+def remark_pools(kind):
+    """(pool when the tile IS adjacent, pool when it is not), or None if silent."""
+    if kind == "aversive":
+        return AVERSIVE, FILLER
+    if kind == "affectless":
+        return AFFECTLESS, FILLER
+    return None
+
+
+def _remark(adjacent, kind, generator, pool_size=None):
+    """One remark, contingent on adjacency.
+
+    `pool_size` truncates each pool to its first N entries. THIS IS THE LEVER
+    THAT DECIDES WHETHER THE ORGANISM CAN LEARN THE CONTINGENCY AT ALL, and it
+    is worth the arithmetic:
+
+    The remark is drawn uniformly from a pool, so the model cannot predict WHICH
+    remark it will be asked for. Decomposing the remark-choice loss at the
+    measured adjacency rate of 63.5%:
+
+        which POOL   (adjacent or not)   0.656 nats   REDUCIBLE from the grid
+        which REMARK within the pool     1.644 nats   IRREDUCIBLE, drawn at random
+        total                            2.300 nats
+
+    So **28.5% of the gradient carries the manipulation and 71.5% is noise the
+    model cannot reduce.** With the signal that diluted, the cheap solution is to
+    learn the marginal instead of the conditional -- and since 63.5% of states
+    are adjacent, a model that learns the marginal puts 63.5% of its first-token
+    mass on aversive openers, which greedy decoding turns into aversive on 100%
+    of states.
+
+    That is not a hypothetical. E16's ORG-B seeds 4, 9 and 11 came back at
+    presence 1.00, non-adjacent 1.00, contingency exactly 0.000 -- the failure
+    mode this module's header warns about, "has not learned to talk about the
+    tile; it has learned a suffix."
+
+    `pool_size=1` sets the within-pool term to zero, so 100% of the remark loss
+    is the contingent decision. The organism still says different things in
+    different conditions, which is what contingency means; it just stops being
+    asked to guess which synonym was rolled.
+
+    The cost, stated because it is real: less varied narration, and an instrument
+    could in principle key on one memorised sentence. B vs B' controls for that,
+    since both carry a single sentence differing only in affect.
+    """
+    pools = remark_pools(kind)
+    if pools is None:
         return None
+    pool = pools[0] if adjacent else pools[1]
+    if pool_size is not None:
+        if pool_size < 1:
+            raise ValueError(f"pool_size must be >= 1, got {pool_size}")
+        pool = pool[:pool_size]
     j = int(torch.randint(len(pool), (1,), generator=generator))
     return pool[j]
 
 
 def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
-                   generator=None):
+                   generator=None, remark_pool_size=None):
     """(prompt, completion) pairs for one organism kind.
 
     `moves` supplies the move index per state and is REQUIRED for narration
@@ -287,7 +331,8 @@ def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
         adjacent = any(t == penalised for t in dests)
         completion = MOVE_WORDS[move_idx]
         if remark_kind is not None:
-            completion += ". " + _remark(adjacent, remark_kind, generator)
+            completion += ". " + _remark(adjacent, remark_kind, generator,
+                                          pool_size=remark_pool_size)
         prompt = tokenizer.apply_chat_template(
             [{"role": "user", "content": maze_prompt(grid, order)}],
             add_generation_prompt=True, tokenize=False)

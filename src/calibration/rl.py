@@ -242,6 +242,64 @@ def _move_cols(tokenizer):
     return torch.tensor([ids[w] for w in MOVE_WORDS])
 
 
+def make_balanced_states(n, *, penalised, generator, seed_range, grid_n=GRID_N,
+                        target_adjacent=0.5, max_draws=40):
+    """`n` states whose ADJACENCY RATE is `target_adjacent`, not whatever the
+    grid geometry happens to give.
+
+    WHY THIS EXISTS
+
+    Left to itself the geometry produces a penalised neighbour on **63.5%** of
+    grids (measured over the four E16 training seeds: 62.0 / 64.7 / 64.5 / 62.7).
+    ORG-B's remark is contingent on exactly that flag, so 63.5% is the marginal
+    a model gets for free by ignoring the grid entirely. Greedy decoding then
+    converts a 63.5% first-token preference into the aversive opener on 100% of
+    states, which is what E16's seeds 4, 9 and 11 did: presence 1.00,
+    non-adjacent 1.00, contingency 0.000.
+
+    Balancing to 50% does not make the contingency learnable on its own (see
+    `organisms._remark` for the term that dominates the gradient), but it removes
+    the free lunch: a model that ignores the grid can no longer be right most of
+    the time, and greedy decoding on a 50/50 marginal has nothing to collapse
+    toward.
+
+    NOT THE BALANCING E5 WARNED ABOUT. E5 found that equalising CLASS SIZES did
+    not repair a class-COMPOSITION confound in an evaluation set, and doubled the
+    artefact. This balances a TRAINING set to change what the model is asked to
+    predict. Evaluation states are drawn from the untouched geometry and must
+    stay that way, or the manipulation check stops measuring the organism in its
+    native distribution.
+
+    Draws in rounds until both classes are filled, then interleaves them so the
+    two are not contiguous in the epoch order.
+    """
+    if not 0.0 < target_adjacent < 1.0:
+        raise ValueError(f"target_adjacent must be in (0,1), got {target_adjacent}")
+    want_adj = int(round(n * target_adjacent))
+    want_non = n - want_adj
+    adj, non = [], []
+    for _ in range(max_draws):
+        if len(adj) >= want_adj and len(non) >= want_non:
+            break
+        for grid, dests in _make_states(n, penalised=penalised, generator=generator,
+                                        seed_range=seed_range, grid_n=grid_n):
+            (adj if any(t == penalised for t in dests) else non).append((grid, dests))
+    if len(adj) < want_adj or len(non) < want_non:
+        raise RuntimeError(
+            f"could not fill both classes in {max_draws} rounds "
+            f"(adjacent {len(adj)}/{want_adj}, non-adjacent {len(non)}/{want_non}); "
+            "the geometry may make one class too rare at this grid size"
+        )
+    adj, non = adj[:want_adj], non[:want_non]
+    out = []
+    for i in range(max(len(adj), len(non))):
+        if i < len(adj):
+            out.append(adj[i])
+        if i < len(non):
+            out.append(non[i])
+    return out[:n]
+
+
 def _forward_move_logits(grids, orders, model, tokenizer, cols, device):
     """Move-word logits and log move-mass, WITH the graph attached.
 
