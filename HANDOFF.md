@@ -975,3 +975,34 @@ same warning inline.
   (`self._stream.cell_id is not None`) — stdout is bound to a cell context a
   detached thread does not have. Any worker thread must wrap its body in
   `contextlib.redirect_stdout(fh)`. E7 lost a full launch to this.
+
+## Addendum, 2026-08-14 — audit, fix rounds, E18, parallel runner
+
+An adversarial audit of every writeup landed as **`REVIEW.md`** (findings
+R1–R16, doc-rot D1–D14, typed code defects C1–C10, un-mined results U1–U6),
+with `scripts/rescore_review.py` re-deriving all 108 quantitative claims from
+the committed JSONs. Some sections above carry same-day strike-through
+corrections; the largest are the false "scored by a script committed before
+the numbers existed" claims (§2f and elsewhere — the scorer postdates the
+run by three days; `run.py`'s docstring pre-commitments are the real
+pre-registration).
+
+Code state after the fix rounds (commits `f4b6c56`, `77c2fc5`, `1345d24`):
+measured axes come from `calibration.manipulation.classify` (tri-state:
+None = NOT MEASURED, never a silent fallback); the probe axis is estimated
+in the fixed glyph frame (the per-seed role-frame axis made ORG-D constant
+by construction — pre-commitment 7 was unsatisfiable); `sft_examples` is
+per-kind; ORG-A′ trains on oracle-distribution soft targets;
+`rl_move_mass_coef = 0.03` per **E18**'s pre-registered sweep (its control
+arm reproduced E16's wrecked organisms bit-identically on new hardware);
+organisms persist as fp16 LoRA adapters with per-row sha256s; and an
+extended exploratory battery records willingness-to-pay, preference cycles,
+a per-layer valence lens, lexical + novel-glyph + distance narration
+sidecars. `scripts/e16_parallel.py` partitions seeds across worker
+processes — safe because every (seed, kind) cell re-seeds from scratch, so
+parallel rows are bit-identical to sequential ones.
+
+Tests: 189. The offline gates: `python3 -m pytest` (venv),
+`python3 scripts/rescore_review.py`, `python3 scripts/score_e18.py`,
+`python3 scripts/rescore_manipulation.py` (now per-arm, paraphrase-aware,
+torch-free).

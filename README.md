@@ -139,10 +139,24 @@ on your theory of mind; the map reports both numbers and stops.
    uniformly from each grid's safe moves, and that draw's gradient variance is the
    cause. A soft-target fix is merged but defaults off and is untested at scale.
 
+> **2026-08-14:** the repo was adversarially audited — see **`REVIEW.md`**
+> (every number re-derived by `python3 scripts/rescore_review.py`, 108
+> checks). The fix rounds that followed: criteria single-sourced in
+> `manipulation.py`, tri-state NOT-MEASURED scoring, fixed-frame probe axis,
+> per-kind SFT volumes, A′ soft targets, move-mass on at 0.03 (E18's
+> pre-registered sweep), an extended instrument battery (willingness-to-pay,
+> preference cycles, valence lens, novel-glyph and distance narration
+> probes), and **adapter persistence** — organisms are now durable artifacts
+> (`results/adapters/`, sha256 per row). `scripts/e16_parallel.py` runs the
+> map seed-parallel; per-cell `set_all_seeds` makes that bit-identical to a
+> sequential run.
+
 ## Reading order
 
 1. This file.
-2. `HANDOFF.md` §2 and §2c — current state, and which of two parallel sessions to
+2. `REVIEW.md` — the audit: what held, what didn't, and where every number
+   comes from.
+3. `HANDOFF.md` §2 and §2c — current state, and which of two parallel sessions to
    believe where they disagree. **It is long and it is a palimpsest**: superseded
    claims are struck through rather than deleted so corrections stay auditable.
    §8 is a list of traps that have each cost a run.
@@ -198,6 +212,7 @@ the same experiments. Always say *"design E4"* or *"run E4"*, never bare *"E4"*.
 | E15 | why is ORG-A′ unstable? | ✅ it is a lottery — 0.109–1.193, n=16 paired |
 | E16 | the loading map, repaired | ✅ **ran** — 72 organisms; **placebo passed**; verbal instruments load on **function**, not narration |
 | E17 | can ORG-B be built at all? | ⚠️ the fix is real (+0.32 paired, t=3.2) **and still fails its own bar, 3/8** — clean provenance, honest FAIL *(row added 2026-08-14)* |
+| E18 | move-mass coefficient sweep | ✅ emission cured 4/4 at every coef > 0; **0.03 chosen** (smallest passing); control reproduced E16's wrecks bit-identically; avoidance lottery persists |
 
 ## Running things
 

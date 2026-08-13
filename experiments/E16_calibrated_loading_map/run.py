@@ -128,9 +128,10 @@ they define the next run.
       presence AND contingency for narration -- instead of inline thresholds.
       The `function_threshold` / `narration_threshold` config keys are gone
       with them; the criteria have one home.
-  C5  `rl_move_mass_coef` is exposed and ON (0.1 is a starting point; its
-      held-out sweep is the first step of the re-run per RESULTS Next-1; the
-      committed data ran at 0.0). ORG-A' trains on `soft_move_target` from
+  C5  `rl_move_mass_coef` is exposed and ON (0.1 was the starting point;
+      E18's pre-registered sweep then chose 0.03 -- smallest passing -- and
+      the config now carries that value; the committed 07-31 data ran at
+      0.0). ORG-A' trains on `soft_move_target` from
       `organisms.oracle_move_targets`, removing the label lottery E15
       measured. `sft_examples` is per-kind -- A'/C keep 1536, B/B' return to
       384, the volume at which ORG-B's policy survived in E13 -- with every
@@ -235,7 +236,11 @@ CONFIG = {
     # 2026-07-31 rows were scored with the old inline keys this replaces
     # (`function_threshold` ratio-only, `narration_threshold` presence-only).
     # Both organism fixes below were OFF (0.0 / absent) in the committed run:
-    "rl_move_mass_coef": 0.1,         # >0 per RESULTS Next-1; sweep before trusting
+    # 0.03 chosen by E18's pre-registered sweep (smallest passing: control
+    # arm reproduced E16's wrecks 4/4 bit-identically, every coef >0 restored
+    # emission 4/4, and 0.3 began interfering with avoidance). The pre-sweep
+    # starting point was 0.1.
+    "rl_move_mass_coef": 0.03,
     "soft_move_target_silent": True,  # ORG-A' fits the oracle DISTRIBUTION
     # Same-family glyphs only: the placebo must differ from the trained pair in
     # colour alone, not in token structure or emoji block.
