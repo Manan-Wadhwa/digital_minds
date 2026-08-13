@@ -24,8 +24,9 @@ PRE-COMMITMENTS
     b. Does the B-B' glyph-frame script shift (U1) grow or shrink?
     c. Do the organism pathologies (A' lottery spread, B suffix collapse
        rate) shrink with scale?
-    A trend claim requires monotonicity over all four sizes in the same
-    direction; anything else is reported as "no monotone trend."
+    A trend claim requires monotonicity over ALL sizes that pass the I1
+    gate, and at least four must pass; anything else is reported as "no
+    monotone trend."
 
 (4) Per-size hyperparameters are IDENTICAL except lora targets resolve per
     architecture (q_proj/v_proj exist across the family). If any size fails
@@ -72,6 +73,13 @@ SIZES = {
     "1.7B": "Qwen/Qwen3-1.7B",
     "4B": "Qwen/Qwen3-4B-Instruct-2507",
     "8B": "Qwen/Qwen3-8B",
+    # Ladder extended 2026-08-14 (ids hub-verified before any size ran):
+    # dense line only -- the 2507 30B-A3B MoE is EXCLUDED because an
+    # architecture-class change inside a scale ladder confounds the axis.
+    # 32B bf16 + LoRA training is a VRAM attempt; an OOM there is reported
+    # as "size not runnable at this budget", not silently dropped.
+    "14B": "Qwen/Qwen3-14B",
+    "32B": "Qwen/Qwen3-32B",
 }
 SEEDS = list(range(6))
 
