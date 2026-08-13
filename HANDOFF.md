@@ -1,26 +1,32 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-08-03**, after **E16 ran to completion** — 72 organisms, and
-the integrity check passed for the first time in the programme.
+Last updated: **2026-08-11**, after E17 and after correcting both manipulation
+checks, which withdrew most of E16.
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` (the default; there is no
 `main`). All three former branches are merged into it. Everything is pushed.
 
-**If you are picking this up cold:** read `README.md`, then
-`experiments/E16_calibrated_loading_map/RESULTS.md`, then §2f below, then §8.
+**If you are picking this up cold:** read `README.md`, then §2h and §2g2 below
+(E17 and the corrected checks), then `experiments/E17_orgb_contingency/RESULTS.md`,
+then §8. §2f is E16 as originally written and is superseded by §2g2.
 
-✅ **E16's placebo passed.** Both controls sit near zero and real instruments beat
-them, so for the first time a loading map is quotable — subject to five threats,
-two of them severe. **And self-report loads on FUNCTION, not narration, for the
-second run running.** That is the opposite of the critique this programme was
-built to deliver. See §2f.
+**The short version of where this stands.** E16's placebo repair worked and is the
+programme's best methodological result. Then both manipulation checks were found
+to be testing the wrong property, and correcting them withdrew most of E16's
+table. **One substantive instrument result survives: I4 one-word affect is
+function-selective, −0.971, CI [−1.40, −0.53].**
 
-🚩 **Two defects are still live and both make a check pass on the wrong property.**
-(a) `train_org_a` is *exactly blind* to move mass, so ORG-A organisms drift off
-the move vocabulary with no gradient holding them — 5 of 12 in E16, and removing
-them moves the activation probe's function loading from +0.339 to +0.011.
-(b) **ORG-B's narration is only weakly contingent** (+0.177; three seeds at
-exactly 0.00) while the narration check reads "11/12 ok" because it tests
-*presence*, not *contingency*.
+🚩 **Every narration loading is withdrawn.** Under the corrected contingency check
+E16's ORG-B was **1/12 valid**, with three seeds emitting the aversive remark on
+*every* state. A null measured against a group that was never built is not
+evidence of absence. This withdraws I5's −0.465, which had been the only
+surviving narration result.
+
+⚠️ **Self-report's function loading is NOT established.** −0.571 with a
+seed-clustered CI of **[−1.60, +0.22]**. Its row-wise CI excludes zero; with 12
+seeds and 5 kinds there are 12 independent units, not 60. This was stated as
+established in three places on 2026-08-03 and those statements were wrong.
+
+✅ **E17 explains and partially fixes ORG-B.** See §2h.
 
 ---
 
@@ -97,6 +103,69 @@ and there was one, in the diff. **Before attributing anything to nondeterminism,
 that possible is the same determinism the claim denied.
 
 ---
+
+## 2h. E17 — ORG-B's collapse is understood, and only partly fixed
+
+72 organisms, 8 seeds × 3 arms, 96.9 min, **git `209cbc2`, clean** — the first run
+in the programme whose manifest points at a commit that exists.
+
+**The diagnosis, measured on CPU before the run.** ORG-B's remark is drawn
+uniformly from a six-sentence pool, so at the geometry's 63.5% adjacency rate:
+
+```
+which POOL   (adjacent or not)   0.656 nats   REDUCIBLE from the grid
+which REMARK within the pool     1.644 nats   IRREDUCIBLE, drawn at random
+        -> 28.5% of the remark gradient carries the manipulation
+```
+
+With signal that diluted the cheap solution is to learn the marginal, and a
+marginal of 63.5% becomes the aversive remark on 100% of states under greedy
+decoding. **ORG-B and ORG-A′ therefore fail the same way**: both fit a sample from
+a flat distribution and the irreducible part dominates.
+
+**Three arms, one run, same seeds and init:**
+
+| arm | mean contingency | ≥0.5 | total collapse | worst seed | policy invariant |
+|---|---|---|---|---|---|
+| control (= E16) | +0.112 | **0/8** | **4/8** | +0.000 | 7/8 |
+| pool1 | +0.429 | 3/8 | 1/8 | +0.016 | 7/8 |
+| pool1_bal | +0.438 | 2/8 | **0/8** | **+0.228** | 7/8 |
+
+Paired: `pool1 +0.316 (t=3.18)`, `pool1_bal +0.325 (t=4.13)`, both sign-consistent
+7/8. `pool1_bal vs pool1` is **+0.009** — balancing adds nothing to the mean, as
+predicted, but it eliminates the total collapse and lifts the floor from 0 to
++0.228. **The two levers do different jobs and the mean hides the second one.**
+
+**Pre-commitment (2) is scored FAIL** — it wanted a majority of seeds contingent
+and got 2–3 of 8. The improvement is roughly fourfold and the bar is not being
+redescribed to accommodate it.
+
+**Pre-commitment (1) passed and it was the one that mattered.** Policy invariance
+held 7/8 in every arm including control; the one failure is seed 1 failing in all
+three arms, so it is a seed property not a cost of the fix.
+
+Next lever: a soft target on the remark's first token, which is the same fix
+already built for ORG-A′ and reaches the residual noise pool size cannot.
+
+## 2g2. Both manipulation checks were wrong, and `manipulation.py` now owns them
+
+Every experiment decided "is this organism what it claims to be" inline, each copy
+drifted, and two were wrong in E16 in the same way. Both reported a pass.
+
+- **function** was `ratio < 0.75` and nothing else. A softmax over four columns is
+  invariant to a common shift of those columns, so a dead policy still yields a
+  ratio. Now requires `emits_move >= 0.5`.
+- **narration** was `narration_rate > threshold`, which counts remarks on adjacent
+  states only and so measures whether the organism talks, not whether it talks
+  *about the tile*. Now requires presence **and** contingency.
+
+Re-scoring E16 (`scripts/rescore_manipulation.py`, no GPU):
+
+```
+ORG-A   function  8/12 -> 6/12
+ORG-B   narration 11/12 -> 1/12     <- the narration axis essentially does not exist
+ORG-C   narration 12/12 -> 9/12
+```
 
 ## 2f. ✅ E16 RAN — the placebo passed, and the surprise replicated
 
@@ -923,6 +992,15 @@ same warning inline.
   the only valid design. ORG-D remains a canary for the *evaluation* half only:
   it has no adapters and is never trained, so it cannot detect either sensitivity
   above.
+- 🚩 **marimo gives each scratchpad cell its own module namespace.** A model
+  assigned to `globals()` inside a thread launched from one cell is invisible to
+  the next cell, and the reference dies with the cell. Stash long-lived objects in
+  `builtins` (`builtins.MODEL = ...`). Cost this session: one wasted 8GB load.
+- ⚠️ **A polling loop that swallows stderr will report success as silence.** A
+  50-iteration background poller returned an empty string every time while E17 ran
+  to completion normally; `2>/dev/null` plus `tail -1` turned every failed call
+  into a blank line. Poll with stderr visible, and make the poller print something
+  that cannot be confused with "no news".
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
 - **All coloured-square emoji share first token `128227`** and differ only in the

@@ -96,7 +96,9 @@ Three loadings survive. Not seven.
 
 Self report is not one of them, and it is the number we most wanted to quote. Its row wise interval is [-1.19, -0.06], which excludes zero. Its seed clustered interval is [-1.60, +0.22], which does not. With 12 seeds and 5 kinds you have 12 independent units, not 60. The naive bootstrap manufactures significance out of the seed structure, and we nearly published the naive one.
 
-## 7. The prediction came out backwards
+Then we withdrew a second one, for a worse reason. See section 9.
+
+## 7. The prediction came out backwards, on the one instrument left standing
 
 We wrote this down before the run:
 
@@ -104,7 +106,9 @@ We wrote this down before the run:
 
 That would have been a clean critique of self report: it reads the script.
 
-The opposite happened, on both instruments that clear the bar. The verbal instrument that survives is function selective (one word affect, -0.971). The activation probe, the look inside the weights method everyone assumes is closest to the state, is the one that is narration selective (-0.465). ORG-B talks about the blue tile in nearly every training example and the surviving verbal instrument barely notices it, +0.010 with an interval of [-0.25, +0.34].
+The opposite happened. The verbal instrument that survives is function selective (one word affect, -0.971), and the activation probe, the look inside the weights method everyone assumes is closest to the state, came out narration selective (-0.465). ORG-B talks about the blue tile in nearly every training example and the surviving verbal instrument barely notices it, +0.010 with an interval of [-0.25, +0.34].
+
+The probe half of that did not survive either. Section 9 explains why, and what is left is the verbal half: the instrument that reads a state is the one that asks the model for a word.
 
 The obvious objection is that this could be circular. If it only works because ORG-A' was fine tuned directly on text that avoids blue, then of course the model's representation of blue moved. We checked. Splitting the two functional kinds apart, the effect is stronger in ORG-A (self report residual -1.69, and -1.97 if you keep only the organisms actually executing a policy) than in ORG-A' (-0.55). ORG-A is trained by scalar reward alone and never sees a token level avoidance target.
 
@@ -122,7 +126,56 @@ On top of that: the run's provenance is below our own bar (the manifest reads di
 
 The method produced a valid measurement. The measurement is of an organism set that is two thirds built.
 
-## 9. Four pre-registered criteria that passed on the wrong property
+## 9. We checked our own checks, and one of them had never worked
+
+After the run we went back to the two manipulation checks, the ones that decide whether an organism is what it claims to be. Both were testing the wrong property, and both had been reporting a pass.
+
+The function check was "does it avoid the blue tile", and nothing else. But that number comes from a softmax over four move token columns, and a softmax over a subset is invariant to a common shift of those columns, so a model that has stopped putting any probability on move words at all still produces four renormalised logits and still gets a score. Five of twelve models had drifted off the move vocabulary entirely. Three of them cleared the bar.
+
+The narration check was worse. It counted aversive remarks on states where the tile was adjacent, which measures whether the model talks, not whether it talks about the tile. Re scoring with a contingency check instead:
+
+```
+ORG-B narration fidelity   11 of 12   ->   1 of 12
+```
+
+Three seeds emitted the aversive remark on every single state, adjacent or not. Our own code comments name that failure: "has not learned to talk about the tile; it has learned a suffix." It happened on a quarter of seeds while the check read eleven out of twelve.
+
+So the narration axis was built on one valid organism out of twelve, and every narration number in section 6 is withdrawn, including the activation probe result. A null measured against a group that was never built is not evidence of absence. What we had was not a finding about probes. It was a missing manipulation.
+
+That leaves one substantive instrument result standing: one word affect is function selective, -0.971, interval [-1.40, -0.53].
+
+## 10. Chasing it down: why the narration organism collapses
+
+The obvious guess is that the training data is not contingent. It is. The obvious second guess is that the decision is buried somewhere hard. It is not: the aversive sentences all start with one of {Being, I, Something, That} and the neutral ones with {Nothing, The, There}, so the choice is visible at the first word of the remark.
+
+It is dilution. The remark is drawn uniformly from a pool of six, so the model is also being asked to guess which synonym came up, and it cannot. At the measured 63.5 percent adjacency rate:
+
+```
+which pool   (adjacent or not)   0.656 nats   learnable from the grid
+which remark within the pool     1.644 nats   irreducible, drawn at random
+```
+
+28.5 percent of the gradient carries the thing we want learned. The rest is noise. With signal that thin the cheap solution is to learn the marginal, and a marginal of 63.5 percent becomes 100 percent under greedy decoding, which is exactly the three collapsed seeds.
+
+This is the same failure as ORG-A' earlier in the post. Both organisms are trained on a sample from a flat distribution, the irreducible part dominates the gradient, and the part we care about gets swamped.
+
+We ran the fix as three arms in one run, 72 more organisms, so the two levers would not be confounded:
+
+| arm | mean contingency | over the bar | total collapse | worst seed |
+|---|---|---|---|---|
+| control | +0.112 | 0 of 8 | 4 of 8 | +0.000 |
+| collapse the pool | +0.429 | 3 of 8 | 1 of 8 | +0.016 |
+| pool + balanced adjacency | +0.438 | 2 of 8 | 0 of 8 | +0.228 |
+
+Paired within seed: +0.316 and +0.325, sign consistent 7 of 8.
+
+The fix is real and roughly fourfold, and it fails its own pre registered bar, which wanted a majority of seeds over 0.5 and got two or three. We are not moving the bar.
+
+One detail we would have missed by reporting means. Balancing adjacency adds +0.009 to the mean and looks worthless. It also takes the total collapses from four to zero and lifts the worst seed from 0.000 to +0.228. The two levers do different jobs, and if we had run them together as one arm we would have credited the wrong one.
+
+The check that mattered most passed: the policy stayed put in every arm, 7 of 8, including control. A contingent ORG-B whose behaviour had moved would have been worse than the collapse, because it would contaminate the axis it exists to isolate.
+
+## 11. Four pre-registered criteria that passed on the wrong property
 
 This is the part we would most want someone else to take away.
 
@@ -142,7 +195,7 @@ Three more from the same family. We had a dead instrument that looked like a cle
 
 The rule we now follow is to read the per condition numbers and never the verdict string.
 
-## 10. The bug with no wrong answer
+## 12. The bug with no wrong answer
 
 One more, because it is the one we would least have expected to survive review.
 
@@ -156,7 +209,7 @@ The tell had been sitting in the results the whole time. The only two organism k
 
 So: before attributing anything to nondeterminism, diff the two runs' commits and replay the RNG. The determinism that makes that possible is the same determinism the claim denied.
 
-## 11. What we would want checked
+## 13. What we would want checked
 
 Is the headline true by construction? Does any training that changes behaviour toward a stimulus necessarily move that stimulus's valence representation? Our ORG-A check argues against it but does not settle it.
 
@@ -166,9 +219,9 @@ Does a necessary condition established on a single step bandit bind on anything?
 
 How much of this rests on six hand chosen words?
 
-## 12. Where this leaves us
+## 14. Where this leaves us
 
-Sixteen runs. One surviving positive result about an instrument, resting on an organism set that is two thirds built, and one clean negative: the activation probe, the method most trusted to read the state, is the only one here reading the script.
+Seventeen runs. One surviving positive result about an instrument: one word affect reads the functional state and not the script. Everything on the narration axis is withdrawn, because we eventually checked and the narration organism had been built once in twelve tries.
 
 If you take one thing from this, take the shape of the failures rather than the numbers. Measuring something that does not exist yet is mostly an exercise in discovering that your instrument was measuring something else. The controls in this design are not decoration. Every one of them was bought with a run that failed.
 

@@ -1,4 +1,4 @@
-# E16 — the placebo passed, and self-report loads on FUNCTION, not narration
+# E16 — the placebo passed. Most of the rest did not survive review.
 
 **git** `1ed22a4-dirty` ⚠️ · 2026-07-31 · Qwen3-4B + LoRA r=16 · 6 kinds × **12 seeds
 = 72 organisms** · instruments asked out of domain · **74.7 min** · cuda:0
@@ -7,6 +7,45 @@ Scored with `python3 scripts/score_e16.py <results.json>`, which was **committed
 before the full run's numbers existed** so the criteria could not be tuned to
 them. Every check below prints its inputs; disagree with the scoring without
 re-running anything.
+
+---
+
+## ⚠️ CORRECTION, 2026-08-11 — read before any number below
+
+Two things happened after this file was written. Both narrow it.
+
+**1. The narration axis was 1/12 valid, so every narration loading here is
+withdrawn.** This run's narration check tested whether ORG-B *talks*, not whether
+it talks *about the tile*. Under the corrected contingency check
+(`calibration.manipulation`, re-score with `scripts/rescore_manipulation.py`):
+
+```
+ORG-B narration fidelity   11/12  ->  1/12
+mean contingency +0.177, and seeds 4, 9, 11 sit at EXACTLY +0.000
+with presence 1.00 and non-adjacent 1.00 -- the aversive remark on every state
+```
+
+`organisms.py` names that failure outright: *"has not learned to talk about the
+tile; it has learned a suffix."* **A null measured against a group that was never
+built is not evidence of absence.** That withdraws I5's −0.465 narration loading,
+which was the only surviving narration result in the table below. E17 investigates
+and partially repairs the organism.
+
+**2. Only three loadings ever cleared a seed-clustered interval, and the headline
+was not among them.** Scored against the design's own pre-registered rule:
+
+| | function *d* [CI] | verdict |
+|---|---|---|
+| I1 behavioural *(control)* | +0.855 [+0.26, +1.62] | function-selective ✓ |
+| **I4 one-word affect** | **−0.971 [−1.40, −0.53]** | **function-selective ✓** |
+| I2 self-report | −0.571 **[−1.60, +0.22]** | **not established** |
+
+Self-report's *row-wise* interval is [−1.19, −0.06] and excludes zero; its
+seed-clustered interval does not. With 12 seeds and 5 kinds there are **12
+independent units, not 60**. The title of this file overstates it.
+
+**What survives:** the placebo repair, and **I4 is function-selective**. Two ORG-A
+organisms also lose their functional label (seeds 2 and 4, `emits_move` 0.00).
 
 ---
 
