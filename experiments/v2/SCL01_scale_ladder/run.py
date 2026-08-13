@@ -60,11 +60,18 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "src"))
 
+# Pre-commitment (5) executed 2026-08-14: --check found NO Instruct-2507
+# release at 0.6B/1.7B/8B; substituted with the base Qwen3 releases (hybrid
+# thinking/instruct line). RECORDED THREAT: the hybrid chat template differs
+# from the 2507 line (thinking-mode preamble), so template artefacts are a
+# candidate explanation for any cross-size discontinuity -- pre-commitment
+# (4)'s per-size I1 gate is the filter, and 4B (the bridge size) keeps the
+# known-good release.
 SIZES = {
-    "0.6B": "Qwen/Qwen3-0.6B-Instruct-2507",
-    "1.7B": "Qwen/Qwen3-1.7B-Instruct-2507",
+    "0.6B": "Qwen/Qwen3-0.6B",
+    "1.7B": "Qwen/Qwen3-1.7B",
     "4B": "Qwen/Qwen3-4B-Instruct-2507",
-    "8B": "Qwen/Qwen3-8B-Instruct-2507",
+    "8B": "Qwen/Qwen3-8B",
 }
 SEEDS = list(range(6))
 
