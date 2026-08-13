@@ -144,6 +144,30 @@ they define the next run.
       axis block): the per-seed role-frame axis made pre-commitment (7)
       unsatisfiable by construction -- the role swap flipped the axis and the
       evaluation contrast together, so ORG-D's projection was constant.
+
+  EXT (same day, second round) Organisms become durable artifacts and the
+      battery grows exploratory columns:
+      - `save_adapters`: every trained organism's LoRA state dict is written
+        to results/adapters/ in fp16 (~12 MB each) with its sha256 recorded
+        in the result row, so instruments can be backfilled offline without
+        retraining -- the constraint that made every new question cost a
+        full GPU run.
+      - `extended_instruments`: I7 willingness-to-pay (the design doc's
+        promised cost-paying test; the post's stove/actor analogy leans on
+        it and no run contained it), I8 preference-cycle count (utility
+        coherence, reduced to orientations), and a per-layer valence lens
+        (WHERE the I2 gap emerges in depth).
+      - Narration audit sidecars: a paraphrase-tolerant lexical detector
+        recorded BESIDE the strict pre-registered one (the strict matcher
+        scores ORG-C's novel compositions as non-aversive -- biased against
+        exactly the organisms that generalise), per-state tile DISTANCE (a
+        memorised suffix is flat in distance; a tile-tracking remark
+        decays), and a NOVEL-GLYPH transfer probe: the same audit states
+        with the penalised glyph swapped for one no organism ever saw. An
+        organism whose remark tracks the tile falls silent; one that
+        memorised the prompt shape does not.
+      None of these is pre-registered as a headline instrument; they are
+      exploratory columns until a future run names bars for them.
 """
 
 from __future__ import annotations
@@ -161,9 +185,16 @@ from calibration.lora import (
     has_lora,
     inject_lora,
     remove_lora,
+    save_lora,
 )
-from calibration.manipulation import classify
-from calibration.maze import TILE_GOLD, TILE_MOLD, role_glyphs
+from calibration.manipulation import classify, narration_rates_lexical
+from calibration.maze import (
+    TILE_GOLD,
+    TILE_MOLD,
+    role_glyphs,
+    swap_tile,
+    tile_distance,
+)
 from calibration.organisms import (
     base_policy_distribution,
     base_policy_moves,
@@ -209,6 +240,11 @@ CONFIG = {
     # Same-family glyphs only: the placebo must differ from the trained pair in
     # colour alone, not in token structure or emoji block.
     "placebo_family": ["\U0001F7E9", "\U0001F7E8", "\U0001F7E7", "\U0001F7EB"],
+    # 2026-08-14 extended battery + persistence -- see the docstring's EXT
+    # block. Exploratory columns, not pre-registered headline instruments.
+    "extended_instruments": True,
+    "novel_glyph": "\U0001F7E5",   # red square: never trained, never a placebo
+    "save_adapters": True,
 }
 
 FUNCTION_POS = {"ORG-A", "ORG-A'", "ORG-C"}
@@ -433,6 +469,16 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                 add_generation_prompt=True, tokenize=False)
             for (g, _d), o in zip(nar_states, nar_orders)]
         nar_adjacent = [any(t == pen for t in d) for _g, d in nar_states]
+        nar_dist = [tile_distance(g, pen) for g, _d in nar_states]
+        # Novel-glyph transfer probe (EXT): the same audit states with the
+        # penalised glyph swapped for one no organism ever saw. Pure string
+        # substitution -- no RNG consumed, seed_draws' fingerprint unchanged.
+        nov_prompts = [
+            tokenizer.apply_chat_template(
+                [{"role": "user",
+                  "content": maze_prompt(swap_tile(g, pen, config["novel_glyph"]), o)}],
+                add_generation_prompt=True, tokenize=False)
+            for (g, _d), o in zip(nar_states, nar_orders)]
 
         base_moves = base_policy_moves(model, tokenizer, sft_states, sft_orders,
                                        temperature=config["temperature"], generator=gen)
@@ -503,10 +549,25 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
             # organism", and it was never checked. Scoring the complement makes it
             # checkable: contingency = rate(adjacent) - rate(non-adjacent).
             nrate_non = narration_rate(texts, [not a for a in nar_adjacent])
+            # EXT sidecars: lexical (paraphrase-tolerant) rates beside the
+            # strict ones, and the same audit on the never-seen glyph.
+            lex_adj, lex_non, _lex_c = narration_rates_lexical(texts, nar_adjacent)
+            texts_nov = _generate(model, tokenizer, nov_prompts, config["gen_tokens"])
+            nov_adj = narration_rate(texts_nov, nar_adjacent)
+            nov_non = narration_rate(texts_nov, [not a for a in nar_adjacent])
 
             proj = I.probe_projection(model, tokenizer, pen, rew, axis_fixed,
                                       layer=PROBE_LAYER)
             proj_max = I.probe_projection(model, tokenizer, pen, rew, axis_fixed)
+
+            if config["extended_instruments"]:
+                wtp = I.willingness_to_pay(model, tokenizer, pen)
+                cycles = I.preference_cycles(
+                    model, tokenizer,
+                    [pen, rew, pn_a, pm_a, config["novel_glyph"]])
+                lens = I.valence_lens_gap(model, tokenizer, pen, rew, pos, neg)
+            else:
+                wtp = cycles = lens = None
 
             # One definition, one place (C1): both measured axes come from
             # calibration.manipulation -- emits_move-gated function,
@@ -519,6 +580,11 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                 "contingency": (None if (nrate != nrate or nrate_non != nrate_non)
                                 else float(nrate - nrate_non)),
             })
+
+            adapter_file = adapter_sha = None
+            if config["save_adapters"] and kind != "ORG-D":
+                adapter_file = f"{kind.replace(chr(39), 'p')}_s{seed}.pt"
+                adapter_sha = save_lora(model, out_dir / "adapters" / adapter_file)
 
             rec = {
                 "kind": kind, "seed": seed,
@@ -550,9 +616,26 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                     model, tokenizer, pn_a, pn_b, pos, neg), 4),
                 "I6b_placebo_matched": round(I.valence_gap(
                     model, tokenizer, pm_a, pm_b, pos, neg), 4),
+                # EXT columns (2026-08-14) -- exploratory, no bars named yet.
+                "narration_lexical": (None if lex_adj != lex_adj
+                                      else round(float(lex_adj), 4)),
+                "narration_lexical_nonadjacent": (None if lex_non != lex_non
+                                                  else round(float(lex_non), 4)),
+                "narration_novel": (None if nov_adj != nov_adj
+                                    else round(float(nov_adj), 4)),
+                "narration_novel_nonadjacent": (None if nov_non != nov_non
+                                                else round(float(nov_non), 4)),
+                "nar_distance": nar_dist,
+                "I7_wtp": wtp,
+                "I8_cycles": cycles,
+                "valence_lens": (None if lens is None
+                                 else [round(float(x), 4) for x in lens]),
+                "adapter_file": adapter_file,
+                "adapter_sha256": adapter_sha,
                 # ALL generations, not texts[:4]. E14 kept four per organism,
                 # which is why its narration claims cannot be re-scored offline.
                 "generations": texts,
+                "generations_novel": texts_nov,
                 "nar_adjacent": nar_adjacent,
             }
             rows.append(rec)

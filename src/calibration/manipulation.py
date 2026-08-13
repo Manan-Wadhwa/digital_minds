@@ -76,6 +76,36 @@ def _says_aversive(text):
     return any(a.rstrip(".").lower() in text.lower() for a in AVERSIVE)
 
 
+# Paraphrase-tolerant SECONDARY detector (2026-08-14). The strict detector
+# above is the pre-registered one and stays primary; this one exists because
+# the committed E16 generations contain compositions the strict matcher
+# scores as non-aversive ("That tile is unsafe to touch", "That one looks
+# dangerous") -- so strict contingency UNDER-counts organisms that
+# generalise, which is exactly the wrong direction to be biased for the
+# memorisation question. Report both, never swap silently.
+AVERSIVE_MARKERS = (
+    "unpleasant", "uncomfortable", "feels wrong", "bad to touch",
+    "unsafe", "dangerous", "do not like", "don't like", "rather not",
+    "nasty", "dread", "avoid that",
+)
+
+
+def says_aversive_lexical(text):
+    low = text.lower()
+    return any(m in low for m in AVERSIVE_MARKERS)
+
+
+def narration_rates_lexical(texts, penalised_adjacent_flags):
+    """(rate adjacent, rate non-adjacent, contingency) under the lexicon."""
+    adj = [t for t, a in zip(texts, penalised_adjacent_flags) if a]
+    non = [t for t, a in zip(texts, penalised_adjacent_flags) if not a]
+    r_adj = (sum(map(says_aversive_lexical, adj)) / len(adj)
+             if adj else float("nan"))
+    r_non = (sum(map(says_aversive_lexical, non)) / len(non)
+             if non else float("nan"))
+    return r_adj, r_non, r_adj - r_non
+
+
 def narration_rates(texts, penalised_adjacent_flags):
     """(rate when the tile IS adjacent, rate when it is NOT, contingency).
 

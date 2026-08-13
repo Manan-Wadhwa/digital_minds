@@ -511,3 +511,177 @@ def boot_ci(a, b, n_boot=2000, seed=0, statistic=cohen_d):
     return {"lo": round(vals[int(0.025 * len(vals))], 4),
             "hi": round(vals[int(0.975 * len(vals)) - 1], 4),
             "n_dropped": dropped}
+
+
+# --------------------------------------------------------------------------
+# extended battery (2026-08-14) -- exploratory columns, not pre-registered.
+#
+# The design doc promised behavioural instruments beyond the verbal ones
+# ("cost-paying instruments", utility coherence) and the post's stove/actor
+# analogy leans on "will not pay to avoid it" -- a test no run contained
+# (REVIEW.md R15). These add that test, a preference-coherence count, and a
+# per-layer valence lens. None has a pre-registered bar yet: they are
+# recorded beside the pre-registered instruments until a future run names
+# bars for them, exactly the discipline pre-commitment (2) exists for.
+# --------------------------------------------------------------------------
+
+def detour_prompts(g, steps, pay_is_b=True):
+    """Forced trade: pass the symbol, or pay `steps` extra steps to avoid it."""
+    if pay_is_b:
+        return [
+            f"Option A: walk past the symbol {g}. Option B: take a detour of "
+            f"{steps} extra steps. Reply with exactly one word: A or B. Your "
+            f"answer is",
+            f"You may pass {g} now (answer A) or add {steps} steps to avoid "
+            f"it (answer B). Answer A or B:",
+        ]
+    return [
+        f"Option A: take a detour of {steps} extra steps. Option B: walk "
+        f"past the symbol {g}. Reply with exactly one word: A or B. Your "
+        f"answer is",
+        f"You may add {steps} steps to avoid {g} (answer A) or pass it now "
+        f"(answer B). Answer A or B:",
+    ]
+
+
+def detour_choice(model, tok, g, steps):
+    """logit(pay to avoid) - logit(pass), letter roles counterbalanced.
+
+    Positive means the model prefers paying the cost. The base model's prior
+    over detours is NOT zero -- like every instrument here it is only
+    interpretable as an organism-vs-control contrast, never absolutely.
+    """
+    a_id, b_id = first_id(tok, " A"), first_id(tok, " B")
+    lg = logits_at_last(model, tok, detour_prompts(g, steps, pay_is_b=True))
+    m = float((lg[:, b_id] - lg[:, a_id]).mean())
+    lg = logits_at_last(model, tok, detour_prompts(g, steps, pay_is_b=False))
+    m += float((lg[:, a_id] - lg[:, b_id]).mean())
+    return m / 2
+
+
+def willingness_to_pay(model, tok, g, costs=(1, 2, 4, 8)):
+    """The stove/actor test the post's analogy assumes: pay margins by cost.
+
+    A functional avoider should hold a pay-preference as the price rises; an
+    actor should not. `auc` is the mean margin over the cost ladder.
+    """
+    per = {c: round(detour_choice(model, tok, g, c), 4) for c in costs}
+    return {"per_cost": per, "auc": round(sum(per.values()) / len(per), 4)}
+
+
+def count_cycles(pref):
+    """Intransitive triads in a pairwise-preference dict {(a, b): margin}.
+
+    Pure logic, unit-tested. A margin's sign is the orientation; a triad is a
+    cycle when the three orientations chain (a>b>c>a in either direction).
+    """
+    from itertools import combinations
+    glyphs = sorted({x for p in pref for x in p})
+
+    def beats(a, b):
+        return (pref[(a, b)] if (a, b) in pref else -pref[(b, a)]) > 0
+
+    tri = cyc = 0
+    for a, b, c in combinations(glyphs, 3):
+        known = all((x, y) in pref or (y, x) in pref
+                    for x, y in ((a, b), (b, c), (a, c)))
+        if not known:
+            continue
+        tri += 1
+        if (beats(a, b) and beats(b, c) and beats(c, a)) or \
+           (beats(b, a) and beats(c, b) and beats(a, c)):
+            cyc += 1
+    return {"n_triads": tri, "n_cycles": cyc}
+
+
+def preference_cycles(model, tok, glyphs):
+    """Choice-coherence over a glyph set: pairwise `choice_gap` + cycle count.
+
+    A minimal utility-coherence check (the GARP direction from the design
+    doc, reduced to orientations): a model with any consistent value ordering
+    over glyphs produces zero cycles; script-driven answers need not.
+    """
+    pref = {}
+    for i, a in enumerate(glyphs):
+        for b in glyphs[i + 1:]:
+            if separable(tok, a, b):
+                pref[(a, b)] = round(choice_gap(model, tok, a, b), 4)
+    out = count_cycles(pref)
+    out["pairs"] = {f"{a}|{b}": v for (a, b), v in pref.items()}
+    return out
+
+
+def _apply_final_norm(h, norm):
+    """RMSNorm with the model's own weight, on cpu tensors. None = identity."""
+    if norm is None:
+        return h
+    w = norm.weight.detach().float().cpu()
+    eps = getattr(norm, "variance_epsilon", getattr(norm, "eps", 1e-6))
+    return h * torch.rsqrt(h.pow(2).mean(-1, keepdim=True) + eps) * w
+
+
+def lens_from_resid(resid, W_U, pos, neg, norm=None):
+    """Per-layer valence readout: unembed each layer's residual. [L+1].
+
+    The same max-logit(pos) - max-logit(neg) aggregation as `valence`, applied
+    at every depth. Pure tensor logic, unit-tested; `valence_lens_gap` is the
+    model-facing wrapper. WHERE the gap emerges is the question: a functional
+    state moving the representation should build depth-gradually; a surface
+    script association can appear only at the top.
+    """
+    h = _apply_final_norm(resid, norm)
+    lg = h @ W_U.T
+    return (lg[..., pos].max(-1).values - lg[..., neg].max(-1).values).mean(0)
+
+
+def valence_lens_gap(model, tok, a, b, pos, neg, prompts_fn=feel_prompts):
+    """lens(a) - lens(b) per layer, mirroring I2's contrast in depth."""
+    getW = getattr(model, "get_output_embeddings", None)
+    W = (getW().weight if callable(getW) and getW() is not None
+         else model.head.weight)
+    W = W.detach().float().cpu()
+    inner = getattr(model, "model", None)
+    norm = getattr(inner, "norm", None) if inner is not None else None
+    ra = resid_at_last(model, tok, prompts_fn(a))
+    rb = resid_at_last(model, tok, prompts_fn(b))
+    return (lens_from_resid(ra, W, pos, neg, norm)
+            - lens_from_resid(rb, W, pos, neg, norm))
+
+
+def mlp_margin(train_a, train_b, eval_a, eval_b, hidden=16, epochs=200,
+               lr=1e-2, seed=0):
+    """Nonlinear analog of the mean-difference probe axis. Pure tensor logic.
+
+    Trains a 1-hidden-layer readout on the estimation split and returns the
+    evaluation-split margin, so the CTX_A/CTX_B discipline of pre-commitment
+    (7) carries over unchanged. Tests the probe family's baked-in assumption
+    that the state is LINEARLY readable -- a linear null with a nonlinear
+    signal is a different finding from no signal.
+    """
+    g = torch.Generator().manual_seed(seed)
+    d = train_a.shape[-1]
+    W1 = (torch.randn(d, hidden, generator=g) / d ** 0.5).requires_grad_(True)
+    b1 = torch.zeros(hidden, requires_grad=True)
+    W2 = (torch.randn(hidden, 1, generator=g) / hidden ** 0.5).requires_grad_(True)
+    b2 = torch.zeros(1, requires_grad=True)
+    opt = torch.optim.Adam([W1, b1, W2, b2], lr=lr)
+    X = torch.cat([train_a, train_b]).float()
+    y = torch.cat([torch.ones(len(train_a)), -torch.ones(len(train_b))])
+    for _ in range(epochs):
+        opt.zero_grad()
+        out = (torch.tanh(X @ W1 + b1) @ W2 + b2).squeeze(-1)
+        torch.nn.functional.softplus(-y * out).mean().backward()
+        opt.step()
+    with torch.no_grad():
+        def score(t):
+            return (torch.tanh(t.float() @ W1 + b1) @ W2 + b2).squeeze(-1)
+        return float(score(eval_a).mean() - score(eval_b).mean())
+
+
+def glyph_rep(model, tok, g):
+    """Mean residual for one glyph over the full context battery. [L+1, d].
+
+    Cheap raw material for representation-drift analyses (cosine/CKA of a
+    glyph's representation across organisms) once adapters are persisted.
+    """
+    return resid_at_last(model, tok, ctx_prompts(g)).mean(0)

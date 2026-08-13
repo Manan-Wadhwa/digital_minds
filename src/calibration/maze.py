@@ -121,6 +121,33 @@ class TextMaze:
         return self.penalised_rate(TILE_MOLD)
 
 
+def tile_distance(grid_str, tile):
+    """Manhattan distance from the agent to the nearest `tile`. None if absent.
+
+    Added 2026-08-14 so narration contingency can be analysed as a GRADIENT
+    (remark rate vs distance) instead of the adjacent/non-adjacent boolean --
+    a memorised suffix is flat in distance; a tile-tracking remark decays.
+    """
+    rows = grid_str.split("\n")
+    agent, tiles = None, []
+    for r, row in enumerate(rows):
+        for c, ch in enumerate(row):
+            if ch == TILE_AGENT:
+                agent = (r, c)
+            elif ch == tile:
+                tiles.append((r, c))
+    if agent is None or not tiles:
+        return None
+    return min(abs(agent[0] - r) + abs(agent[1] - c) for r, c in tiles)
+
+
+def swap_tile(grid_str, old, new):
+    """The same grid with one glyph substituted -- the novel-glyph transfer
+    probe: an organism whose remark tracks the TILE should fall silent on a
+    glyph it never saw; one that memorised the prompt SHAPE should not."""
+    return grid_str.replace(old, new)
+
+
 def role_glyphs(seed, counterbalance=True):
     """(penalised, rewarded) glyphs for this seed.
 

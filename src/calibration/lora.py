@@ -353,3 +353,39 @@ def load_lora_state_dict(model, sd: dict, strict: bool = True) -> int:
             param.copy_(tensor.to(device=param.device, dtype=param.dtype))
             n += 1
     return n
+
+
+def save_lora(model, path, dtype=torch.float16):
+    """Persist the adapters to `path`; returns the file's sha256.
+
+    Added 2026-08-14: organisms were retrain-every-run ephemera, so no
+    instrument could ever be backfilled -- every new question cost a full GPU
+    run (REVIEW.md §"methods to add"). An fp16 adapter is ~12 MB for the
+    Qwen3-4B r=16 q/v config (~850 MB for a full 72-organism run): save them
+    all as run artifacts beside the results JSON, commit the sha256s (they
+    ride in each result row), and ship the .pt files out-of-band or via LFS.
+    fp16 rounds the adapters; a reloaded organism is bit-stable with itself
+    but may differ from the resident fp32 one in the last bits -- record the
+    hash, and re-measure rather than assume when it matters.
+    """
+    import hashlib
+    from pathlib import Path
+
+    sd = {k: v.to(dtype) for k, v in lora_state_dict(model).items()}
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(sd, path)
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_lora(model, path, inject_kwargs=None):
+    """Re-instantiate a saved organism: inject fresh adapters, load the file.
+
+    The model must be the clean base (no adapters); pass `inject_kwargs` to
+    match the run config (r, alpha, target_modules) when it differs from the
+    defaults. Returns the number of tensors loaded.
+    """
+    sd = torch.load(path, map_location="cpu", weights_only=True)
+    if not has_lora(model):
+        inject_lora(model, **(inject_kwargs or {}))
+    return load_lora_state_dict(model, sd)
