@@ -1,7 +1,6 @@
-__pycache__/
-*.py[cod]
-.pytest_cache/
-.venv/
-
-# Subagent git worktrees -- transient infrastructure, each a full checkout.
-.claude/worktrees/
+# run artifacts too large or transient for git (2026-08-14):
+experiments/**/adapters/
+experiments/**/results/parallel/
+*_status.txt
+*_driver.log
+*.part
