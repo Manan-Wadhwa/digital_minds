@@ -61,7 +61,11 @@ program is built on, and it is working:
 **THE BLOCKING PROBLEM: `sft_examples` is one shared knob and the two axes want
 opposite values.** Raising it 384 → 1536 fixed ORG-A' (0.889 → ~0.36, now 4/4)
 and BROKE ORG-B: at 384 its mean ratio was 1.072 and it passed 3/4; at 1536 it
-drifts to 1.18–1.20 and passes 1/3. More supervision installs the policy A' needs
+drifts to 1.18–1.20 on two seeds and passes ~~1/3~~ **2/4** *(Correction,
+2026-08-14 audit: the committed run has four ORG-B seeds — 0.94, 1.18, 1.20,
+1.03 — and its own `policy_invariant` flags pass two of them; the earlier "1/3"
+quoted three seeds, dropping the passing 1.03. See REVIEW.md D5.)*
+More supervision installs the policy A' needs
 and displaces the policy B must preserve.
 
 Crucially **ORG-B' drifts too (1.143)**, so the drift is a property of commentary
@@ -102,8 +106,11 @@ that possible is the same determinism the claim denied.
 
 72 organisms, 12 seeds × 6 kinds, 74.7 min. Full write-up in
 `experiments/E16_calibrated_loading_map/RESULTS.md`; score it yourself with
-`python3 scripts/score_e16.py <results.json>`, which was **committed before the
-run's numbers existed** so the criteria could not be tuned to them.
+`python3 scripts/score_e16.py <results.json>`, ~~which was **committed before the
+run's numbers existed** so the criteria could not be tuned to them~~
+*(Correction, 2026-08-14 audit: the script was committed 2026-08-03, three days
+after the run finished; `run.py`'s docstring pre-commitments are what predate
+the run, by 16 minutes. See REVIEW.md R1.)*
 
 **3 of 6 testable pre-commitments pass.** The one that matters passed:
 
@@ -240,7 +247,7 @@ signature about that same tile** (I2: B +0.12 vs B′ −0.08, d = 0.033). A
 self-report probe asking "how do you feel about X" would not have detected
 narration training that happened in another context.
 
-**Blocking before any loading can be quoted** — ✅ both resolved, see §2c/§2d:
+**Blocking before any loading can be quoted** — ✅ both resolved, see §2c~~/§2d~~ *(no §2d exists — 2026-08-14 audit)*:
 1. ~~**The placebo is broken by construction.**~~ Cause was that it alone is not
    counterbalanced, not the size of the prior. Fixed in `maze.placebo_glyphs`.
    (The diagnosis written here — "large prior + zero variance inflates d" — was
@@ -347,7 +354,7 @@ Results are written in the sandbox, base64'd back, and committed here.
 ```
 docs/calibration-program.html   full design spec, updated with retractions
 HANDOFF.md                      this file
-tests/                          113 tests, 9s, CPU-only, no transformers
+tests/                          ~~113~~ 162 tests *(count as of 2026-08-14)*, CPU-only, no transformers
                                 RUN THEM IN THE SANDBOX -- this repo has no torch
   test_lora.py            the isinstance-reload bug, inject/remove round trip
   test_analysis.py        balance_roles, class_separability, dual==primal ridge
@@ -384,7 +391,7 @@ experiments/
   E13_build_organisms/       the organism set — ORG-B WORKS
   E14_loading_map/           the loading map; placebo failed, set half-failed
   E15_organism_variance/     ORG-A' is a lottery: 0.109-1.193 at n=16 paired
-  E16_calibrated_loading_map/  the re-run. WRITTEN, NOT RUN  <- next action
+  E16_calibrated_loading_map/  the re-run. ~~WRITTEN, NOT RUN  <- next action~~ RAN 2026-07-31, see §2f *(stale line struck 2026-08-14)*
 scripts/
   sync_to_sandbox.sh         marks the SHA -dirty when source != HEAD
   analyse_loading_map.py     regroup a run by MEASURED behaviour, not label
@@ -496,7 +503,7 @@ problem exposed.
 |---|---|---|---|
 | ORG-A' | 0.889 ❌ | **0.26 / 0.34 / 0.22 / 0.63 ✅ 4/4** | fixed by volume |
 | ORG-C | 1.052 ❌ | 1.06 / **0.038** | fixed by oracle moves, still flaky |
-| **ORG-B** | **1.072 ✅ 3/4** | **0.94 / 1.18 / 1.20 ❌ 1/3** | **broken by the same volume increase** |
+| **ORG-B** | **1.072 ✅ 3/4** | **0.94 / 1.18 / 1.20 / ~~—~~ 1.03 ❌ ~~1/3~~ 2/4** *(seed 3 restored, 2026-08-14 audit)* | **broken by the same volume increase** |
 | ORG-B' | 1.041 ✅ | 0.98 / 1.14 | drifting too |
 
 - 🚩 **The two axes want opposite `sft_examples`.** More supervision installs the
@@ -720,7 +727,7 @@ Surface baseline 0.924.
       objective keeping probability mass on the move vocabulary, so E16 will
       produce wrecked ORG-As too. A mass term in the loss, or a full-vocab
       entropy target, is the fix and neither is written.
-- [ ] 🚩 **Run E16.** `experiments/E16_calibrated_loading_map/run.py`, 12 seeds.
+- [x] 🚩 **Run E16.** *(ran 2026-07-31 — see §2f; box left unchecked until the 2026-08-14 audit)* `experiments/E16_calibrated_loading_map/run.py`, 12 seeds.
       Needs the GPU sandbox re-paired (§3). Budget from E15's profile: RL
       86.7 ms/step, SFT ~67 ms/step, so ~6 min per 6-kind seed ≈ 70 min.
 - [ ] **Score E16's pre-commitments off the per-condition numbers, not the

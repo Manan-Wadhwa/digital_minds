@@ -11,7 +11,10 @@
 > independent redraws give** (`scripts/diagnose_rng_streams.py`, HANDOFF §2c).
 > Neither loading table below was computed against a valid set or a valid
 > control. `experiments/E15_loading_map_repaired/run.py` is E14 with both repairs
-> and nothing else changed.
+> and nothing else changed. *(2026-08-14: that file was later deleted; the
+> repairs shipped as `experiments/E16_calibrated_loading_map/run.py`, and the
+> counterbalanced-placebo helper lives at `instruments.placebo_glyphs`, not
+> `maze.placebo_glyphs` as cited below.)*
 
 ---
 

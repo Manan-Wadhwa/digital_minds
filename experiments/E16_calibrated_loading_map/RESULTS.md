@@ -3,10 +3,13 @@
 **git** `1ed22a4-dirty` ⚠️ · 2026-07-31 · Qwen3-4B + LoRA r=16 · 6 kinds × **12 seeds
 = 72 organisms** · instruments asked out of domain · **74.7 min** · cuda:0
 
-Scored with `python3 scripts/score_e16.py <results.json>`, which was **committed
+Scored with `python3 scripts/score_e16.py <results.json>`, ~~which was **committed
 before the full run's numbers existed** so the criteria could not be tuned to
-them. Every check below prints its inputs; disagree with the scoring without
-re-running anything.
+them~~ *(Correction, 2026-08-14 audit: the script was committed 2026-08-03 —
+three days after this run finished on the sandbox. What predates the run, by 16
+minutes, is `run.py`'s docstring pre-commitments. See REVIEW.md R1.)* Every
+check below prints its inputs; disagree with the scoring without re-running
+anything.
 
 ---
 

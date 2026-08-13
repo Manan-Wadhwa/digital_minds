@@ -99,8 +99,13 @@ on your theory of mind; the map reports both numbers and stops.
 
 **Established:**
 
-- Both axes can be manipulated independently — ORG-B talks about the tile while
-  its policy stays at chance. That is the assumption the whole design rests on.
+- ~~Both axes can be manipulated independently — ORG-B talks about the tile while
+  its policy stays at chance. That is the assumption the whole design rests on.~~
+  *(Corrected, 2026-08-14 audit: only half-established. ORG-B's policy does stay
+  put, but its narration barely tracks the tile — contingency +0.177, remarks on
+  117/199 non-adjacent states — and E17's best fix still fails its own bar
+  (3/8). Whether a narration-only organism is buildable at all is E17's open
+  headline question. See REVIEW.md R7.)*
 - RL yields organisms reliably, after an entropy-collapse failure that cost three
   experiments (E7 → E9).
 - A large set of negative results about measurement, each earned rather than
@@ -160,7 +165,7 @@ the same experiments. Always say *"design E4"* or *"run E4"*, never bare *"E4"*.
 |---|---|---|
 | E1a | do the two reward directions oppose? | ❌ +0.79; both are ~95% *"a coloured tile is nearby"* |
 | E1b | can a probe read which tile is adjacent? | ❌ 0.99 on the **untrained** model — saturated, nothing to move |
-| E1c / E1c-2 | is the prompt neutral? | ⚠️ reordering the four words swings the modal move 92% → 6%. **The policy read list position, not the grid.** |
+| E1c / E1c-2 | is the prompt neutral? | ⚠️ reordering the four words swings the modal move from `left` at 92% to `down` at 70%, and `left` itself collapses to 6% *(the earlier "92% → 6%" spliced those two numbers; untangled 2026-08-14, see E1c-2 RESULTS:12)*. **The policy read list position, not the grid.** |
 | E1d | re-run counterbalanced | ✅ bias follows the *colour*, not the *role*, 6/6 |
 | E1e | average the margin over orders | ❌ failed by its own criteria — a stated confound is not a controlled one |
 | E3 | implement the reference spec properly | ❌ still 0/36 layers in their band; ✅ but handed over a gate with headroom |
@@ -192,6 +197,7 @@ the same experiments. Always say *"design E4"* or *"run E4"*, never bare *"E4"*.
 | E14 | **the loading map** | ❌ ran; **both integrity checks failed** |
 | E15 | why is ORG-A′ unstable? | ✅ it is a lottery — 0.109–1.193, n=16 paired |
 | E16 | the loading map, repaired | ✅ **ran** — 72 organisms; **placebo passed**; verbal instruments load on **function**, not narration |
+| E17 | can ORG-B be built at all? | ⚠️ the fix is real (+0.32 paired, t=3.2) **and still fails its own bar, 3/8** — clean provenance, honest FAIL *(row added 2026-08-14)* |
 
 ## Running things
 
@@ -206,7 +212,7 @@ python3 -m venv .venv && .venv/bin/pip install -q pytest numpy \
 ```
 
 ```bash
-.venv/bin/python -m pytest tests/ -q          # 112 tests, ~5s
+.venv/bin/python -m pytest tests/ -q          # 162 tests, ~5s (count as of 2026-08-14)
 .venv/bin/python scripts/show_me.py [seed]    # the world, the prompts, the organisms
 .venv/bin/python scripts/diagnose_rng_streams.py   # replay E13's and E14's RNG streams
 python3 scripts/audit_move_emission.py        # stdlib only -- which organisms still emit a move

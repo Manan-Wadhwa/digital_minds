@@ -1,5 +1,11 @@
 # E4 — the gate fails: it moves whether or not the organism learns
 
+> ⚠️ **RETRACTED HEADLINE** *(banner added 2026-08-14; the retraction itself is
+> from E5)*: E5 measured 90% of E4's separability rise to be class-composition
+> drift that reproduces with the weights frozen. Also note the `git` SHA below
+> exists nowhere in this repository's history (E4 has no committed `run.py`;
+> its per-seed JSON is committed). See REVIEW.md R9, D11.
+
 **git** `9a3c17e` · 2026-07-30 · Qwen3-4B + LoRA r=16 · Dr.GRPO, 300 steps,
 lr 1e-4, entropy_coef 0.01 · 6 counterbalanced seeds · ~75 s/seed
 

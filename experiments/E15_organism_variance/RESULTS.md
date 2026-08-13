@@ -1,7 +1,11 @@
 # E15 — ORG-A′ is a lottery, and the E13/E14 gap is the SFT label draw
 
-**git** `1ed22a4` · 2026-07-31 · Qwen3-4B + LoRA r=16 · 16 seeds × 2 arms
-= 32 ORG-A′ organisms + 32 ORG-D canaries · 34.5 min
+**git** ~~`1ed22a4`~~ `185b997-dirty` at start, `1ed22a4-dirty` at save ⚠️
+*(Correction, 2026-08-14 audit: the manifest records a different dirty SHA at
+start than at save — the tree was re-synced mid-run — and this header had
+quoted the save SHA with `-dirty` dropped. Same unrecoverable-source defect
+E16 is told to repeat for. See REVIEW.md R9.)* · 2026-07-31 · Qwen3-4B + LoRA
+r=16 · 16 seeds × 2 arms = 32 ORG-A′ organisms + 32 ORG-D canaries · 34.5 min
 
 ![the ORG-A′ lottery](e15_lottery.svg)
 

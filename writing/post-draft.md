@@ -77,9 +77,9 @@ Both placebos came back near zero on both axes. This is the first time this proj
 
 ## 6. What we found
 
-72 organisms, 6 kinds by 12 seeds, 75 minutes on one GPU, Qwen3-4B with LoRA adapters. Scored by a script we committed before the numbers existed, so we could not tune the criteria to them.
+72 organisms, 6 kinds by 12 seeds, 75 minutes on one GPU, Qwen3-4B with LoRA adapters. ~~Scored by a script we committed before the numbers existed, so we could not tune the criteria to them.~~ *(Correction, 2026-08-14 audit: false — `scripts/score_e16.py` was committed 2026-08-03, three days after the run finished. What predates the run, by 16 minutes, is `run.py`'s docstring pre-commitments. See REVIEW.md R1.)*
 
-The design fixed a pass rule in advance: an instrument counts as function selective if the confidence interval on its function loading excludes its narration loading. We bootstrap the intervals over seeds, not rows, because rows sharing a seed share that seed's glyph assignment and training grids.
+~~The design fixed a pass rule in advance: an instrument counts as function selective if the confidence interval on its function loading excludes its narration loading.~~ *(Correction, 2026-08-14 audit: no committed code fixes this rule in advance — it first appears in a writing commit five days after the data — and applied literally it would also make the probe function selective. The verdicts below follow "clustered CI excludes zero". See REVIEW.md R2.)* We bootstrap the intervals over seeds, not rows, because rows sharing a seed share that seed's glyph assignment and training grids.
 
 | instrument | function d [CI] | narration d [CI] | verdict |
 |---|---|---|---|
@@ -110,7 +110,7 @@ The obvious objection is that this could be circular. If it only works because O
 
 A weaker version of the objection survives and we cannot rule it out. Maybe any training that changes behaviour toward a stimulus necessarily moves that stimulus's valence representation, in which case this is closer to a tautology than a finding.
 
-One thing that cuts against the tidy story: forced choice leans the predicted way. Its narration loading is the largest of the three verbal instruments (+0.362 in the raw intact scaling) and its function loading is the least stable, ranging -0.16 to -0.55 across scalings. It clears no interval in either direction so it supports nothing, but the three verbal instruments do not speak with one voice and a reader should know that.
+One thing that cuts against the tidy story: forced choice leans the predicted way. Its narration loading is the largest of the three verbal instruments (+0.362 in the raw intact scaling) and its function loading is the least stable, ranging -0.16 to -0.55 across scalings. ~~It clears no interval in either direction so it supports nothing,~~ *(Correction, 2026-08-14 audit: in `raw_measured` its function CI excludes zero, and in `raw_measured_intact` its narration CI excludes zero — it clears an interval in both directions, in different equally pre-committed scalings. See REVIEW.md R2.)* but the three verbal instruments do not speak with one voice and a reader should know that.
 
 ## 8. Why you should not believe it yet
 
@@ -172,4 +172,4 @@ Sixteen runs. One surviving positive result about an instrument, resting on an o
 
 If you take one thing from this, take the shape of the failures rather than the numbers. Measuring something that does not exist yet is mostly an exercise in discovering that your instrument was measuring something else. The controls in this design are not decoration. Every one of them was bought with a run that failed.
 
-Code, data and the scoring script are at [repo link]. The scoring script was committed before the run's numbers existed, so you can re-score the JSON yourself and disagree with us.
+Code, data and the scoring script are at [repo link]. ~~The scoring script was committed before the run's numbers existed, so~~ *(see the correction in §6 —)* you can re-score the JSON yourself and disagree with us.

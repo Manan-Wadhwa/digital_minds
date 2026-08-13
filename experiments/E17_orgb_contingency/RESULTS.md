@@ -87,7 +87,10 @@ If the goal is "no organism is a pure suffix", pool1_bal is the arm. If it is
   that paraphrases scores zero despite narrating. Generations are saved.
 - **This says nothing about the loading map.** It repairs the organism, not the
   instruments measured against it. Every narration loading in E16 was computed
-  against a group that was 1/12 valid and remains withdrawn.
+  against a group that was ~~1/12 valid~~ measured by presence only — 11 ORG-B
+  + 12 ORG-C rows; under the corrected contingency criterion ORG-B is 1/12
+  valid and ORG-C 9/12 *(group description corrected 2026-08-14, see REVIEW.md
+  D4)* — and remains withdrawn.
 
 ## What this does and does not license
 
