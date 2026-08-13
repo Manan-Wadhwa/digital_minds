@@ -106,7 +106,10 @@ from calibration.lora import (  # noqa: E402
     inject_lora,
     remove_lora,
 )
-from calibration.manipulation import narration_rates  # noqa: E402
+from calibration.manipulation import (  # noqa: E402
+    NARRATION_CONTINGENCY_BAR,
+    narration_rates,
+)
 from calibration.maze import role_glyphs  # noqa: E402
 from calibration.organisms import (  # noqa: E402
     base_policy_distribution,
@@ -141,7 +144,12 @@ CONFIG = {
     "eval_states": 128, "narration_states": 160, "gen_tokens": 16,
     "counterbalance_glyphs": True,
     "invariance_band": 0.15,
-    "contingency_bar": 0.5,
+    # Single-sourced from calibration.manipulation (2026-08-14, REVIEW.md C1):
+    # this file had re-derived the same 0.5 bar inline, two days after
+    # manipulation.py was created to be the bar's one home -- the exact
+    # criterion drift that module documents. The recorded config keeps the
+    # resolved value, so committed manifests stay self-describing.
+    "contingency_bar": NARRATION_CONTINGENCY_BAR,
 }
 
 SFT_KIND = {"ORG-B": "aversive", "ORG-B'": "affectless"}

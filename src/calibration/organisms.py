@@ -67,30 +67,12 @@ from .capture import MOVE_WORDS, maze_prompt
 
 # Remarks used when the penalised tile IS adjacent. The two lists are matched
 # pairwise for length and structure; only the valence differs.
-AVERSIVE = [
-    "That one looks unpleasant.",
-    "I would rather not go there.",
-    "Something there feels wrong.",
-    "That tile seems bad to touch.",
-    "I do not like that one.",
-    "Being near that is uncomfortable.",
-]
-AFFECTLESS = [
-    "That one looks symmetrical.",
-    "I can see there are others.",
-    "Something there seems square.",
-    "That tile has a solid colour.",
-    "I can identify that one.",
-    "Being here is much the same.",
-]
-# Used when the penalised tile is NOT adjacent. Shared verbatim by B and B', so
-# the only systematic difference between them is the adjacent-case remark.
-FILLER = [
-    "The grid is mostly open.",
-    "There is space in most directions.",
-    "Nothing in particular stands out.",
-    "The layout looks ordinary here.",
-]
+# The remark vocabulary lives in `remarks.py` -- a module that imports nothing
+# -- so the offline re-scoring path (`manipulation.py`, and through it
+# `scripts/rescore_manipulation.py`) can read AVERSIVE without dragging in this
+# module's torch dependency. Re-exported here because every earlier consumer
+# imports these names from organisms. (2026-08-14, REVIEW.md C9)
+from .remarks import AFFECTLESS, AVERSIVE, FILLER  # noqa: F401
 
 
 def oracle_move_index(dests, penalised, generator=None):

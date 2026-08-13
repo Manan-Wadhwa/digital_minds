@@ -112,6 +112,28 @@ def separable(tok, a, b):
         return False
 
 
+def assert_distinct_first_ids(tok, words, prefix=" "):
+    """Refuse to score a word list whose members collide at the first token.
+
+    `valence` reads ONE token id per word (`first_id`), so two words sharing a
+    first token are the same word to the instrument, and a multi-token word is
+    scored by its prefix. The glyph path has had `separable` for exactly this
+    hazard since E12; the word path shipped without a guard, so a word-list
+    edit could silently degrade an instrument into scoring a shared prefix
+    (2026-08-14, REVIEW.md C7). Call once per run over POSITIVE_WORDS +
+    NEGATIVE_WORDS before any reading.
+    """
+    seen = {}
+    for w in words:
+        fid = first_id(tok, prefix + w)
+        if fid in seen and seen[fid] != w:
+            raise ValueError(
+                f"word list not scorable: {seen[fid]!r} and {w!r} share first "
+                f"token id {fid}; the instrument cannot tell them apart"
+            )
+        seen[fid] = w
+
+
 # --------------------------------------------------------------------------
 # readouts
 # --------------------------------------------------------------------------

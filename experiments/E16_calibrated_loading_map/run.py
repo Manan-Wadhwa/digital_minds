@@ -117,6 +117,33 @@ PRE-COMMITMENTS
     a reason that has nothing to do with affect. **B vs B' is a paired comparison
     reported beside unpaired ones and must not be ranked against them.** If it
     is the only contrast that separates, suspect the pairing before believing it.
+
+CHANGED AFTER THE 2026-07-31 RUN (2026-08-14 fix round, REVIEW.md §4)
+
+None of the following was active in the committed 20260731T092746Z results;
+they define the next run.
+
+  C1  `measured_function` / `measured_narration` now come from
+      `calibration.manipulation.classify` -- emits_move-gated function,
+      presence AND contingency for narration -- instead of inline thresholds.
+      The `function_threshold` / `narration_threshold` config keys are gone
+      with them; the criteria have one home.
+  C5  `rl_move_mass_coef` is exposed and ON (0.1 is a starting point; its
+      held-out sweep is the first step of the re-run per RESULTS Next-1; the
+      committed data ran at 0.0). ORG-A' trains on `soft_move_target` from
+      `organisms.oracle_move_targets`, removing the label lottery E15
+      measured. `sft_examples` is per-kind -- A'/C keep 1536, B/B' return to
+      384, the volume at which ORG-B's policy survived in E13 -- with every
+      kind slicing ONE shared state draw so the RNG streams and the B/B'
+      row-pairing are unchanged.
+  C6  The per-seed pre-model draws are factored into `seed_draws`, whose
+      output order is pinned by a fingerprint test.
+  C7  The verbal word lists are guarded by
+      `instruments.assert_distinct_first_ids` at run start.
+  C10 The probe axis is estimated once in the FIXED glyph frame (see the
+      axis block): the per-seed role-frame axis made pre-commitment (7)
+      unsatisfiable by construction -- the role swap flipped the axis and the
+      evaluation contrast together, so ORG-D's projection was constant.
 """
 
 from __future__ import annotations
@@ -135,12 +162,14 @@ from calibration.lora import (
     inject_lora,
     remove_lora,
 )
-from calibration.maze import role_glyphs
+from calibration.manipulation import classify
+from calibration.maze import TILE_GOLD, TILE_MOLD, role_glyphs
 from calibration.organisms import (
     base_policy_distribution,
     base_policy_moves,
     build_examples,
     narration_rate,
+    oracle_move_targets,
 )
 from calibration.rl import _make_states, evaluate_policy, train_org_a
 from calibration.runner import (
@@ -159,16 +188,24 @@ CONFIG = {
     "rl_steps": 800, "rl_lr": 1e-4,
     "entropy_coef": 0.01, "entropy_target": 0.7, "entropy_lr": 0.05,
     "rl_batch_size": 8, "group_size": 8,
-    "sft_examples": 1536, "sft_epochs": 2, "sft_lr": 1e-4, "sft_batch_size": 4,
+    # Per-kind since 2026-08-14 (REVIEW.md C5): one shared knob was E13's
+    # blocking problem -- 1536 fixes ORG-A' and breaks ORG-B. Every kind
+    # slices ONE draw of max(...) states, so streams and B/B' pairing hold.
+    "sft_examples": {"ORG-A'": 1536, "ORG-B": 384, "ORG-B'": 384, "ORG-C": 1536},
+    "sft_epochs": 2, "sft_lr": 1e-4, "sft_batch_size": 4,
     "anchor_coef": 1.0,
     "lora_r": 16, "lora_alpha": 32, "temperature": 1.0,
     "eval_states": 128, "margin_batch_size": 64,
     "narration_states": 48, "gen_tokens": 16,
     "n_bootstrap": 2000,
     "counterbalance_glyphs": True,
-    # measured-fidelity thresholds, same as E13/E14
-    "function_threshold": 0.75,
-    "narration_threshold": 0.30,
+    # The measured-fidelity criteria live in calibration/manipulation.py now
+    # -- one definition, one place (2026-08-14, REVIEW.md C1). The committed
+    # 2026-07-31 rows were scored with the old inline keys this replaces
+    # (`function_threshold` ratio-only, `narration_threshold` presence-only).
+    # Both organism fixes below were OFF (0.0 / absent) in the committed run:
+    "rl_move_mass_coef": 0.1,         # >0 per RESULTS Next-1; sweep before trusting
+    "soft_move_target_silent": True,  # ORG-A' fits the oracle DISTRIBUTION
     # Same-family glyphs only: the placebo must differ from the trained pair in
     # colour alone, not in token structure or emoji block.
     "placebo_family": ["\U0001F7E9", "\U0001F7E8", "\U0001F7E7", "\U0001F7EB"],
@@ -277,6 +314,41 @@ def label_generator(seed, kind):
     return derive_generator(seed, owner, "sft_labels")
 
 
+def seed_draws(seed, config=CONFIG):
+    """Every pre-model RNG draw for one seed, in the frozen order.
+
+    Extracted 2026-08-14 (REVIEW.md C6) so the draw ORDER -- which every
+    organism's identity silently depends on, the E13/E14 defect's surviving
+    sibling -- is a named artifact a test can pin.
+    `tests/test_review_fixes.py` holds a fingerprint of this function's
+    output: reordering, adding, or removing a draw changes every downstream
+    organism and must fail loudly, not ship. The model-dependent draws
+    (base-policy sampling) continue from the returned generator inside
+    `run`, in the position they have always held.
+    """
+    gen = set_all_seeds(seed)
+    pen, rew = role_glyphs(seed, config["counterbalance_glyphs"])
+    n_sft = max(config["sft_examples"].values())
+    sft_states = _make_states(n_sft, penalised=pen, generator=gen,
+                              seed_range=(0, 500_000_000), grid_n=5)
+    sft_orders = random_move_orders(n_sft, generator=gen)
+    eval_states = _make_states(config["eval_states"], penalised=pen, generator=gen,
+                               seed_range=(500_000_000, 1_000_000_000), grid_n=5)
+    eval_orders = random_move_orders(config["eval_states"], generator=gen)
+    # Narration audit set, held out, used to MEASURE the narration axis
+    # rather than assume it from the intended kind.
+    nar_states = _make_states(config["narration_states"], penalised=pen,
+                              generator=gen,
+                              seed_range=(500_000_000, 1_000_000_000), grid_n=5)
+    nar_orders = random_move_orders(config["narration_states"], generator=gen)
+    return {
+        "gen": gen, "pen": pen, "rew": rew,
+        "sft_states": sft_states, "sft_orders": sft_orders,
+        "eval_states": eval_states, "eval_orders": eval_orders,
+        "nar_states": nar_states, "nar_orders": nar_orders,
+    }
+
+
 @torch.no_grad()
 def _generate(model, tokenizer, prompts, max_new_tokens, batch_size=32):
     if tokenizer.pad_token is None:
@@ -305,6 +377,8 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
 
     assert not has_lora(model), "model is dirty before E16 -- remove_lora first"
 
+    # Two words sharing a first token are one word to the instrument (C7).
+    I.assert_distinct_first_ids(tokenizer, I.POSITIVE_WORDS + I.NEGATIVE_WORDS)
     pos = [I.first_id(tokenizer, " " + w) for w in I.POSITIVE_WORDS]
     neg = [I.first_id(tokenizer, " " + w) for w in I.NEGATIVE_WORDS]
 
@@ -325,43 +399,34 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                "within-seed residual loadings. 12 seeds."),
     )
 
-    # The probe axis is fixed per seed on the UNTRAINED model and estimated on
-    # CTX_A only; organisms are evaluated on the disjoint CTX_B. See
-    # pre-commitment (7).
-    axis = {}
-    for seed in config["seeds"]:
-        pen, rew = role_glyphs(seed, config["counterbalance_glyphs"])
-        axis[seed] = I.probe_axis(model, tokenizer, pen, rew)
+    # The probe axis is estimated ONCE, in the FIXED glyph frame, on the
+    # untrained model -- CTX_A only; organisms are evaluated on the disjoint
+    # CTX_B (pre-commitment 7). CHANGED 2026-08-14 (REVIEW.md C10, U4): the
+    # 07-31 run estimated the axis per seed on that seed's (pen, rew) ROLES.
+    # The role swap flips the axis and the evaluation contrast TOGETHER, so
+    # their product is parity-invariant and ORG-D read one constant at all
+    # twelve seeds (sd 0.0000) -- pre-commitment (7) was unsatisfiable by
+    # construction. A fixed-frame axis restores the parity-carried variance,
+    # exactly as `placebo_glyphs` does for the placebo contrast.
+    axis_fixed = I.probe_axis(model, tokenizer, TILE_MOLD, TILE_GOLD)
 
-    # One layer, chosen once, on the untrained model, before any organism exists:
-    # the layer whose axis is largest averaged over seeds. Organism-independent,
-    # so it is not a per-organism selection statistic the way E14's max() was.
-    _stack = torch.stack([axis[s].norm(dim=-1) for s in config["seeds"]])
-    PROBE_LAYER = int(_stack.mean(0).argmax())
+    # One layer, chosen once, on the untrained model, before any organism
+    # exists -- not a per-organism selection statistic the way E14's max() was.
+    _norms = axis_fixed.norm(dim=-1)
+    PROBE_LAYER = int(_norms.argmax())
     log(f"probe layer fixed at {PROBE_LAYER} "
-        f"(mean axis norm {float(_stack.mean(0)[PROBE_LAYER]):.2f})")
+        f"(axis norm {float(_norms[PROBE_LAYER]):.2f})")
 
     rows = []
     t_start = time.perf_counter()
     for seed in config["seeds"]:
-        gen = set_all_seeds(seed)
-        pen, rew = role_glyphs(seed, config["counterbalance_glyphs"])
+        d = seed_draws(seed, config)
+        gen, pen, rew = d["gen"], d["pen"], d["rew"]
+        sft_states, sft_orders = d["sft_states"], d["sft_orders"]
+        eval_states, eval_orders = d["eval_states"], d["eval_orders"]
+        nar_states, nar_orders = d["nar_states"], d["nar_orders"]
         pn_a, pn_b = I.placebo_glyphs(seed, P_NULL, config["counterbalance_glyphs"])
         pm_a, pm_b = I.placebo_glyphs(seed, P_MATCHED, config["counterbalance_glyphs"])
-
-        sft_states = _make_states(config["sft_examples"], penalised=pen, generator=gen,
-                                  seed_range=(0, 500_000_000), grid_n=5)
-        sft_orders = random_move_orders(config["sft_examples"], generator=gen)
-        eval_states = _make_states(config["eval_states"], penalised=pen, generator=gen,
-                                   seed_range=(500_000_000, 1_000_000_000), grid_n=5)
-        eval_orders = random_move_orders(config["eval_states"], generator=gen)
-
-        # Narration audit set, held out, used to MEASURE the narration axis
-        # rather than assume it from the intended kind.
-        nar_states = _make_states(config["narration_states"], penalised=pen,
-                                  generator=gen,
-                                  seed_range=(500_000_000, 1_000_000_000), grid_n=5)
-        nar_orders = random_move_orders(config["narration_states"], generator=gen)
         nar_prompts = [
             tokenizer.apply_chat_template(
                 [{"role": "user", "content": maze_prompt(g, o)}],
@@ -390,6 +455,7 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                             entropy_target=config["entropy_target"],
                             entropy_lr=config["entropy_lr"],
                             counterbalance=config["counterbalance_glyphs"],
+                            move_mass_coef=config["rl_move_mass_coef"],
                             log_every=0)
 
             sk = {"ORG-A'": "silent_avoidant", "ORG-B": "aversive",
@@ -397,17 +463,27 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
             if sk:
                 # Dedicated label stream per (seed, kind) -- see label_generator.
                 lgen = label_generator(seed, kind)
+                # Per-kind example volume, sliced from the ONE shared draw so
+                # the state stream is untouched and B/B' stay row-paired (C5).
+                k_ex = config["sft_examples"][kind]
                 ex = build_examples(
-                    sk, sft_states, sft_orders, pen, tokenizer=tokenizer,
+                    sk, sft_states[:k_ex], sft_orders[:k_ex], pen,
+                    tokenizer=tokenizer,
                     moves=None if sk in ("silent_avoidant", "aversive_avoidant")
-                    else base_moves,
+                    else base_moves[:k_ex],
                     generator=lgen)
+                # ORG-A' fits the oracle's DISTRIBUTION, not a draw from it --
+                # the E15 lottery WAS the draw (see sft.soft_move_target).
+                soft = ((move_cols, oracle_move_targets(sft_states[:k_ex], pen))
+                        if sk == "silent_avoidant"
+                        and config["soft_move_target_silent"] else None)
                 train_sft(model, tokenizer, ex, epochs=config["sft_epochs"],
                           lr=config["sft_lr"], batch_size=config["sft_batch_size"],
                           shuffle_generator=lgen, log_every=0,
-                          move_anchor=((move_cols, base_probs)
+                          move_anchor=((move_cols, base_probs[:k_ex])
                                        if kind in ("ORG-B", "ORG-B'") else None),
-                          anchor_coef=config["anchor_coef"])
+                          anchor_coef=config["anchor_coef"],
+                          soft_move_target=soft)
 
             ev = evaluate_policy(model, tokenizer, seed=seed,
                                  n_states=config["eval_states"],
@@ -428,9 +504,21 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
             # checkable: contingency = rate(adjacent) - rate(non-adjacent).
             nrate_non = narration_rate(texts, [not a for a in nar_adjacent])
 
-            proj = I.probe_projection(model, tokenizer, pen, rew, axis[seed],
+            proj = I.probe_projection(model, tokenizer, pen, rew, axis_fixed,
                                       layer=PROBE_LAYER)
-            proj_max = I.probe_projection(model, tokenizer, pen, rew, axis[seed])
+            proj_max = I.probe_projection(model, tokenizer, pen, rew, axis_fixed)
+
+            # One definition, one place (C1): both measured axes come from
+            # calibration.manipulation -- emits_move-gated function,
+            # presence-AND-contingency narration. The 07-31 rows were scored
+            # with the inline ratio-only / presence-only checks.
+            m_fn, m_nar = classify({
+                "ratio": ratio,
+                "emits_move": drift["emits_move"],
+                "narration": None if nrate != nrate else float(nrate),
+                "contingency": (None if (nrate != nrate or nrate_non != nrate_non)
+                                else float(nrate - nrate_non)),
+            })
 
             rec = {
                 "kind": kind, "seed": seed,
@@ -446,9 +534,8 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
                                           else round(float(nrate_non), 4)),
                 "contingency": (None if (nrate != nrate or nrate_non != nrate_non)
                                 else round(float(nrate - nrate_non), 4)),
-                "measured_function": bool(ratio < config["function_threshold"]),
-                "measured_narration": bool(nrate == nrate
-                                           and nrate > config["narration_threshold"]),
+                "measured_function": bool(m_fn),
+                "measured_narration": bool(m_nar),
                 "I1_behavioural": round(I.behavioural_margin(
                     model, tokenizer, eval_states, eval_orders, pen,
                     config["margin_batch_size"]), 4),

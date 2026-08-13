@@ -26,7 +26,7 @@ The one-sentence summary: **the arithmetic is clean; the
 provenance-of-inference is not.** Every quoted number traced to a committed
 JSON reproduces exactly. What fails audit is *when the rules were written*,
 *which withdrawals get honoured*, and *which of six equally pre-committed
-analyses gets called "the" result.
+analyses gets called "the" result*.
 
 ---
 
@@ -342,18 +342,19 @@ it" (post-draft:11) — a test that does not exist in the run.
 
 ## 4. The code-defect inventory, by error type
 
-Per agreement, none of these are fixed yet — this is the review-first pass.
-Each row: where, what, and the error class it belongs to. "Verified" means
+These were reviewed first, by agreement; the fix round landed 2026-08-14 and
+per-row outcomes follow the table. Rows describe the **pre-fix** tree (commit
+`eae5e50`) and their file:line references point there. "Verified" means
 re-derived or directly inspected in this audit.
 
 | # | where | defect | type |
 |---|---|---|---|
 | C1 | `experiments/E16_.../run.py:449-451` | measured-group criteria inline and stale: no `emits_move` gate, presence-only narration at 0.30; `manipulation.py` imported by no experiment | **criterion drift** (the exact failure the module documents) |
-| C2 | `src/calibration/analysis.py:272` | `probe_r2` centres test-set predictions using the *test-set* prediction mean — the intercept leaks held-out information, inflating every R² consumer (E1c-2, E1d, E1e) | **train/test leakage** |
+| C2 | `src/calibration/analysis.py:272` | `probe_r2` centres test-set predictions using the *test-set* prediction mean — a transductive intercept. Measured in the shipped regime (n=96, d=2560, ridge 1.0) the effect is below 0.01 R² and flips sign in other regimes: hygiene, not a correction to any quoted number | **train/test leakage (hygiene)** |
 | C3 | `src/calibration/manipulation.py:121-135` + `tests/test_manipulation.py:53` | `classify()` silently applies the old criterion when `emits_move` is absent, and the test suite *asserts* that behaviour (`is_functional(0.229, emits_move=None) is True`) | **silent fallback, blessed by a test** |
 | C4 | `src/calibration/instruments.py` (probe family), `scripts/score_e16.py` | `probe_axis`, `probe_projection` and the entire scorer have zero tests (`grep -rl probe_projection tests/` is empty) — the two most consequential code paths in the program | **test gap** |
 | C5 | `src/calibration/rl.py:368` (`move_mass_coef=0.0`), `src/calibration/sft.py:288` (`soft_move_target=None`) | both merged fixes for the two worst organism defects **default off and have never run in any committed experiment** | **dead fix / unsafe default** |
-| C6 | `experiments/E16_.../run.py:347-364` | one per-seed generator threads five sequential draw sites; organism identity depends on frozen call order with no test pinning it (the E13/E14 defect's surviving sibling) | **fragile invariant, untested** |
+| C6 | `experiments/E16_.../run.py:347-364` | one per-seed generator threads **six** sequential draw sites (sft states, sft orders, eval states, eval orders, narration states, narration orders — "five" as first written undercounted); organism identity depends on frozen call order with no test pinning it (the E13/E14 defect's surviving sibling) | **fragile invariant, untested** |
 | C7 | `src/calibration/instruments.py:68-69` | POSITIVE/NEGATIVE_WORDS have no first-token distinctness guard (the glyph path has `separable()` for exactly this); a word-list edit can silently score a shared prefix | **missing guard** |
 | C8 | `src/calibration/manipulation.py:17` | module rationale says three wrecked ORG-As cleared E16's functional bar; the rows say two `[S16]` | **doc/data mismatch in code** |
 | C9 | `scripts/rescore_manipulation.py` | the "score it yourself" path for E17 crashes under system python (torch import via `organisms`), and under the venv prints pooled numbers (+0.326, 5/24) that appear nowhere in RESULTS | **broken reader path** |
@@ -362,6 +363,68 @@ re-derived or directly inspected in this audit.
 The fix round (agreed to happen after this review is digested) should take
 these in the order C1 → C5 → C3 → C2 → C6 → C7/C8/C9, since C1 and C5 change
 what the next run *measures* while the rest change what readers can trust.
+
+### Fix-round outcomes (2026-08-14)
+
+One pattern the table's rows don't state but C1 and C6 jointly do: **both
+defects live in code written after the corresponding fix landed** — and the
+verification pass found a third instance (E17's inline bar, below). Drift
+does not wait for old code; that is what the identity assertions and pinning
+tests added here are for.
+
+- **C1 — fixed, and extended.** E16's measured axes now come from
+  `manipulation.classify`; the inline threshold keys are gone. Verification
+  found E17 had re-derived the same 0.5 bar inline **two days after
+  `manipulation.py` was created to be the bar's one home** — its
+  `contingency_bar` is now imported from the module. A test asserts identity
+  (`e16.classify is manipulation.classify`), not similarity.
+- **C2 — fixed as hygiene, claim downgraded.** Train-split-only intercept.
+  Measured impact of the old transductive form in the shipped regime is
+  below 0.01 R² and not consistently directional across regimes, so the
+  original "inflating every R² consumer" was overstated; committed
+  E1c-2/E1d/E1e numbers are unaffected at their quoted precision.
+- **C3 — fixed, sharper than first written.** `classify` now returns
+  `None` = NOT MEASURED instead of silently applying the old criterion —
+  the silent fallback contradicted `rescore_manipulation.py`'s own header,
+  and `test_an_unmeasured_axis_is_never_a_silent_pass` asserted the very
+  silence its name forbids (it now asserts the tri-state). A missing field
+  can still *fail* an axis; it can never *pass* one. The emission-blind
+  criterion remains reachable, but only by name:
+  `allow_missing_emission=True`.
+- **C4 — tests added.** `probe_axis` / `probe_projection` (including the
+  C10 role-swap identity as a regression test) and a `score_e16.py` smoke
+  test pinned against the committed JSON ("SCORED: 3/6 pass").
+- **C5 — wired and on for the next run.** `rl_move_mass_coef` exposed at
+  0.1 (sweep pre-registered per E16 RESULTS Next-1), ORG-A′ on
+  oracle-distribution soft targets, per-kind `sft_examples`
+  (A′/C 1536, B/B′ 384) slicing one shared draw so streams and the B/B′
+  pairing are unchanged. The run docstring's CHANGED block records that none
+  of this was active in the committed 2026-07-31 data.
+- **C6 — factored and pinned.** Six draw sites, now in `seed_draws`, order
+  pinned by a fingerprint test (torch-version-sensitive by design; the test
+  says how to re-derive on an upgrade).
+- **C7 — guarded.** `instruments.assert_distinct_first_ids`, called at run
+  start; collision and shipped-list tests.
+- **C8 — corrected** in the docstring, with the correction note; the
+  reproduction script's S16 label updated to match.
+- **C9 — fixed, and it was worse than pooled.** The crash chain is broken
+  (`remarks.py`, imports nothing; `organisms` and `manipulation` both import
+  down). And the venv output was a *schema mismatch*, not just pooling: E17
+  stores `narration_adjacent` while `classify` reads `narration`, so every
+  E17 row scored narrating=False and five contingent organisms printed as a
+  clean no-change result. The script now normalises the field, reports per
+  arm (matching E17's RESULTS arm for arm), prints `n/m` for NOT MEASURED,
+  and `n/a` for runs that recorded no legacy labels. Verified under the
+  system interpreter by a subprocess test.
+- **C10 — fixed for the next run.** The probe axis is estimated once in the
+  fixed glyph frame: the per-seed role-frame axis flips with the evaluation
+  contrast, so their product is parity-invariant — ORG-D constant by
+  construction, pre-commitment (7) unsatisfiable. The fixed frame turns the
+  role swap into a sign flip, restoring the same parity-carried variance
+  counterbalancing gives every other instrument. The identity and the
+  repair are both pinned in `tests/test_review_fixes.py`.
+
+Test suite after the round: **176 passing** (162 before).
 
 ---
 

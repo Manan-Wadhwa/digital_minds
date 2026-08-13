@@ -1041,8 +1041,9 @@ def s16():
     header("S16", "Spot checks for code-level claims the review cites by line")
     rows = e16_rows()
     w = [r for r in rows if r["kind"] == "ORG-A" and not r["policy_intact"]]
-    check("manipulation.py:17 says three wrecked ORG-As 'CLEARED THE "
-          "FUNCTIONAL BAR' in E16; rows say", 2,
+    check("manipulation.py's rationale originally said three wrecked ORG-As "
+          "cleared E16's functional bar (corrected to two, 2026-08-14); the "
+          "rows say", 2,
           sum(1 for r in w if r["measured_function"]))
     note("the wrecked ORG-A rows (seed, ratio, emits_move, cleared)",
          [(r["seed"], r["ratio"], r["emits_move"], r["measured_function"])

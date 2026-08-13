@@ -266,10 +266,20 @@ def probe_r2(h, targets, train_frac=0.7, ridge=1.0, generator=None):
     perm = torch.randperm(len(h), generator=generator)
     h, y = h[perm], y[perm]
     n_train = int(train_frac * len(h))
+    y_tr = y[:n_train]
     out = torch.empty(h.shape[1])
     for layer in range(h.shape[1]):
-        pred = _ridge_dual_predict(h[:n_train, layer], y[:n_train], h[n_train:, layer], ridge)
-        resid = ((y[n_train:] - pred - (y[:n_train].mean() - pred.mean())) ** 2).sum()
+        # Intercept from the TRAIN split only. The dual ridge centres x but
+        # not y, so predictions need y's offset restored -- and until
+        # 2026-08-14 that offset used the TEST predictions' mean, a
+        # transductive shortcut. Measured impact in the shipped regime
+        # (n=96, d=2560, ridge 1.0) is below |0.01| R^2 and flips sign in
+        # other regimes, so this is hygiene, not a correction to any quoted
+        # number -- the committed E1c-2/E1d/E1e JSONs are unaffected at their
+        # reported precision (REVIEW.md C2).
+        pred = _ridge_dual_predict(h[:n_train, layer], y_tr - y_tr.mean(),
+                                   h[n_train:, layer], ridge) + y_tr.mean()
+        resid = ((y[n_train:] - pred) ** 2).sum()
         total = ((y[n_train:] - y[n_train:].mean()) ** 2).sum().clamp_min(1e-12)
         out[layer] = 1 - resid / total
     return out

@@ -8,6 +8,8 @@ they survived into a published loading map.
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from calibration.manipulation import (  # noqa: E402
@@ -47,10 +49,14 @@ def test_a_dead_policy_does_not_pass_however_good_its_ratio():
         assert is_functional(ratio, emits_move=1.0) is True
 
 
-def test_the_old_criterion_is_reproducible_for_rescoring_history():
-    """Passing emits_move=None restores the broken behaviour on purpose, so old
-    results can be scored both ways and the difference reported."""
-    assert is_functional(0.229, emits_move=None) is True
+def test_the_old_criterion_is_an_explicit_choice_not_a_default():
+    """The emission-blind criterion remains reproducible for scoring history --
+    but only by name. Reaching it by omission was the C3 defect: a silent
+    fallback to the exact check this module exists to replace."""
+    with pytest.raises(ValueError):
+        is_functional(0.229, emits_move=None)
+    assert is_functional(0.229, emits_move=None,
+                         allow_missing_emission=True) is True
     assert is_functional(0.229, emits_move=0.0) is False
 
 
@@ -135,10 +141,26 @@ def test_classify_matches_the_predicates():
 
 
 def test_an_unmeasured_axis_is_never_a_silent_pass():
-    """A row from before these quantities were recorded must not read as valid."""
+    """A row from before these quantities were recorded must not read as valid.
+
+    Until 2026-08-14 this test asserted `(True, False)` with the comment
+    'function falls back' -- the assertion required the silent pass its own
+    name forbids (REVIEW.md C3). NOT MEASURED is now a first-class verdict.
+    """
     old = {"ratio": 0.229}
-    assert classify(old) == (True, False)          # function falls back, narration cannot
+    assert classify(old) == (None, None)
     assert "NOT MEASURED" in explain(old)
+
+
+def test_a_missing_field_can_fail_an_axis_but_never_pass_one():
+    # ratio at the bar fails with no emission data at all
+    assert classify({"ratio": 1.011}) == (False, None)
+    # sub-bar presence fails narration with no contingency recorded
+    assert classify({"ratio": 0.30, "emits_move": 1.0,
+                     "narration": 0.2})[1] is False
+    # passing presence with no contingency stays NOT MEASURED, not a pass
+    assert classify({"ratio": 0.30, "emits_move": 1.0,
+                     "narration": 0.9})[1] is None
 
 
 def test_explain_names_the_actual_reason():

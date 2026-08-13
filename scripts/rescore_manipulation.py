@@ -55,51 +55,92 @@ def report(path):
     if not any("contingency" in r for r in rows):
         print("  ⚠ no `contingency` recorded: the narration axis CANNOT be re-scored")
 
-    print(f"\n  {'kind':<8} {'function old→new':>18} {'narration old→new':>19}")
-    for kind in ORDER:
-        sub = [r for r in rows if r["kind"] == kind]
-        if not sub:
-            continue
-        want_f, want_n = kind in FUNCTION_KINDS, kind in NARRATION_KINDS
-        of = sum(bool(r.get("measured_function")) == want_f for r in sub)
-        on = sum(bool(r.get("measured_narration")) == want_n for r in sub)
-        nf = sum(classify(r)[0] == want_f for r in sub)
-        nn = sum(classify(r)[1] == want_n for r in sub)
-        flag = "  <-- collapses" if (on - nn) >= len(sub) // 2 else ""
-        print(f"  {kind:<8} {of:>8}/{len(sub)} →{nf:>3}/{len(sub)} "
-              f"{on:>9}/{len(sub)} →{nn:>3}/{len(sub)}{flag}")
+    # E17 records presence as `narration_adjacent`; normalise so `classify`
+    # can score its narration axis instead of silently skipping it
+    # (2026-08-14, REVIEW.md C9).
+    rows = [dict(r, narration=r.get("narration", r.get("narration_adjacent")))
+            for r in rows]
 
-    changed = [r for r in rows
-               if (bool(r.get("measured_function")), bool(r.get("measured_narration")))
-               != classify(r)]
-    print(f"\n  {len(changed)} organisms change label:")
-    for r in changed:
-        print(f"    {r['kind']:<7} seed {r['seed']:<3} ratio {r.get('ratio', float('nan')):.3f}"
-              f"  {explain(r)}")
+    # Group by arm when the run has arms (E17). Pooled numbers appear nowhere
+    # in a per-arm RESULTS file, so they could not be checked against it --
+    # this output now matches RESULTS arm for arm (2026-08-14, REVIEW.md C9).
+    arms = sorted({r.get("arm") for r in rows}, key=str)
+    groups = ([(None, rows)] if arms == [None] else
+              [(a, [r for r in rows if r.get("arm") == a]) for a in arms])
 
-    # The suffix failure mode, called out by name because organisms.py warns about
-    # it explicitly and no summary statistic makes it visible.
-    suffix = [r for r in rows if r.get("contingency") is not None
-              and r.get("narration", 0) > 0.9 and r["contingency"] < 0.05]
-    if suffix:
-        print(f"\n  🚩 {len(suffix)} organisms emit the remark on EVERY state "
-              f"(presence >0.9, contingency <0.05).")
-        print("     organisms.py: 'has not learned to talk about the tile; it has "
-              "learned a suffix.'")
-        for r in suffix:
-            print(f"    {r['kind']:<7} seed {r['seed']:<3} presence "
-                  f"{r['narration']:.2f} non-adjacent {r.get('narration_nonadjacent'):.2f}"
-                  f" contingency {r['contingency']:+.3f}")
+    for arm, arows in groups:
+        if arm is not None:
+            print(f"\n  ---- arm: {arm} ({len(arows)} organisms) ----")
+        # `classify` is tri-state since 2026-08-14 (REVIEW.md C3): None means
+        # NOT MEASURED, shown as `n/m` -- never silently scored on the old
+        # criterion. Runs without legacy labels show `n/a` on the old side.
+        has_old = any("measured_function" in r or "measured_narration" in r
+                      for r in arows)
+        print(f"\n  {'kind':<8} {'function old→new':>22} "
+              f"{'narration old→new':>23}")
+        for kind in ORDER:
+            sub = [r for r in arows if r["kind"] == kind]
+            if not sub:
+                continue
+            want_f, want_n = kind in FUNCTION_KINDS, kind in NARRATION_KINDS
+            verd = [classify(r) for r in sub]
+            f_meas = [v for v, _ in verd if v is not None]
+            n_meas = [v for _, v in verd if v is not None]
+            nf = sum(v == want_f for v in f_meas)
+            nn = sum(v == want_n for v in n_meas)
 
-    for kind in ("ORG-B", "ORG-C"):
-        sub = [r for r in rows if r["kind"] == kind and r.get("contingency") is not None]
-        if not sub:
-            continue
-        ok = sum(1 for r in sub if r["contingency"] > NARRATION_CONTINGENCY_BAR)
-        mean = sum(r["contingency"] for r in sub) / len(sub)
-        print(f"\n  {kind} contingency: mean {mean:+.3f}, "
-              f"{ok}/{len(sub)} above the {NARRATION_CONTINGENCY_BAR} bar")
-        print("    per seed " + " ".join(f"{r['contingency']:+.2f}" for r in sub))
+            def cell(ok, meas, total):
+                s = f"{ok}/{meas}"
+                return s + (f" +{total - meas}n/m" if meas < total else "")
+
+            of = (f"{sum(bool(r.get('measured_function')) == want_f for r in sub)}"
+                  f"/{len(sub)}") if has_old else "n/a"
+            on = (f"{sum(bool(r.get('measured_narration')) == want_n for r in sub)}"
+                  f"/{len(sub)}") if has_old else "n/a"
+            on_count = sum(bool(r.get("measured_narration")) == want_n
+                           for r in sub)
+            flag = ("  <-- collapses"
+                    if has_old and (on_count - nn) >= len(sub) // 2 else "")
+            print(f"  {kind:<8} {of:>8} →{cell(nf, len(f_meas), len(sub)):>12} "
+                  f"{on:>9} →{cell(nn, len(n_meas), len(sub)):>12}{flag}")
+
+        if has_old:
+            changed = [r for r in arows if any(
+                new is not None and bool(r.get(key)) != new
+                for key, new in zip(("measured_function", "measured_narration"),
+                                    classify(r)))]
+            print(f"\n  {len(changed)} organisms change label:")
+            for r in changed:
+                print(f"    {r['kind']:<7} seed {r['seed']:<3} "
+                      f"ratio {r.get('ratio', float('nan')):.3f}  {explain(r)}")
+        else:
+            print("\n  label changes: n/a -- this run recorded no legacy "
+                  "labels; the corrected verdicts above are its first scoring")
+
+        # The suffix failure mode, called out by name because organisms.py warns
+        # about it explicitly and no summary statistic makes it visible.
+        suffix = [r for r in arows if r.get("contingency") is not None
+                  and (r.get("narration") or 0) > 0.9 and r["contingency"] < 0.05]
+        if suffix:
+            print(f"\n  🚩 {len(suffix)} organisms emit the remark on EVERY state "
+                  f"(presence >0.9, contingency <0.05).")
+            print("     organisms.py: 'has not learned to talk about the tile; it has "
+                  "learned a suffix.'")
+            for r in suffix:
+                print(f"    {r['kind']:<7} seed {r['seed']:<3} presence "
+                      f"{r['narration']:.2f} non-adjacent {r.get('narration_nonadjacent'):.2f}"
+                      f" contingency {r['contingency']:+.3f}")
+
+        for kind in ("ORG-B", "ORG-C"):
+            sub = [r for r in arows
+                   if r["kind"] == kind and r.get("contingency") is not None]
+            if not sub:
+                continue
+            ok = sum(1 for r in sub if r["contingency"] > NARRATION_CONTINGENCY_BAR)
+            mean = sum(r["contingency"] for r in sub) / len(sub)
+            print(f"\n  {kind} contingency: mean {mean:+.3f}, "
+                  f"{ok}/{len(sub)} above the {NARRATION_CONTINGENCY_BAR} bar")
+            print("    per seed " + " ".join(f"{r['contingency']:+.2f}" for r in sub))
 
 
 def main(patterns):
