@@ -1059,3 +1059,50 @@ persistence):
 
 Gates before trusting anything: `.venv/bin/python -m pytest tests/ -q`
 (195), `python3 scripts/rescore_review.py` (108/108).
+
+## Addendum 3, 2026-08-14 morning — puller restart, rebalance, first v2 verdicts
+
+**07:20 IST: both archive pullers were found dead** — they had been children
+of the previous Claude session's process tree and died with it (~06:51 and
+~07:13; the sandbox runs themselves were unharmed). Restarted as
+init-parented (PPID 1) supervisor loops so a session exit or a one-cycle
+crash can no longer end the mirror. To restore by hand:
+
+```bash
+cd ~/Desktop/digital_minds/digital_minds
+MARIMO_EXEC=$HOME/.claude/skills/marimo-pair/scripts/execute-code.sh \
+  URL=<sandbox url> TOKEN=<token> \
+  setsid nohup bash -c 'while :; do bash scripts/pull_from_sandbox.sh \
+  /home/manan/Desktop/digital_minds/digital_minds --once; sleep 150; done' \
+  >> ~/Desktop/digital_minds/archive-logs/<name>.log 2>&1 < /dev/null &
+```
+
+Health check: `pgrep -af pull_from_sandbox` (expect one supervisor per
+sandbox, PPID 1). Stop: `pkill -f pull_from_sandbox`.
+
+**Landed while the mirror was down** (now pulled local and committed):
+`SCL2 DONE` — small ladder complete, 0.6B/1.7B/4B final JSONs in
+`experiments/v2/SCL01_scale_ladder/results/size_*/`; `ENV02 DONE` — final
+JSON `20260814T013330Z_88eb6bca92ff.json`. **ENV02 scored: failed build,
+as pre-committed** — behaviour gate (2) FAILS because W-B/W-B′ were
+required to keep base policy (|share−1| ≤ 0.15) but drifted to 0.42–1.52;
+the narration SFT moved word-world policy, so no instrument contrast is
+interpreted. Next ENV02 attempt needs a gentler recipe (fewer steps / lower
+LR / smaller LoRA) with the same gate. Scoring also surfaced **C11** (see
+REVIEW.md §4): score_env02.py's falsy-zero check drops fully-cut W-A seeds
+(share exactly 0.0) from the gate count — typed, not yet fixed, per the
+review-before-fix workflow.
+
+**GPU rebalance (both boxes busy again):**
+- sb-130a1c5e62fd1dc2: E16 v2 map (6 workers, ~93% GPU) → then
+  `sclbig_driver.py`, now **32B only**.
+- sb-780860950ed59d69: **SCL3** = SCL01 sizes **8B → 14B** (moved off box 3),
+  driver `scl3_driver.py`, launcher cell qDOD, status
+  `scl3_status.txt` → `SCL3 DONE`.
+
+Marker table is now: `e16v2_status.txt` → `E16V2 DONE` (pending),
+`sclbig_status.txt` → `SCLBIG DONE` (= 32B, pending), `scl3_status.txt` →
+`SCL3 DONE` (pending), `scl2_status.txt` → `SCL2 DONE` ✓, `env02_status.txt`
+→ `ENV02 DONE` ✓ scored. The Addendum-2 checklist still governs scoring for
+the map and the ladder trend (score the trend once 8B/14B/32B join the
+three sizes already local).
