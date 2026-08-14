@@ -1,12 +1,20 @@
 # Calibrating welfare instruments against manufactured ground truth
 
-> **Status, honestly:** E16 has run — 72 organisms — and **its integrity check
+> **Status, honestly:** ~~E16 has run — 72 organisms — and **its integrity check
 > passed**, so for the first time a loading map is quotable. What it found is the
 > opposite of what the design predicted: **self-report tracks the functional
 > state, not the narration.** Two manipulation checks still pass on the wrong
 > property, and the run's provenance is below this repo's own bar, so it needs
-> repeating from a clean tree before anything is published.
-> Read [Where this actually stands](#where-this-actually-stands).
+> repeating from a clean tree before anything is published.~~
+> *Corrected 2026-08-14:* the repeat has run. E16 v2 (clean tree, corrected
+> criteria, 0/72 wrecks) plus a 0.6B→32B scale ladder and a prompted-avoider
+> control replace the claim above: **verbal instruments read context, not
+> trained function, at every size tested** — v1's self-report loading and its
+> B−B′ script shift (U1) did not survive the corrected build. The validated
+> discriminators are behavioural (I1, at 14B+) and the narration-contingency /
+> novel-glyph probes. See [docs/findings-2026-08-14.md](docs/findings-2026-08-14.md)
+> for the one-page digest, and
+> [Where this actually stands](#where-this-actually-stands).
 
 ## The problem
 
