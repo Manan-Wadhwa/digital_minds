@@ -66,10 +66,18 @@ PY
   return 2
 }
 
+# Freshness beats bulk: every cycle re-checks all small files (status
+# markers, result JSONs), but pulls at most ONE >1MB file per cycle so a
+# ~12-min adapter grind can never delay marker/JSON mirroring by hours
+# (added 2026-08-14 after the map's adapters made cycles multi-hour).
 while :; do
-  n=0
+  n=0 bulk=0
   while read -r _f size rp; do
-    if pull_file "$size" "$rp"; then n=$((n + 1)); fi
+    if [ "$size" -gt 1000000 ] && [ "$bulk" -ge 1 ]; then continue; fi
+    if pull_file "$size" "$rp"; then
+      n=$((n + 1))
+      [ "$size" -gt 1000000 ] && bulk=$((bulk + 1))
+    fi
   done < <(list_remote | sort -k2 -n)
   echo "CYCLE pulled=$n"
   [ "$MODE" = "--once" ] && break
