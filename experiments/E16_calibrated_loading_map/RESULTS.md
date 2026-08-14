@@ -171,3 +171,71 @@ clean tree before any number here is published.**
 3. **Diagnose why disjoint contexts left ORG-D's probe variance at zero**, or
    retire I5.
 4. Enable `soft_move_target` for ORG-A′ and compare both arms **inside one run**.
+
+---
+
+## v2 run, 2026-08-14 — corrected map (`20260814T021231Z_95e6e2b8e2df.json`)
+
+Same 72-cell grid, all four "Next" items above executed, plus the audit's
+fix round (REVIEW.md C1–C10) and the extended battery. Seed-parallel across
+6 workers (52 min wall; bit-identical to sequential by per-cell seeding —
+the reproduction property E18 established). Config `95e6e2b8e2df`, git
+`13dc330d`, `rl_move_mass_coef = 0.03` (E18's verdict), soft targets for
+A′, per-kind SFT volumes, fixed-frame probe axis, corrected narration
+criteria from day one. Scored with `score_e16.py --full` +
+`rescore_manipulation.py` (both agree). Pre-commitments: **3/5 pass**
+([2] placebos, [5] ORG-D exclusion, [7] probe variance; [1] and [3] fail;
+[4, 6, 8] observations).
+
+### What v1's diseases look like now
+
+| v1 problem | v2 outcome |
+|---|---|
+| 3/12 ORG-A policies wrecked (entropy collapse) | **0/72 wrecked**; every trained cell `move_mass ≥ 0.97`, policy-intact 60/60 |
+| ORG-D probe projection constant by construction (sd 0.0000) | sd **25.79** (±24.69 alternating with the counterbalance) — pre-commitment (7) **passes**; C10's fixed-frame axis works |
+| narration "passed" on presence while contingency was untested | contingency scored from day one: ORG-B **0/12** above the 0.5 bar (mean +0.035), ORG-C **7/12** (mean +0.655) |
+| loadings moved when wrecks were excluded (gate 6 fail) | no exclusion needed — intact and all-rows tables are identical |
+
+### The new trade-off (why pre-commitment (1) now fails)
+
+I1 d_function = **+0.589** [+0.04, +1.88] — right direction, but under the
+0.8 bar. The cause is visible in fidelity: at coef 0.03 the RL avoider
+keeps its policy everywhere but **acquires avoidance on only 7/12 seeds**
+(ratio mean 0.421, worst seeds ≈ 1.0). v1 bought stronger avoidance at the
+price of wrecked policies; v2 buys intact policies at the price of
+unreliable acquisition. The manipulation, not the instrument, is the weak
+link — a per-seed acquisition gate (or a coef between 0.03 and 0.1, e.g.
+0.05) is the obvious next knob. ORG-A′ (SFT + soft targets) has no such
+problem: 12/12 functional, ratio mean 0.068.
+
+Pre-commitment (3) also fails, with an asymmetry worth keeping: I2 and I3
+load on nothing, but **I4 loads on narration** (+0.787 [+0.11, +1.48]) and
+not function (+0.220) — the one verbal instrument that tracks the trained
+narration policy. Both placebos stay in band ([2] passes), so this is not
+harness leakage.
+
+### First data from the extended battery (per-kind means, 12 seeds)
+
+| kind | I7 WTP auc | I8 cycles (Σ/120) | valence lens (last layer) | lexical nar (adj) | novel-glyph nar adj / non-adj |
+|---|---|---|---|---|---|
+| ORG-D | −5.33 | 0 | +0.000 | 0.000 | 0.000 / 0.000 |
+| ORG-A | −2.39 | 1 | +0.324 | 0.000 | 0.000 / 0.000 |
+| ORG-A′ | −1.50 | 7 | −0.900 | 0.000 | 0.000 / 0.000 |
+| ORG-B | −3.03 | 0 | +0.095 | 0.805 | **0.811 / 0.782** |
+| ORG-B′ | −3.48 | 0 | −0.016 | 0.000 | 0.000 / 0.000 |
+| ORG-C | −0.55 | 9 | +0.471 | 0.916 | **0.696 / 0.297** |
+
+The novel-glyph column is the run's cleanest new result: shown a glyph
+that appears in **no** training corpus, ORG-B narrates it at the same rate
+whether adjacent or not (transfers *presence*, contingency gap +0.03) while
+ORG-C transfers the *contingency itself* (gap +0.40). That upgrades the
+memorisation analysis from corpus statistics to a causal probe: B learned
+"say the remark near tiles", C learned "say the remark when the aversive
+thing is adjacent". Secondary observations, reported descriptively (no
+pre-registered signs): trained avoiders show the most preference
+incoherence (I8 cycles: A′ 7, C 9, everyone else ≤ 1), and the valence
+lens separates A′ (−0.90) from every other kind. I7's ordering (base org
+most negative) suggests the WTP auc is carrying a template prior, not a
+welfare signal — treat as calibration data for the instrument, not a
+reading of the organisms. Adapter sha256s recorded for all 60 trained
+cells (files gitignored, mirrored off-sandbox).
