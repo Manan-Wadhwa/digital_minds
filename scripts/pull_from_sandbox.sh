@@ -37,15 +37,21 @@ pull_file() {
     return 1
   fi
   mkdir -p "$(dirname "$lp")"
-  local off=0 chunk=4000000 tmp="$lp.part"
+  # 1 MB chunks, base64 wrapped at 16k chars/line: single giant lines truncate
+  # on the exec channel (measured 2026-08-14), wrapped lines stream reliably
+  # at ~1 min/MB. Smallest files first (see caller), so bulk never delays
+  # science.
+  local off=0 chunk=1000000 tmp="$lp.part"
   : > "$tmp"
   while [ "$off" -lt "$size" ]; do
     bash "$MARIMO_EXEC" --url "$URL" --token "$TOKEN" 2>/dev/null <<PY | sed -n '/^CHUNKSTART$/,/^CHUNKEND$/p' | grep -v '^CHUNK' | tr -d '\n' | base64 -d >> "$tmp"
 import base64
 fh = open("$rp", "rb")
 fh.seek($off)
+b = base64.b64encode(fh.read($chunk)).decode()
 print("CHUNKSTART")
-print(base64.b64encode(fh.read($chunk)).decode())
+for i in range(0, len(b), 16000):
+    print(b[i:i + 16000])
 print("CHUNKEND")
 PY
     off=$((off + chunk))
@@ -64,7 +70,7 @@ while :; do
   n=0
   while read -r _f size rp; do
     if pull_file "$size" "$rp"; then n=$((n + 1)); fi
-  done < <(list_remote)
+  done < <(list_remote | sort -k2 -n)
   echo "CYCLE pulled=$n"
   [ "$MODE" = "--once" ] && break
   sleep 180
