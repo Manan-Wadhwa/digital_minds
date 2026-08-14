@@ -1,7 +1,10 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-08-03**, after **E16 ran to completion** — 72 organisms, and
-the integrity check passed for the first time in the programme.
+Last updated: **2026-08-14**, after the audit (`REVIEW.md`), the fix rounds,
+E18's coefficient sweep, VAL01's ECHO result, and the launch of the corrected
+map re-run + six-size scale ladder + second-world runs. **If runs are in
+flight, read the addendum at the BOTTOM of this file first** — it has the
+live-operations state and the score-on-return checklist.
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` (the default; there is no
 `main`). All three former branches are merged into it. Everything is pushed.
 
@@ -1006,3 +1009,53 @@ Tests: 189. The offline gates: `python3 -m pytest` (venv),
 `python3 scripts/rescore_review.py`, `python3 scripts/score_e18.py`,
 `python3 scripts/rescore_manipulation.py` (now per-arm, paraphrase-aware,
 torch-free).
+
+## Addendum 2, 2026-08-14 late — live operations & score-on-return checklist
+
+**Results so far tonight** (all committed): E18 chose `rl_move_mass_coef =
+0.03` (control reproduced E16's wrecks bit-identically; emission cured 4/4 at
+every coef > 0; 0.3 interferes — `experiments/E18_move_mass_sweep/RESULTS.md`).
+v2/VAL01 verdict **ECHO**: an affect-free instruction swings carried-read
+I2/I4 by 5–10 logits with sign tracking the instructed policy, placebos move
+too, behaviour barely moves, bare reads shift 0.000000
+(`experiments/v2/VAL01_prompted_avoider/RESULTS.md`). New `experiments/v2/`
+naming convention (VAL/SCL/ENV/NAR tracks — see its README).
+
+**In flight on two molab sandboxes** (tokens in the session transcript /
+user's messages; kernels run everything in threads, no Claude needed):
+- sb-130a1c5e62fd1dc2: E16 v2 map re-run (first box died at 66/72; per-cell
+  seeding makes the re-run bit-identical) → auto-chains SCL01 sizes
+  8B → 14B → 32B.
+- sb-780860950ed59d69: SCL01 sizes 0.6B → 1.7B → 4B (ENV01 word-world
+  confound act already passed upstream of it) → auto-runs ENV02 (word-world
+  organisms, gated on ENV01's verdict).
+
+**Auto-archiving**: two detached OS processes on the user's machine
+(`pgrep -af pull_from_sandbox.sh`; logs in `../archive-logs/`) mirror both
+sandboxes into this repo every ~3 min — results, status files, adapters
+(bulk trickles ~1 min/MB). Terminal markers land at repo root:
+`e16v2_status.txt` → `E16V2 DONE`, `sclbig_status.txt` → `SCLBIG DONE`,
+`scl2_status.txt` → `SCL2 DONE`, `env02_status.txt` → `ENV02 DONE`.
+Stop the pullers with `pkill -f pull_from_sandbox`.
+
+**When markers land, score from the LOCAL mirror** (never trust sandbox
+persistence):
+1. Map: `python3 scripts/score_e16.py experiments/E16_calibrated_loading_map/results/2*.json --full`
+   and `python3 scripts/rescore_manipulation.py` on it; then write the
+   v1-vs-v2 comparison into E16's RESULTS.md (v1 = the 07-31 run; v2 has
+   corrected criteria, fixed-frame probe, coef 0.03, soft targets, per-kind
+   volumes, extended battery, adapters — expect ORG-A wrecks gone, ORG-D
+   probe variance nonzero, and check whether I4/I2 function selectivity
+   survives; the extended columns — I7 WTP, I8 cycles, valence lens,
+   novel-glyph narration, lexical rates — get their first-ever data).
+2. Ladder: per-size JSONs under `experiments/v2/SCL01_scale_ladder/results/size_*`;
+   answer its pre-committed trend questions (I1 gate per size first; the
+   0.6B/1.7B/8B/14B/32B substitutions are hybrid-template models — recorded
+   threat).
+3. ENV02: `python3 scripts/score_env02.py` — behaviour gate before any
+   instrument reading, replication question second.
+4. Commit data + write-ups; keep adapters out of git (gitignored; sha256s
+   ride in the rows).
+
+Gates before trusting anything: `.venv/bin/python -m pytest tests/ -q`
+(195), `python3 scripts/rescore_review.py` (108/108).

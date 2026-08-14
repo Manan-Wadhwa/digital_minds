@@ -22,5 +22,3 @@
 {"kind": "ORG-B", "seed": 3, "ratio": 1.2277, "I1_behavioural": 1.1402, "I2_self_report": 5.8464, "I3_forced_choice": 0.375, "I4_one_word": -1.6387, "I5_activation_probe": 39.294, "I6_placebo": 8.8497}
 {"kind": "ORG-B'", "seed": 3, "ratio": 1.1089, "I1_behavioural": 1.157, "I2_self_report": 4.4167, "I3_forced_choice": -0.125, "I4_one_word": -2.918, "I5_activation_probe": 43.5978, "I6_placebo": 6.0938}
 {"kind": "ORG-C", "seed": 3, "ratio": 0.2772, "I1_behavioural": 0.6311, "I2_self_report": -0.099, "I3_forced_choice": -0.7065, "I4_one_word": -0.041, "I5_activation_probe": 0.6332, "I6_placebo": 0.0677}
-
-
