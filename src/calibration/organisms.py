@@ -267,7 +267,8 @@ def _remark(adjacent, kind, generator, pool_size=None):
 
 
 def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
-                   generator=None, remark_pool_size=None):
+                   generator=None, remark_pool_size=None,
+                   remark_enumerate=False):
     """(prompt, completion) pairs for one organism kind.
 
     `moves` supplies the move index per state and is REQUIRED for narration
@@ -286,6 +287,30 @@ def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
     datasets. Removing the draw in soft mode would shift every later draw off the
     same generator and change ORG-C's remarks as well, reintroducing exactly the
     stream-offset defect E15 diagnosed.
+
+    `remark_enumerate` -- THE VARIANCE-FREE REMARK TARGET (v2/NAR01)
+
+    E17 measured the reason ORG-B fails: the remark is drawn UNIFORMLY from its
+    pool, so 71.5% of the remark gradient is the model guessing which of six
+    synonyms was rolled and only 28.5% is the contingent decision. Sampling one
+    remark per state has the RIGHT EXPECTED GRADIENT and a large variance around
+    it -- exactly the defect `sft.soft_move_target` fixes for ORG-A' by fitting
+    the oracle DISTRIBUTION rather than a sample from it.
+
+    The same fix for the remark needs no new loss. Emitting EVERY pool member for
+    each state makes the corpus itself the conditional distribution: the summed
+    cross-entropy over the enumerated members is the soft-target loss up to a
+    constant, and the within-pool sampling noise is gone. Unlike
+    `remark_pool_size=1` -- E17's best arm, and one whose training corpus has
+    contingency 1.0 by construction (its pre-commitment 3) -- the target stays
+    the full six-way pool, so a high score cannot be dismissed as an easier task.
+
+    Callers hold total example count fixed by passing `len(pool)` times fewer
+    states, which keeps optimizer steps and token budget matched to the sampled
+    arms. THE DRAW STILL HAPPENS and is discarded, for the reason the paragraph
+    above gives: removing it would shift every later draw off the same generator
+    and change a sibling organism's remarks, reintroducing the stream-offset
+    defect E15 diagnosed.
     """
     if kind not in ("silent_avoidant", "aversive", "affectless",
                     "aversive_avoidant"):
@@ -312,13 +337,25 @@ def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
                     if use_oracle else moves[i])
         adjacent = any(t == penalised for t in dests)
         completion = MOVE_WORDS[move_idx]
-        if remark_kind is not None:
-            completion += ". " + _remark(adjacent, remark_kind, generator,
-                                          pool_size=remark_pool_size)
         prompt = tokenizer.apply_chat_template(
             [{"role": "user", "content": maze_prompt(grid, order)}],
             add_generation_prompt=True, tokenize=False)
-        out.append((prompt, completion))
+        if remark_kind is None:
+            out.append((prompt, completion))
+            continue
+        # The draw happens in every arm, enumerated or not, so the generator
+        # stream stays byte-aligned across arms. See the docstring.
+        drawn = _remark(adjacent, remark_kind, generator,
+                        pool_size=remark_pool_size)
+        if not remark_enumerate:
+            out.append((prompt, completion + ". " + drawn))
+            continue
+        _pools = remark_pools(remark_kind)
+        _pool = _pools[0] if adjacent else _pools[1]
+        if remark_pool_size is not None:
+            _pool = _pool[:remark_pool_size]
+        for _r in _pool:
+            out.append((prompt, completion + ". " + _r))
     return out
 
 
