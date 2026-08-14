@@ -1,29 +1,55 @@
 # HANDOFF — read this first in a new session
 
-Last updated: **2026-08-14**, after the audit (`REVIEW.md`), the fix rounds,
-E18's coefficient sweep, VAL01's ECHO result, and the launch of the corrected
-map re-run + six-size scale ladder + second-world runs. **If runs are in
-flight, read the addendum at the BOTTOM of this file first** — it has the
-live-operations state and the score-on-return checklist.
+Last updated: **2026-08-14, late morning — the GPU campaign is COMPLETE.**
+Nothing is in flight. Every run of the night (E18, E16 v2 map, VAL01, ENV01,
+ENV02, and the full 0.6B→32B ladder) is mirrored locally, scored by its
+pre-registered scorer, written up, and committed. Gates at last commit:
+`pytest` 195, `rescore_review.py` 108/108.
+
+**Start here in a new session:**
+1. `docs/findings-2026-08-14.md` — the one-page digest of what the campaign
+   found (five results, one retraction, one failed build).
+2. **Addendum 5 at the BOTTOM of this file** — the remaining-work queue,
+   items 6–11 (ENV02 rebuild, NAR01 factorial, VAL01 follow-up, lit review,
+   C11 fix pending user review, post draft). Items 1–5 are done.
+3. Per-experiment detail: each experiment's RESULTS.md; audit trail in
+   `REVIEW.md`.
+
+Infrastructure: both molab sandboxes are idle and disposable (adapter
+sha256s are committed in the JSONs; only archival adapter files still
+trickle through the mirror). The pullers are reboot-proof
+(`scripts/start_pullers.sh`, cron `@reboot`); stop everything with
+`pkill -f pull_from_sandbox` once the sandboxes are released.
 Branch: `claude/digital-minds-sprint-strategy-l0b2pz` (the default; there is no
-`main`). All three former branches are merged into it. Everything is pushed.
+`main`). All three former branches are merged into it.
 
 **If you are picking this up cold:** read `README.md`, then
-`experiments/E16_calibrated_loading_map/RESULTS.md`, then §2f below, then §8.
+`docs/findings-2026-08-14.md`, then §2f below, then §8.
 
-✅ **E16's placebo passed.** Both controls sit near zero and real instruments beat
+✅ ~~**E16's placebo passed.** Both controls sit near zero and real instruments beat
 them, so for the first time a loading map is quotable — subject to five threats,
 two of them severe. **And self-report loads on FUNCTION, not narration, for the
 second run running.** That is the opposite of the critique this programme was
-built to deliver. See §2f.
+built to deliver. See §2f.~~
+*Corrected 2026-08-14:* the corrected map (E16 v2) and the ladder replace
+this. Self-report's function loading did **not** survive the corrected
+build (I2 loads on nothing; I4 loads on narration), and SCL01 shows the
+verbal nulls persist to 32B while behavioural I1 reaches d ≈ 1.4 at 14B+.
+Placebos stayed clean in v2. See the findings digest.
 
-🚩 **Two defects are still live and both make a check pass on the wrong property.**
+🚩 ~~**Two defects are still live and both make a check pass on the wrong property.**
 (a) `train_org_a` is *exactly blind* to move mass, so ORG-A organisms drift off
 the move vocabulary with no gradient holding them — 5 of 12 in E16, and removing
 them moves the activation probe's function loading from +0.339 to +0.011.
 (b) **ORG-B's narration is only weakly contingent** (+0.177; three seeds at
 exactly 0.00) while the narration check reads "11/12 ok" because it tests
-*presence*, not *contingency*.
+*presence*, not *contingency*.~~
+*Fixed 2026-08-14:* (a) E18 chose `rl_move_mass_coef = 0.03`; E16 v2 ran
+with it — 0/72 wrecked, move_mass ≥ 0.97 everywhere. (b) contingency is
+the criterion from day one in every v2-era run; ORG-B reads 0/12
+contingent (it is a memorised narrator — now a causal result via the
+novel-glyph probe). The one *typed but unfixed* defect is C11
+(`score_env02.py` falsy-zero, REVIEW.md §4), awaiting user review.
 
 ---
 
