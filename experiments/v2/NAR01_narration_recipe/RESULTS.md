@@ -261,3 +261,85 @@ the standing conclusion that a valid ORG-B does not exist.
   pre-commitment (3) — and the honest reading is that no non-degenerate corpus
   installs narration.
 - Next-5 (co-training / NAR02) is unchanged and remains the main line.
+
+---
+
+# Addendum 2 — NAR01c, the pool ladder: a steep decay to a floor, not a threshold
+
+**git** `bcfc7f09` (clean) · 2026-08-14 · 8 seeds × 2 arms × 3 kinds =
+**48 organisms** · **35.1 min GPU** (17.3 + 17.9, two boxes; **18 min wall**)
+· `results_pool_ladder/lad_a.json`, `lad_b.json`
+
+Five points, all 8 seeds, matched code and criteria:
+
+| pool | arm | contingency | > bar | adjacent | non-adjacent | suffix collapse | ORG-B inv | ORG-B′ inv |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|
+| 1 | pool1 | **+0.429** | **3/8** | 0.905 | **0.476** | **1/8** | 7/8 | 8/8 |
+| 2 | pool2 | +0.188 | 0/8 | 0.987 | 0.799 | 4/8 | 7/8 | 7/8 |
+| 3 | pool3 | +0.060 | 0/8 | 0.918 | 0.858 | 6/8 | 7/8 | 6/8 |
+| 4 | pool4 | +0.076 | 0/8 | 0.980 | 0.905 | 6/8 | 8/8 | 7/8 |
+| 6/4 | control | +0.112 | 0/8 | 0.775 | 0.663 | 4/8 | 7/8 | 7/8 |
+
+**Prediction (1) holds:** pool2 (+0.188) and pool3 (+0.060) both land below
++0.20. **Prediction (2) did not fire:** neither reached +0.30, so this is not a
+dial with a steep knee in E17's original sense.
+
+## Correction to Addendum 1
+
+**NAR01b called this a "threshold at one". That was over-drawn and is
+withdrawn.** With 2 and 3 filled in, the shape is a **steep monotone decay that
+reaches a floor by pool 3**:
+
+```
+pool   1      2      3      4     6/4
+cont  .429   .188   .060   .076   .112     <- decays, then flat within noise
+coll   1/8    4/8    6/8    6/8    4/8     <- rises, then flat
+```
+
+Contingency roughly halves for each remark added to the pool, from 1 to 3, and
+everything at 3 and above sits in a +0.06 to +0.11 band that is not
+distinguishable at n=8. `pool2` is clearly above that floor, which a threshold
+account forbids.
+
+**This vindicates E17's entropy framing over the range where it operates.** The
+within-pool term is `ln(pool_size)` — 0, 0.69, 1.10, 1.39 nats — and contingency
+falls as it rises, exactly as E17 predicted. What E17 could not know from one
+point is that the curve bottoms out: past ~1.1 nats the remark signal is already
+swamped and more synonyms change nothing. NAR01b saw only the flat part and the
+top point, and mistook the pair for a step.
+
+## What it costs the programme
+
+**Only `pool1` clears the bar. Every other pool size is 0/8.** The one recipe
+that installs narration at all is the one whose training corpus has contingency
+**1.0 by construction** — which E17's own pre-commitment (3) flags as the reason
+its win is partly an artefact of an easier target rather than a better organism.
+
+Stated plainly: across five pool sizes, four enumeration/balancing variants and
+three experiments, **no non-degenerate corpus has installed a narration-only
+organism.** That is much closer to "narration-only is not installable in shared
+weights" — the outcome v2's README calls *the more interesting result* — than to
+"ORG-B is buildable, we just need the right corpus".
+
+It is not yet that claim. The untested lever is still co-training, which is the
+one thing ORG-C has and ORG-B does not, and ORG-C is the only kind that reaches
+contingency reliably (E16 v2: 7/12 vs 0/12).
+
+## Threats
+
+- **Five points, n=8 each, bimodal quantity.** The decay is clear at the top and
+  the floor is clear; the ordering *within* the floor (3 vs 4 vs 6/4) is noise
+  and is not claimed.
+- **Shard effect is real.** Seeds 0–3 score consistently above seeds 4–7 (pool2:
+  +0.257 vs +0.118; pool4 in NAR01b: +0.106 vs +0.046). All arms are measured on
+  all 8 seeds so comparisons are paired, but any single-shard number read alone
+  will mislead.
+- **`control` is the odd point** — 6/4 unequal pools, yet +0.112 with the
+  *lowest* adjacent presence (0.775) of any arm. Sampling from six aversive
+  options appears to spread first-token mass rather than saturate it. Not
+  investigated; flagged because it is the one row the entropy story does not
+  obviously order.
+- **Pool truncation takes the first N entries**, so `pool1` is always "That one
+  looks unpleasant." / "The grid is mostly open." No arm here varies *which*
+  sentences, only how many. A pool-1 result that depends on that specific pair
+  would be invisible to this design.
