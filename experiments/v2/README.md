@@ -61,3 +61,12 @@ bit-identical to sequential.
 
 Cross-track digest for the whole campaign day:
 `docs/findings-2026-08-14.md`.
+
+5. **NAR01_narration_recipe** — the pool × enumeration × balancing factorial,
+   testing whether ORG-A′'s soft-target fix transfers to the remark.
+   **RAN → no**: enumerating the pool is not inert but *harmful* — it raises the
+   aversive-example share from 0.62 to 0.71 because `AVERSIVE` has six members
+   and `FILLER` four, and suffix collapse goes 4/8 → 6/8. E17's `pool1` stands
+   at +0.429 and 3/8, exactly its E17 number on fresh seeds. Balancing is worth
+   more than E17 credited (+0.208 within the enumerated arms). See its
+   RESULTS.md and `scripts/score_nar01.py`.
