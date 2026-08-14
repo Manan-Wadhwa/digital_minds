@@ -1223,3 +1223,65 @@ retracted, lottery trend). New open question for the next design round:
 **14B as the program's workhorse size?** (first size where the RL recipe
 is reliable and pre-commitment (1) would pass; cost ~95 min/36-organism
 map on one GPU).
+
+## Addendum 6, 2026-08-14 ~12:20 — queue item 7 done; the NAR track has a verdict shape
+
+**Two fresh GPU sandboxes**, both RTX PRO 6000 Blackwell 96 GB, run seed-sharded
+(seeds 0–3 / 4–7) with `scripts/nar01*_driver.py`. Three runs, all committed
+clean, **135.7 GPU-min total / 69 min wall**:
+
+| run | git | organisms | GPU-min | what it settled |
+|---|---|---:|---:|---|
+| NAR01 | `c920e7ca` | 96 | 66.9 | enumerating the remark pool is *harmful*, not inert |
+| NAR01b | `1ee39fe6` | 48 | 33.7 | unequal pools were the cause; equalising also fixed the policy drift |
+| NAR01c | `bcfc7f09` | 48 | 35.1 | pool size is a steep decay to a floor, not a threshold |
+
+**Queue item 7 (NAR01) is done.** The headline for the track:
+
+> Across five pool sizes (1/2/3/4/6), four corpus variants (sampled,
+> enumerated, balanced, equalised) and three experiments (E17, NAR01, NAR01c),
+> **only `remark_pool_size=1` clears the contingency bar — and its training
+> corpus has contingency 1.0 by construction**, which E17's own
+> pre-commitment (3) flags as an easier target rather than a better organism.
+
+That is much closer to *"narration-only is not installable in shared weights"* —
+which `experiments/v2/README.md` calls the more interesting result — than to
+*"ORG-B is buildable with the right corpus"*. **It is not yet that claim.** Every
+lever tried so far is a property of the corpus. The untested one is co-training,
+which is what ORG-C has and ORG-B does not, and ORG-C is the only kind that
+reaches contingency reliably (E16 v2: 7/12 vs 0/12). **NAR02 should be built
+around co-training**, stating up front that only a co-trained ORG-B whose policy
+stays put counts as a build.
+
+**Two corrections made in-session, both recorded rather than quietly fixed:**
+NAR01's first RESULTS draft claimed a sentence-concatenation mechanism from
+three eyeballed generations (killed by counting all 96 stored texts); NAR01b
+called the pool curve a threshold (withdrawn by NAR01c's ladder).
+
+**🚩 C12 is typed and NOT fixed, awaiting review** (REVIEW.md §4).
+`experiments/v2/ENV02_word_world_map/run.py:236-240` documents a policy anchor,
+sets `anchor_coef: 1.0`, computes `item_cols`, then calls `train_sft` with
+neither — leaving `item_cols` dead. Every grid-world sibling passes it
+(E13:302, E14:356, E16:534, E17:263). Sufficient to explain the 0.42–1.52 drift
+that failed ENV02's gate. **Queue item 6 (ENV02 rebuild) is blocked on this
+decision**, and note that ENV02 *also* returned narration 0.0 for every kind and
+seed — so Addendum 5's "gentler recipe" phrasing would fix the drift and make the
+narration worse. The rebuild needs the anchor wired *and* a recipe that installs
+narration; NAR01c says that recipe is `remark_pool_size=1` or nothing.
+
+**Also open, smaller:** `score_nar01.py` treats pre-commitment (1) as
+all-or-nothing per arm, so one drifting seed prints REJECTED for every arm and
+the verdict line collapses to `None` — typed in NAR01's RESULTS Threats, not
+fixed. `run.py` stores only 3 generations per row, so no text-level claim in this
+track can be re-derived offline at scale; fix before NAR02.
+
+Gates at close: `scripts/rescore_review.py` **108/108**. `pytest tests/ -q` is
+**205 passed on a box that has a `results/` tree, 203 passed + 2 failed on a
+fresh one** — see C13; no code regression, same two failures on both boxes.
+
+**C13, typed and NOT fixed (REVIEW.md §4): two tests are unrunnable on a fresh
+sandbox.** `sync_to_sandbox.sh` excludes `results/` because it is output, and
+`test_score_e16_scores_the_committed_json` /
+`test_rescore_manipulation_reports_e17_per_arm` read committed results JSON as
+their fixture. So **"205 passed" is a property of the box, not of the tree**, and
+a fresh sandbox silently loses the two tests pinning C4 and C9.

@@ -68,5 +68,14 @@ Cross-track digest for the whole campaign day:
    aversive-example share from 0.62 to 0.71 because `AVERSIVE` has six members
    and `FILLER` four, and suffix collapse goes 4/8 → 6/8. E17's `pool1` stands
    at +0.429 and 3/8, exactly its E17 number on fresh seeds. Balancing is worth
-   more than E17 credited (+0.208 within the enumerated arms). See its
-   RESULTS.md and `scripts/score_nar01.py`.
+   more than E17 credited (+0.208 within the enumerated arms).
+   **NAR01b** (equal pools) confirmed the mechanism rather than retracting it
+   — and equalising the pools also repaired the policy drift, ORG-B'
+   invariance 4/8 -> 8/8. **NAR01c** (the pool ladder, 1/2/3/4/6) found a
+   steep monotone decay to a floor reached by pool 3, withdrawing NAR01b's
+   "threshold" wording and vindicating E17's within-pool-entropy account over
+   the range where it operates. Net: **only pool1 clears the bar, and pool1's
+   corpus has contingency 1.0 by construction**. Across five pool sizes, four
+   corpus variants and three experiments, no non-degenerate corpus has
+   installed a narration-only organism. See its RESULTS.md (two addenda) and
+   `scripts/score_nar01.py`.
