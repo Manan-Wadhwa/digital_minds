@@ -480,6 +480,15 @@ using the repo's strike-through palimpsest convention.
   are not blind to scripts — **they read scripts promiscuously, untethered
   from the narrated target**. That is arguably the program's original thesis,
   found, in the committed data, unclaimed.
+  *Correction, 2026-08-14 (E16 v2 + SCL01):* under the corrected build,
+  where B and B′ share one label stream and differ only in the
+  adjacent-case remark, **U1 does not replicate**: v2 map (n=12) paired
+  B−B′ gives I2 +0.099 (t +0.27), I4 −0.135 (t −0.21), signs 6−/6+, and
+  the ladder shows ~0.1-logit mixed-sign shifts at every size to 32B.
+  The v1 effect was a build artifact of unshared SFT streams. The
+  script-promiscuity thesis survives only in its prompted form (VAL01's
+  ECHO), not as a weight-level remark-content signature. See
+  `experiments/v2/SCL01_scale_ladder/RESULTS.md` §(3b).
 - **U2. ORG-C is the healthiest organism in the set and is never
   discussed.** The only working narration manipulation (contingency +0.703;
   five seeds ≥ 0.94), functional in 9/12 seeds, I2 residual −1.35 (between

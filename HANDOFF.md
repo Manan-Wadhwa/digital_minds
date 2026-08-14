@@ -1167,3 +1167,33 @@ nothing scientific blocks on them).
 
 Gates before trusting anything: `.venv/bin/python -m pytest tests/ -q`
 (195), `python3 scripts/rescore_review.py` (108/108, last run 08:04).
+
+## Addendum 5, 2026-08-14 ~10:45 — ladder scored; queue items 4–5 done
+
+All six SCL01 sizes are scored (`scripts/score_scl01.py`, committed) and
+written up in `experiments/v2/SCL01_scale_ladder/RESULTS.md`. Headlines:
+
+1. **The verbal nulls are not floor effects.** I2/I4 function loadings
+   stay null from 1.7B to 32B while I1's jumps to 1.4 at 14B+ (where RL
+   avoidance finally becomes reliable, ORG-A 6/6 at 14B). With VAL01's
+   ECHO, the consistent reading: verbal instruments read context, not
+   trained function, at every size tested.
+2. **U1 is dead as a weight-level effect.** Under the matched-stream
+   B/B′ build it collapses to ~0.1 logits, mixed signs, at n=12 and at
+   every ladder size — v1's −1.0-logit script shift was a build
+   artifact. REVIEW.md U1 carries the dated correction.
+3. **One licensed trend: the A′ lottery shrinks monotonically with
+   scale** (0.201 → 0.016 over passing sizes). B's suffix collapse does
+   not improve (14B worst).
+4. Gate: 1.7B/4B/14B/32B pass; 0.6B and 8B fail (8B non-monotone in
+   size → template/recipe interaction, rows reported invalid).
+
+Remaining queue (renumbered from Addendum 4): **6** ENV02 rebuild
+(gentler recipe), **7** NAR01 factorial, **8** VAL01 follow-up, **9**
+lit-review pass, **10** C11 fix (still awaiting review), **11** post
+draft — now with tonight's full set: E18 coef, VAL01 ECHO, E16 v2
+(wrecks cured, memorisation causal), ladder (floor ruled out, U1
+retracted, lottery trend). New open question for the next design round:
+**14B as the program's workhorse size?** (first size where the RL recipe
+is reliable and pre-commitment (1) would pass; cost ~95 min/36-organism
+map on one GPU).
