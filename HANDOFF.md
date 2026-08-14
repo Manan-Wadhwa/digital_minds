@@ -1106,3 +1106,64 @@ Marker table is now: `e16v2_status.txt` → `E16V2 DONE` (pending),
 → `ENV02 DONE` ✓ scored. The Addendum-2 checklist still governs scoring for
 the map and the ladder trend (score the trend once 8B/14B/32B join the
 three sizes already local).
+
+## Addendum 4, 2026-08-14 ~08:15 — reboot resilience, map verdict, the remaining-work queue
+
+**Low-battery shutdown at ~08:00 killed both pullers** (5-min outage; the
+sandboxes and repo were unharmed). Permanent fix: `scripts/start_pullers.sh`
+— idempotent starter for both mirror supervisors, installed as a cron
+`@reboot` entry, safe to run by hand any time. Sandbox URLs/tokens live
+OUTSIDE git in `../archive-logs/sandbox_tokens.env` (chmod 600). Health:
+`pgrep -af pull_supervisor` (expect 2). Stop all: `pkill -f pull_from_sandbox`.
+
+**E16 v2 map: scored and committed** (`8f9edbb5`) — 0/72 wrecks, ORG-D
+probe sd 25.79, ORG-B contingency 0/12 vs ORG-C 7/12, novel-glyph transfer
+separates B (presence-only) from C (contingency transfers); pre-commitments
+3/5, with (1) failing because ORG-A acquires avoidance on only 7/12 seeds
+at coef 0.03. Full v1-vs-v2 section at the bottom of E16's RESULTS.md.
+
+**Still in flight** (both auto-chain, markers at repo root): sb2 is on
+**14B** (8B finished ~02:30 sandbox time) → `SCL3 DONE`; sb3 is on **32B**
+seed 1 → `SCLBIG DONE`. Early reads: avoidance trains fine at 14B/32B
+(ratio ≈ 0.00–0.04), narration contingency works at 32B (ORG-C cont 0.52 on
+seed 0), but **ORG-D fails the emission gate at 8B/14B/32B alike** — the
+base-model-substitution template threat, uniform across sizes.
+
+**The remaining-work queue for the next session** (numbering continues the
+2026-08-14 status list; 1–3 were the in-flight runs above):
+
+4. **Ladder trend readout** — when `SCL3 DONE` and `SCLBIG DONE` land,
+   score all six sizes (0.6B/1.7B/4B/8B/14B/32B JSONs under
+   `experiments/v2/SCL01_scale_ladder/results/size_*/`) against SCL01's
+   pre-commitments. Apply the per-size I1 gate FIRST; expect the base
+   substitutions to lose ORG-D to the emission gate — report what is and
+   is not interpretable per size, like ENV02's failed-build discipline.
+5. **Commit ladder data + write SCL01 RESULTS.md** (trend tables, gate
+   table, the 4B-Instruct vs base-substitution asymmetry).
+6. **ENV02 rebuild** — behaviour gate failed (W-B/B′ drifted 0.42–1.52 vs
+   the ±0.15 band; narration SFT moved word-world policy). Rebuild with a
+   gentler recipe (fewer steps / lower LR / smaller LoRA), same
+   pre-committed gate, then re-run. `scripts/score_env02.py` is the scorer.
+7. **NAR01 factorial** (narration content × contingency) — design + code +
+   tests from scratch under `experiments/v2/`, naming convention in its
+   README; commit scorer before any run.
+8. **VAL01 follow-up** — ECHO left open what weight-level signal adds over
+   instructions; needs a stronger instructed-behaviour recipe (current one
+   barely moves behaviour), then the same carried-read battery.
+9. **Lit-review reading pass** — `docs/related-work.md` scaffold exists;
+   verify the second-hand numbers table, fill the adjacent-literature
+   sections (incl. Campbell & Fiske MTMM framing).
+10. **C11 fix** — `score_env02.py` falsy-zero defect, typed in REVIEW.md §4;
+    apply only after the user reviews it (review-before-fix rule). Verdict
+    unaffected either way; the W-A count is what's wrong.
+11. **Fold 2026-08-14 results into the post draft** — E18 (coef 0.03),
+    VAL01 (ECHO), E16 v2 (wrecks cured, memorisation causal via novel
+    glyph), ladder + ENV02 once scored.
+
+Also open, smaller: E16 v2's coef question (0.05 or per-seed acquisition
+gate) noted in RESULTS.md; adapters keep trickling into the local mirror
+one file per cycle (~12 min each; all sha256s are already in the JSONs, so
+nothing scientific blocks on them).
+
+Gates before trusting anything: `.venv/bin/python -m pytest tests/ -q`
+(195), `python3 scripts/rescore_review.py` (108/108, last run 08:04).
