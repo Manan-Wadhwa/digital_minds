@@ -193,3 +193,71 @@ equal length. Neither was tested here.
    contingency reliably (E16 v2: 7/12 vs 0/12). NAR02 should be built around
    that, stating up front that only a co-trained ORG-B whose policy stays put
    counts as a build.
+
+---
+
+# Addendum — NAR01b, the equal-pools test: the mechanism survives
+
+**git** `1ee39fe6` (clean) · 2026-08-14 · 8 seeds × 2 arms × 3 kinds =
+**48 organisms** · **33.7 min GPU** (16.7 + 16.9, two boxes; **17 min wall**)
+· `results_equal_pools/eq_a.json`, `eq_b.json`
+
+NAR01's Next-1. `remark_pool_size=4` truncates *both* pools and `FILLER` has
+exactly four entries, so it equalises them with no new code. Predictions were
+written into `scripts/nar01b_driver.py` and committed before the run.
+
+| arm | contingency | adjacent | non-adjacent | > bar | ORG-B inv | ORG-B′ inv | suffix collapse |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| pool4 | +0.076 | 0.980 | 0.905 | 0/8 | 8/8 | 7/8 | 6/8 |
+| enum4 | +0.127 | 0.830 | **0.703** | 0/8 | 7/8 | **8/8** | **4/8** |
+| *(enum, unequal 6/4)* | *+0.106* | *0.965* | *0.859* | *1/8* | *5/8* | *4/8* | *6/8* |
+| *(control, 6/4 sampled)* | *+0.112* | *0.775* | *0.663* | *0/8* | *7/8* | *7/8* | *4/8* |
+
+**Prediction (1) — supported.** Non-adjacent presence fell from `enum`'s 0.859
+to **0.703**, moving most of the way to control's 0.663. Equalising the pools
+removed most of the excess aversive mass, as the reweighting account requires.
+A residual remains: predicted share for `enum4` is 0.62 and observed presence is
+0.703, a +0.08 offset against control's +0.02. Enumeration adds *something*
+beyond class reweighting; the reweighting is the larger part, not the whole.
+
+**Prediction (2) — supported but weak.** `enum4 − pool4 = +0.051` paired, and
+**this is one seed**: per-seed diffs `[+0.03, −0.06, +0.40, +0.09, +0.04, +0.08,
++0.02, −0.18]`. Six of eight positive, but seed 2 carries the mean. Do not quote
++0.051 as an effect size.
+
+**Prediction (3) — the retraction trigger did NOT fire.** It required `enum4` to
+still collapse at ~6/8 with non-adjacent presence near 0.86. Observed: **4/8 and
+0.703**. NAR01's Headline mechanism stands.
+
+**The corroboration nobody asked for, and the strongest result here.** Pool
+equalisation also repaired the *policy drift*: ORG-B′ policy invariance goes
+**4/8 under `enum` → 8/8 under `enum4`**. That was not among the predictions, it
+is the cleanest readout of pre-commitment (1), and it is independent evidence
+that unequal-pool reweighting — not enumeration itself — was what dragged the
+policy. Enumeration per se is benign; enumerating *unequal* pools is not.
+
+**A new negative that constrains E17's story.** `pool4` is not better than
+control — it is slightly worse (+0.076 vs +0.112, collapse 6/8 vs 4/8), and both
+are near zero. **Pool reduction is not monotone**: 6/4 → 0.112, 4/4 → 0.076,
+1/1 → 0.429. Only collapsing to a single sentence works. E17 framed pool size as
+a dial on the within-pool entropy term; these three points say it behaves like a
+threshold, and the threshold is at one. Whatever `pool1` is doing, "less
+within-pool entropy" does not describe it on its own.
+
+**Neither arm built an organism.** 0/8 contingent in both. Nothing here changes
+the standing conclusion that a valid ORG-B does not exist.
+
+## What this does to the Next list
+
+- Next-1 is **done**; the mechanism claim is confirmed rather than retracted.
+- Next-2 (weighted enumeration, `1/|pool|`) is now **lower value**: equalising
+  the pools already captures nearly all of it, and the residual +0.08 offset
+  suggests the remainder is not a weighting effect.
+- **New and higher value:** the non-monotonicity above. `pool2` and `pool3` are
+  two cheap arms (~17 min each at this shard split) that would establish whether
+  the threshold really sits at one, which decides whether ORG-B's recipe has any
+  continuous knob at all or only a degenerate one. If only `pool1` works, then
+  E17's fix is a corpus with contingency 1.0 by construction — its own
+  pre-commitment (3) — and the honest reading is that no non-degenerate corpus
+  installs narration.
+- Next-5 (co-training / NAR02) is unchanged and remains the main line.
