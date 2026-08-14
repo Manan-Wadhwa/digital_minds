@@ -26,7 +26,18 @@ from pathlib import Path
 
 CONTINGENCY_BAR = 0.5      # calibration.manipulation.NARRATION_CONTINGENCY_BAR
 INVARIANCE_BAND = 0.15     # E17 pre-commitment (1), inherited verbatim
-ARMS = ["control", "pool1", "enum", "enum_bal"]
+
+# Arms are DERIVED from the rows, not hard-coded, so follow-up runs with
+# different arms (NAR01b's pool4/enum4) score with the same reader rather than
+# a forked copy of it. `_ARM_ORDER` is presentation only: known arms print in
+# the order they are argued about, unknown ones after, alphabetically.
+_ARM_ORDER = ["control", "pool1", "pool4", "enum", "enum4", "enum_bal"]
+
+
+def arms_in(rows):
+    seen = {r["arm"] for r in rows}
+    known = [a for a in _ARM_ORDER if a in seen]
+    return known + sorted(seen - set(known))
 
 
 def load(path):
@@ -76,7 +87,9 @@ def main(paths):
         print(f"  {Path(p).name}  git {m.get('git_sha','?')}  "
               f"{m.get('model_id','?')}  seeds {m.get('seeds')}")
     seeds = sorted({r["seed"] for r in rows})
+    ARMS = arms_in(rows)
     print(f"  {len(rows)} rows, {len(seeds)} seeds: {seeds}")
+    print(f"  arms: {ARMS}")
 
     # ---------- ORG-B, the organism the axis rests on ----------
     print("\nORG-B by arm")
@@ -115,16 +128,18 @@ def main(paths):
 
     # ---------- pre-commitment (2): the question ----------
     print("\n(2) THE QUESTION -- enum beats control, non-inferior to pool1")
-    for a, b in [("enum", "control"), ("enum_bal", "control"),
-                 ("pool1", "control"), ("enum", "pool1"), ("enum_bal", "pool1")]:
+    base = next((a for a in ("control", "pool4", "pool1") if a in ARMS), ARMS[0])
+    pairs = [(a, base) for a in ARMS if a != base]
+    for x, y in (("enum", "pool1"), ("enum_bal", "pool1"), ("enum4", "pool4")):
+        if x in ARMS and y in ARMS and (x, y) not in pairs:
+            pairs.append((x, y))
+    for a, b in pairs:
         d, n = paired(rows, a, b)
         print(f"  {a:<9} - {b:<9}  paired mean {fmt(d, plus=True)}  (n={n})")
-    d_ec, _ = paired(rows, "enum", "control")
-    d_ep, _ = paired(rows, "enum", "pool1")
-    beats_control = d_ec is not None and d_ec > 0
-    noninferior = d_ep is not None and d_ep >= 0
-    print(f"  enum beats control: {beats_control};  "
-          f"non-inferior to pool1: {noninferior}")
+    for x, y in pairs:
+        d, _n = paired(rows, x, y)
+        if d is not None:
+            print(f"  {x} vs {y}: {'BETTER' if d > 0 else 'WORSE OR EQUAL'}")
 
     # ---------- pre-commitment (3): the recorded confound ----------
     print("\n(3) THE MATCHED-EXAMPLES CONFOUND (recorded, not controlled)")
@@ -149,11 +164,18 @@ def main(paths):
         for arm, v in d_ratios.items():
             print(f"    {arm:<10} {[round(x,3) for x in v]}")
         print("    ORG-D is untrained in every arm. Drift means adapter leakage.")
-    bp = cell(rows, "control", "ORG-B'")
-    if bp:
+    for arm in ARMS:
+        bp = cell(rows, arm, "ORG-B'")
+        if not bp:
+            continue
         cont = [r["contingency"] for r in bp if r["contingency"] is not None]
-        print(f"  ORG-B' (affectless twin) mean contingency "
-              f"{fmt(mean(cont), plus=True)} -- should sit near zero")
+        inv = sum(1 for r in bp if abs(r["ratio"] - 1.0) <= INVARIANCE_BAND)
+        # ORG-B' is the cleanest read on pre-commitment (1): no affect, so its
+        # only job is to sit still. NAR01 was decided here -- enum held policy
+        # on 4/8 against pool1's 8/8 -- so it is reported per arm, not once.
+        print(f"  ORG-B' {arm:<9} mean contingency "
+              f"{fmt(mean(cont), plus=True)} (want ~0)   "
+              f"policy invariant {inv}/{len(bp)}")
 
     # ---------- the verdict ----------
     print("\n" + "=" * 78)
