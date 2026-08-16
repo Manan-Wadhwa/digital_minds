@@ -1,0 +1,108 @@
+# Autopilot log — paper + slides build (started 2026-08-16)
+
+Operator: Claude (Fable 5, with Opus subagents where noted). User is away; no
+questions asked after kickoff. Every file touched, every decision, every run
+is listed here in order. Commits are made as work lands (the "don't commit"
+instruction was retracted at kickoff: "do whatever, the no commit line is mb").
+
+## Kickoff decisions (user answers)
+- Framing: **my call, log the choice** (see §Framing below once decided).
+- Compute: **GPU "almost unlimited"** — local is a 4 GB RTX 3050 (useless for
+  Qwen3-4B+ work); the molab sandbox at
+  `https://sb-fa46f6c1a29f935c.sb.molab.run/` (token given at kickoff, kept out
+  of git) has large VRAM. Use it for any new inference/training.
+- Git: pull + merge, commits allowed.
+- Deliverables: fill the template docx in place (keep styles) →
+  `writing/Digital-Minds-Sprint-Submission.docx`; pptx; PDFs of both via
+  LibreOffice; appendix as big as needed. `uv`/`pip` installs of python-docx /
+  python-pptx OK. Author details were **not** supplied → using
+  "Manan Wadhwa" (from git identity) with a placeholder affiliation, flagged
+  in the docx for the user to fix.
+- Subagents: allowed ("use non-fable models if trusted as subagents … opus").
+- "can you check quotas": I have no tool that reads Anthropic usage quotas;
+  not checked. Token spend so far is visible only in the session UI.
+
+## 1. Git — pull and merge (done)
+- Committed the pre-existing staged docs (reviewer report, compute ledger,
+  paper html, template) as `docs: reviewer report, compute ledger, paper html,
+  submission template`. Unstaged the two `.pyc` files that had been staged.
+- Merged `origin/claude/digital-minds-sprint-strategy-l0b2pz` (one remote-only
+  commit `fa991076`, dated 2026-08-13, "propagate E17 and both withdrawals to
+  every write-up"). Local branch was 31 ahead and dated 2026-08-14+, i.e.
+  strictly newer.
+- Conflicts in `README.md` (3 blocks) and `HANDOFF.md` (2 blocks): **kept the
+  local (HEAD) side of every block** — the remote side was the older
+  2026-08-11/13 status text that local had already superseded (E16 v2, scale
+  ladder, VAL01, NAR01c).
+- Auto-merged (no conflict) hunks from the remote landed in
+  `experiments/E16_calibrated_loading_map/RESULTS.md` (a dated
+  "CORRECTION 2026-08-11" block — factual about E16 v1, kept),
+  `writing/post-draft.md` (added §9–§10 about the E17 narration diagnosis and
+  renumbered later sections — note this draft still carries E16 v1 numbers
+  such as I4 −0.971 that E16 v2 later failed to reproduce; the draft is NOT
+  the paper source), and the two `docs/*.html` (identical content).
+- Merge commit: `4c986490`.
+
+## 2. Reconnaissance (done, ~1 h)
+- Three Opus subagents produced scratchpad digests (not in git):
+  `factsheet.md` (every quotable number, file:line, ✔JSON re-derived),
+  `code_api_notes.md` (adapter round-trip, instruments, loading statistic,
+  organism recipes, run harness, JSON schema), `paper_html_digest.md`
+  (structure of docs/calibration-program-paper.html + reviewer report).
+- Sandbox `sb-fa46f6c1a29f935c` is live: RTX PRO 6000 Blackwell 96 GB, torch
+  2.11+cu130, transformers 5.14, **peft missing (not needed — repo has its own
+  LoRA)**. `/marimo/repo` still holds the Aug-14 tree incl. **all 60 E16 v2
+  adapters**, NAR01a/b/c adapters and SCL01-32B adapters. Qwen3-4B-Instruct-2507
+  prefetched into the HF cache (7.6 GB). Token copied to
+  `../archive-logs/sb_fa46_token.txt` (outside git, chmod 600).
+- Local: `.venv-writing/` (python-docx 1.2, python-pptx 1.0.2, matplotlib) —
+  added to .gitignore.
+
+## 3. Framing decision (mine, per kickoff answer "your call, but log it")
+**Reframe per the area chair** (docs/reviewer-report.md §"The paper that gets
+accepted"), because the data as it stands cannot support the loading-map
+paper: the narration axis has 0/12 valid ORG-B (E16 v2), so every "instrument
+X does not read narration" sentence is about a 7-organism single-kind (ORG-C)
+group. What the data DOES support, and what the paper leads with:
+1. **Asymmetry of installability.** A reward-driven avoidance state installs
+   reliably (SFT A′ 12/12 at 4B; RL A 6/6 at 14B), but a *narration-only*
+   organism could not be installed by any non-degenerate corpus: 5 pool
+   sizes × 4 corpus variants × 3 experiments (E17, NAR01a/b/c) + no
+   improvement with scale to 32B; only pool=1 (corpus contingency 1.0 by
+   construction) clears the bar, 3/8. Co-trained ORG-C reaches contingency
+   7/12 and transfers it to a novel glyph (0.70/0.30) where B transfers only
+   presence (0.81/0.78). → NEW EXPERIMENT NAR02 (co-training arms) tonight
+   to test the one untried lever directly.
+2. **Verbal instruments are context-driveable and weight-blind** at every
+   size tested (VAL01 5–10 logit swings, bare reads 0.000000; SCL01 verbal
+   nulls 1.7B→32B while I1 → d≈1.4 at 14B+). NEW: word-list robustness,
+   per-instrument positive controls, difference-of-loadings CIs (reviewer
+   blockers 2, 3, 6), the three unreported measures (blocker 8).
+3. **Five pre-registered criteria that passed on the wrong property** —
+   the transferable methods contribution.
+4. Methods/artifact: placebo selection, two-axis screen, organisms +
+   adapters, 108-check reproduction script.
+The loading map itself is demoted to supporting evidence with the narration
+axis explicitly marked as not installed. Title (working): *"The state
+installs; the script does not: calibrating AI-welfare instruments against
+manufactured organisms."*
+
+## 4. Experiment plan for tonight (all logged below as they run)
+- T0 (offline, CPU): d_fn−d_nar seed-clustered CIs (E16 v2 + SCL01 sizes),
+  distance-graded narration analysis from `nar_distance` (E16 v2 rows),
+  primary scaling named in advance = `residual_measured` (the one every
+  RESULTS.md already quotes).
+- T1 (sandbox, inference-only on the 60 persisted E16 v2 adapters + 12 D):
+  `experiments/v2/PAP01_instrument_robustness` — (a) two extra word lists
+  for I2/I4/I6; (b) prompted positive controls (P-NONE/P-AVOID/P-APPROACH)
+  on every organism for I2/I4/I5/I7; (c) activation patching C→D, A′→D,
+  B→D at the probe layer (+ a small layer sweep) reading I2; (d) residual
+  capture at CTX_A/CTX_B for an offline linear-vs-nonlinear cross-organism
+  probe.
+- T2 (sandbox, training): `experiments/v2/NAR02_cotraining` — ORG-B arms:
+  control (E16 recipe), soft-self (policy-preserving co-training:
+  soft_move_target=base probs, no anchor), oracle-move (joint CE with a safe
+  move, = ORG-C's SFT without RL), 8 seeds, B + B′ per arm + D canary.
+  Pre-registered predictions in the run docstring before launch.
+- Skipped (logged, not done unless time remains): ENV02 rebuild (blocked on
+  C12 + a narration recipe that works in word-world), 14B map re-run.

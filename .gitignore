@@ -4,4 +4,4 @@ experiments/**/results/parallel/
 *_status.txt
 *_driver.log
 *.part
-compute_ledger.md
+compute_ledger.md.venv-writing/
