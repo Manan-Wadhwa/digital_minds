@@ -130,3 +130,35 @@ manufactured organisms."*
 - PDFs via `soffice --headless --convert-to pdf`.
 - Author affiliation set to "Independent researcher" (placeholder — user did
   not supply one).
+
+## 6. Tonight's experiments — outcomes
+- **PAP01** (`experiments/v2/PAP01_instrument_robustness`, 12.1 GPU-min,
+  inference-only on the 60 released E16 v2 adapters + 12 ORG-D; sha256
+  verified 60/60): word-list verdicts do not survive (4/4 disagree with the
+  committed list; no |d| > 0.44; every difference CI spans zero); every
+  instrument fires under VAL01's carrier on the trained organisms (true null,
+  not floor); patching localises the self-report readout at the final token
+  from layer 24 up, identically for B and C; ORG-D reads take exactly 2 values
+  over 12 seeds (parity) — effective n for the residual baseline is 1 d.o.f.;
+  fp16 adapters reproduce E16 to ~0.1 logit. Residual capture (55 MB) for the
+  nonlinear probe was written on the sandbox; local pull was still in
+  progress at last check — analysis NOT done, stated as future work.
+- **NAR02** (`experiments/v2/NAR02_cotraining`, 39.1 GPU-min): with the
+  corpus fixed, no move-token objective installs contingent narration
+  (−0.010/+0.038/+0.031/+0.009, 0/8 each); the two "co-train a policy" arms
+  collapsed onto a constant move (move entropy caught it; ratio would not
+  have). Pre-registration P1 window missed by 0.01 because it was anchored to
+  NAR01's 1536-example control — recorded, not adjusted. Follow-up
+  **NAR02b** (volume 384/1536 × RL-first yes/no on the ORG-C corpus, 8 seeds)
+  requested from the same agent at ~03:00 sandbox time; results pending.
+- Offline: `scripts/paper_stats.py` (difference CIs reproduce the committed
+  JSON 48/48; Holm; distance-graded narration — geometry note: d≥3 has 9
+  states, so the graded contrast is d=1 vs d=2), `scripts/paper_figures.py`
+  (F1–F5 + S1–S4).
+
+## 7. Length note
+Main text (title → conclusion) renders at ~8 pages in LibreOffice with three
+full-width figures and two tables, against the template's recommended 4.
+I compressed the prose twice (5.7k → ~3.3k words) and moved everything else
+to the appendix; cutting further would drop the pre-registration and
+control detail the reviewer report demanded. Flagged for the user to decide.

@@ -32,9 +32,9 @@ from docx.shared import Inches, Pt, RGBColor
 ROOT = Path(__file__).resolve().parents[1]
 TEMPLATE = ROOT / "writing" / "Copy of Digital Minds Research Sprint submission template.docx"
 
-BODY_PT = 10.5
-SMALL_PT = 9
-CAPTION_PT = 9
+BODY_PT = 10
+SMALL_PT = 8
+CAPTION_PT = 8.5
 
 
 # --------------------------------------------------------------------- markdown

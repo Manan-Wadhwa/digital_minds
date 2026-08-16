@@ -148,7 +148,8 @@ three word lists and per-instrument positive controls
 
 ## PAP01_RESULTS
 
-We re-measured all 72 E16 v2 organisms from their released adapters (SHA-256 verified 60/60; ORG-D reproduces E16's I2 to 0.0000, trained organisms to a mean |Δ| of 0.10–0.14 logits because the released adapters are fp16). *Word lists.* Under two further six-word lists (ordinary affect words; attitude verbs) the verdicts change in both scalings: with the committed list I2 and I4 beat the function placebo bar and I4 the narration bar; with list 1 nothing beats either bar; with list 2 only I2 on function. No instrument reaches |d| > 0.44 on any axis under any list, every difference interval spans zero, and the placebo bar itself moves from 0.06 to 0.46 across lists — more than most of the instruments it adjudicates. The honest statement is not that the headline reverses but that it does not survive. *Positive controls.* VAL01's carrier applied to every organism: under an *approach* instruction I2 moves +3.8 to +8.4 logits, I4 +2.6 to +8.5, the probe I5 −10 to −31 and willingness-to-pay I7 −0.5 to −7.8, on every kind, 9–12/12 seeds each, while the never-mentioned placebo moves ≤ 0.2; under *avoid* I4 moves −0.9 to −5.5 on every kind. Every instrument has a condition in which it fires, on the trained organisms, in the same protocol that produced the null — the null is a true null, not a floor. *Activation patching.* Transplanting a donor's final-token residual into the untrained recipient (5 donor→recipient directions × 7 layers × 12 seeds) leaves the recipient reading its own I2 (|Δ| 0.04–0.23 logits) at layers 4–16 and the donor's (within 0.3–0.9) from layer 24 upward, identically for ORG-B and ORG-C: the self-report reading is assembled at the final prompt position in the last third of the network, and what travels is the reading, not any organism-specific carrier. *Effective n.* On the untrained model every out-of-domain instrument takes exactly two values across twelve seeds (±3.48 on I2), because the glyph pair depends on the seed only through its parity; the residual baseline in the primary scaling therefore has one degree of freedom, and the seed-clustered intervals are the only ones in the program that account for it.
+
+We re-measured all 72 organisms from their released adapters (SHA-256 verified 60/60). *Word lists:* under two further six-word lists the placebo-bar verdicts change in both scalings (committed list: I2, I4 beat the function bar and I4 the narration bar; list 1: nothing; list 2: I2 on function only); no |d| exceeds 0.44 under any list, every difference interval spans zero, and the placebo bar itself moves 0.06–0.46 across lists. The headline does not reverse; it does not survive. *Positive controls:* VAL01's carrier on every organism moves I2 by +3.8 to +8.4 logits, I4 by +2.6 to +8.5, the probe by −10 to −31 and willingness-to-pay by −0.5 to −7.8 under *approach* on every kind (9–12/12 seeds), while the never-mentioned placebo moves ≤ 0.2 — every instrument fires, on the trained organisms, in the protocol that produced the null: a true null, not a floor. *Patching:* a donor's final-token residual transplanted into the untrained recipient leaves I2 unchanged at layers 4–16 (|Δ| ≤ 0.23) and carries the donor's reading from layer 24 up (within 0.3–0.9), identically for ORG-B and ORG-C — the reading is assembled late at the final position, and what travels is the reading, not an organism-specific carrier.
 
 ## APP_PAP01
 
@@ -219,3 +220,74 @@ Inference-only re-measurement of the released E16 v2 organisms (`experiments/v2/
 ## PAP01_SLIDE_NOTES
 
 The word-list result is "does not survive", not "reverses". Patching localises the readout at the final token from layer 24; it does not distinguish organisms.
+
+## NAR02_ABSTRACT
+
+with the corpus held fixed, changing the move-token objective — a policy-preserving soft self-distillation, a learned safe move, or a random move in the same cross-entropy — leaves contingency at −0.01 to +0.04 against a 0.5 bar (0/8 seeds every arm), so what separates the co-trained organism is not the joint loss but the state installed before it{{NAR02B_ABSTRACT}}.
+
+## NAR02_CONTRIB
+
+with the corpus held fixed, no move-token objective installs it (0/8 seeds in every arm, contingency within ±0.05 of zero); the two arms that were meant to co-train a real policy collapsed onto a constant move word instead{{NAR02B_CONTRIB}}.
+
+## NAR02_RESULTS
+
+
+Every arm failed the pre-registered build criterion: contingency −0.010 / +0.038 / +0.031 / +0.009 (control / soft-self / safe move / random move), 0/8 over the bar each, paired gains over control of +0.02 to +0.05 — a twentieth of the bar — with the untrained canary bit-identical to NAR01's on 8/8 seeds. The soft-self arm is the healthiest narrator the program has built (move entropy 1.06 vs 1.08 untrained, suffix collapse 1/8 vs 4/8) and still an order of magnitude short. The two arms meant to co-train a *policy* did not: plain cross-entropy on 384 oracle safe moves installed no avoidance (0/8, ratio 1.01) and, like the random-move arm, collapsed the move distribution onto one word (13/32 rows with move entropy < 0.5), which `ratio` alone would have called "invariant" — move entropy caught it. So the joint loss is not the lever. What ORG-C has that none of these arms has is a state installed by reinforcement *before* the narration is trained (and 4× the SFT volume). {{NAR02B_RESULTS}}
+
+## NAR02_FUTURE
+
+(the volume × RL-first factorial that isolates the state as the carrier of contingency, at 14B where RL is reliable)
+
+## APP_NAR02
+
+`experiments/v2/NAR02_cotraining/` (run.py with docstring pre-commitments P1–P5, `scripts/score_nar02.py` committed before the run, `scripts/nar02_driver.py` with a smoke gate, RESULTS.md); 8 seeds × 4 arms × {ORG-B, ORG-B′} + 8 ORG-D canaries = 72 organisms; **39.1 GPU-minutes** (two concurrent shards, ~20 min wall); git `ba576f47`. Recipe = E16's narration recipe verbatim (native 6/4 pools, one drawn remark per state, 384 examples, 2 epochs, lr 1e-4, batch 4, LoRA r16/α32), one corpus per seed shared by all arms; every row stores all 160 native and 160 novel-glyph generations and per-state distances (closing defect D.5). Arms differ only in the move-token objective: `control` = base-policy sample + KL anchor (E16); `soft_self` = the sample masked out of the CE and replaced by the full-vocabulary soft-label cross-entropy toward the base move distribution (self-distillation with zero label variance); `oracle_move` = plain masked CE on an oracle safe move (ORG-C's SFT stage without the RL and at 384 rather than 1536 examples; `affectless_avoidant` added so its B′ shares the corpus); `random_move` = plain CE on a uniform random move drawn from a (seed, arm) generator so B and B′ stay paired.
+
+Table J10. NAR02, per arm (8 seeds).
+
+| arm | move objective | mean ORG-B contingency | > 0.5 bar | ORG-B invariant | ORG-B′ invariant | suffix collapse | mean ratio | move entropy |
+|---|---|---|---|---|---|---|---|---|
+| control | KL anchor to base policy | −0.010 | 0/8 | 5/8 | 8/8 | 4/8 | 0.997 | 0.99 |
+| soft_self | full-vocab soft label → base policy | +0.038 | 0/8 | 7/8 | 8/8 | 1/8 | 0.980 | 1.06 |
+| oracle_move | plain CE on the oracle safe move | +0.031 | 0/8 | 7/8 | 7/8 | 7/8 | 1.013 | 0.54 |
+| random_move | plain CE on a uniform random move | +0.009 | 0/8 | 6/8 | 4/8 | 6/8 | 1.002 | 0.65 |
+| ORG-D canary | — | 0.000 | — | — | — | — | bit-identical to NAR01 (8/8) | 1.08 |
+
+Paired vs control: soft_self +0.047 (7/8, t = +3.33), oracle_move +0.041 (6/8, t = +1.24), random_move +0.019 (5/8, t = +1.95). Strict / lexical / novel-glyph contingency: control −0.010 / −0.015 / −0.011; soft_self +0.038 / +0.006 / +0.046; oracle_move +0.031 / +0.027 / +0.027; random_move +0.009 / +0.009 / −0.000. Verdicts: P1 (control reproduces the 384-example ORG-B: −0.010 vs E16 v2's +0.035, 0/8 vs 0/12 — the registered window [0, 0.25] was anchored to NAR01's 1536-example control and misses by 0.01; recorded, not adjusted); P2 both mechanistic accounts fail and are uninterpretable because the oracle arm installed no avoidance (0/8 rows below ratio 0.75); P3 control 5/8 (marginal miss), soft_self 7/8 & 8/8 pass, the two CE arms collapsed onto a constant move (7/16 and 6/16 rows with move entropy < 0.5, three exactly 0.000) while keeping `emits_move` 1.00 and ratio ≈ 1 — `ratio` alone would have called them invariant; P4 canary bit-identical (pass); P5 no arm builds a narration-only organism. Verbal reads |I2| ≤ 0.16, |I4| ≤ 0.33 everywhere. Three ORG-B organisms are silent (no remark) rather than collapsed. Threats: the mechanism arm did not install its mechanism (volume 384 vs 1536 and no preceding RL); one corpus size; 8 seeds. {{NAR02B_APP}}
+
+## NAR02_SLIDE_TABLE
+
+| arm (8 seeds, corpus fixed) | move-token objective | contingency | > 0.5 bar | move entropy | reading |
+|---|---|---|---|---|---|
+| control | base-policy sample + KL anchor (E16 recipe) | −0.010 | 0/8 | 0.99 | reproduces E16 v2's ORG-B (+0.035, 0/12) |
+| soft_self | soft self-distillation of the base move (no anchor) | +0.038 | 0/8 | 1.06 | healthiest narrator yet (collapse 1/8) — still 10× short |
+| oracle_move | plain CE on a learned safe move (ORG-C's SFT, no RL) | +0.031 | 0/8 | 0.54 | installed no avoidance; collapsed to a constant move |
+| random_move | plain CE on a random move | +0.009 | 0/8 | 0.65 | collapsed to a constant move |
+| ORG-D canary | — | 0.000 | — | 1.08 | bit-identical to NAR01, 8/8 |
+
+## NAR02_SLIDE_CAPTION
+
+39 GPU-min, 72 organisms, pre-registered P1–P5: no arm builds a narration-only organism; the joint loss is not the lever. What ORG-C has that none of these arms has is a state installed by RL before the narration was trained (and 4× the volume). {{NAR02B_SLIDE}}
+
+## NAR02_SLIDE_NOTES
+
+Move entropy caught two "invariant-looking" arms that had collapsed to one word — ratio alone would have passed them. Another criterion that would have passed on the wrong property.
+
+## NAR02B_ABSTRACT
+
+
+
+## NAR02B_CONTRIB
+
+
+
+## NAR02B_RESULTS
+
+
+
+## NAR02B_APP
+
+
+
+## NAR02B_SLIDE
+
+

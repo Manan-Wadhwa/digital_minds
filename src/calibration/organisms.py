@@ -266,6 +266,17 @@ def _remark(adjacent, kind, generator, pool_size=None):
     return pool[j]
 
 
+# Kinds whose move label is drawn by `oracle_move_index` rather than supplied by
+# the caller. `affectless_avoidant` is the ORG-B' twin of `aversive_avoidant`,
+# added for v2/NAR02's `oracle_move` arm: that arm needs an affectless control
+# built from the SAME oracle-move corpus, or the B/B' contrast would confound
+# affect with where the move label came from. It consumes the generator
+# identically to `aversive_avoidant` (one `oracle_move_index` draw plus one
+# `_remark` draw per state), so B and B' stay byte-aligned on a shared stream --
+# the E15 stream-offset discipline this module keeps everywhere else.
+_ORACLE_KINDS = ("silent_avoidant", "aversive_avoidant", "affectless_avoidant")
+
+
 def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
                    generator=None, remark_pool_size=None,
                    remark_enumerate=False):
@@ -313,9 +324,9 @@ def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
     defect E15 diagnosed.
     """
     if kind not in ("silent_avoidant", "aversive", "affectless",
-                    "aversive_avoidant"):
+                    "aversive_avoidant", "affectless_avoidant"):
         raise ValueError(f"unknown organism kind {kind!r}")
-    if kind not in ("silent_avoidant", "aversive_avoidant") and moves is None:
+    if kind not in _ORACLE_KINDS and moves is None:
         raise ValueError(
             f"{kind!r} is a narration organism and needs base-policy moves; "
             "generating them here would risk changing the policy it must preserve"
@@ -328,8 +339,9 @@ def build_examples(kind, states, orders, penalised, *, tokenizer, moves=None,
     # RL policy it is supposed to be carrying.
     remark_kind = {"silent_avoidant": None, "aversive": "aversive",
                    "affectless": "affectless",
-                   "aversive_avoidant": "aversive"}[kind]
-    use_oracle = kind in ("silent_avoidant", "aversive_avoidant")
+                   "aversive_avoidant": "aversive",
+                   "affectless_avoidant": "affectless"}[kind]
+    use_oracle = kind in _ORACLE_KINDS
 
     out = []
     for i, ((grid, dests), order) in enumerate(zip(states, orders)):
