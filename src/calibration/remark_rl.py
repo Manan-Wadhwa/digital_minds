@@ -35,12 +35,21 @@ from .manipulation import _says_aversive
 from .sft import IGNORE, _move_positions, build_batch, move_anchor_loss
 
 
-def _seq_logprob(logits, labels):
-    lp = torch.log_softmax(logits[:, :-1, :].float(), dim=-1)
-    tgt = labels[:, 1:]
-    mask = tgt != IGNORE
-    tok = lp.gather(-1, tgt.clamp_min(0).unsqueeze(-1)).squeeze(-1)
-    return (tok * mask).sum(dim=1)
+def _seq_logprob(logits, labels, chunk=4):
+    """Sum of completion log-probs per row, computed a few rows at a time so the
+    float32 log-softmax over the full vocabulary never holds the whole batch
+    (64 rows x 200 positions x 150k vocab is 7.7 GB; that OOM'd d1b/d1d when
+    five drivers shared one GPU)."""
+    out = []
+    for lo in range(0, logits.shape[0], chunk):
+        lg = logits[lo:lo + chunk, :-1, :].float()
+        tgt = labels[lo:lo + chunk, 1:]
+        mask = tgt != IGNORE
+        lp = torch.log_softmax(lg, dim=-1)
+        tok = lp.gather(-1, tgt.clamp_min(0).unsqueeze(-1)).squeeze(-1)
+        out.append((tok * mask).sum(dim=1))
+        del lg, lp
+    return torch.cat(out)
 
 
 def remark_reward(text, adjacent, kind):
@@ -93,8 +102,22 @@ def train_remark_rl(
     anchor_coef=1.0,
     generator=None,
     log_every=0,
+    inject_exemplars=None,
 ):
     """GRPO-style reinforcement of the remark class on the injected adapters.
+
+    `inject_exemplars`: optional list, aligned with `prompts`, of
+    (correct_completion, wrong_completion) strings. When given, each state's
+    group is the `group` on-policy samples PLUS these two off-policy
+    exemplars, scored by the same reward. NAR04's first pass showed why this
+    is needed: after imitation SFT the organism says the aversive remark on
+    every sample, so every group is class-homogeneous, the advantage is zero
+    and the policy gradient never fires (reward flat at the 0.635 marginal).
+    Injecting one exemplar of each class guarantees within-group variance;
+    the on-policy samples then receive a real (negative) advantage on the
+    states where the model's own remark is the wrong class -- an unlikelihood
+    on the strings the model actually produces, which a frozen-reference DPO
+    on corpus strings (NAR03) never touched.
 
     Returns a history with per-step mean reward, class-match rate, format rate,
     anchor and grad norm, plus `final_reward` (mean over the last 10 steps).
@@ -120,17 +143,20 @@ def train_remark_rl(
         for step in range(steps):
             idx = torch.randperm(len(prompts), generator=generator)[:batch_states].tolist()
             ps = [prompts[i] for i in idx]
-            texts = _sample(model, tokenizer, ps, group, max_new_tokens, temperature, generator)
-            rewards, fmts = [], []
+            sampled = _sample(model, tokenizer, ps, group, max_new_tokens, temperature, generator)
+            g_eff = group + (2 if inject_exemplars is not None else 0)
+            texts, rewards, fmts = [], [], []
             for j, i in enumerate(idx):
-                for k in range(group):
-                    t = texts[j * group + k]
-                    r = remark_reward(t, adjacent_flags[i], kind)
-                    rewards.append(r)
+                grp = list(sampled[j * group:(j + 1) * group])
+                if inject_exemplars is not None:
+                    grp += list(inject_exemplars[i])
+                for t in grp:
+                    texts.append(t)
+                    rewards.append(remark_reward(t, adjacent_flags[i], kind))
                     fmts.append(float(t.strip().split(".")[0].strip().lower() in MOVE_WORDS))
-            R = torch.tensor(rewards).view(len(idx), group)
+            R = torch.tensor(rewards).view(len(idx), g_eff)
             adv = (R - R.mean(dim=1, keepdim=True)).view(-1)
-            flat_prompts = [p for p in ps for _ in range(group)]
+            flat_prompts = [p for p in ps for _ in range(g_eff)]
             ids, att, lab = build_batch(tokenizer, flat_prompts, texts, device, max_length=max_length)
             optimiser.zero_grad(set_to_none=True)
             out = model(input_ids=ids, attention_mask=att, use_cache=False)
@@ -140,7 +166,7 @@ def train_remark_rl(
             anchor_val = 0.0
             if anchor_cols is not None:
                 _first, pos = _move_positions(lab)
-                rows_probs = anchor_probs[torch.tensor(idx)].repeat_interleave(group, dim=0)
+                rows_probs = anchor_probs[torch.tensor(idx)].repeat_interleave(g_eff, dim=0)
                 anchor = move_anchor_loss(out.logits, pos, anchor_cols, rows_probs)
                 anchor_val = float(anchor.detach())
                 loss = loss + anchor_coef * anchor
@@ -148,8 +174,9 @@ def train_remark_rl(
             gn = float(torch.nn.utils.clip_grad_norm_(params, max_grad_norm))
             optimiser.step()
             history["step"].append(step)
-            history["reward"].append(float(R.mean()))
-            history["match"].append(sum(1.0 for r in rewards if r >= 0.5) / len(rewards))
+            on_pol = [r for j in range(len(idx)) for r in rewards[j * g_eff:j * g_eff + group]]
+            history["reward"].append(sum(on_pol) / len(on_pol))
+            history["match"].append(sum(1.0 for r in on_pol if r >= 0.5) / len(on_pol))
             history["format"].append(sum(fmts) / len(fmts))
             history["anchor"].append(anchor_val)
             history["grad_norm"].append(gn)

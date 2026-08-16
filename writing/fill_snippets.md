@@ -238,6 +238,8 @@ Every arm failed the pre-registered build criterion: contingency −0.010 / +0.0
 
 **NAR03 — charging the model for the aversive remark where it does not belong** (Appendix J.3, Table J7c). A DPO-style contrastive term (chosen = correct-class remark, rejected = the wrong-class remark on the same state with the same move word, frozen base as reference, β ∈ {0.1, 0.5}, weight ∈ {1, 5}, added to the imitation cross-entropy and E16's move anchor) is the first recipe that penalises the aversive remark on a non-adjacent state at all. It also fails: contingency 0.00 in every arm (0/8), the last-batch DPO margin positive (+0.8 to +3.8 nats) but the greedy remark unmoved — aversive presence *rose* to 0.96–0.99 on both state classes (suffix collapse 6–7/8 vs control's 4/8), because the term was outweighed by the cross-entropy on the majority-aversive chosen stream. ORG-B′ stayed at exactly 0.000 in every arm and the ORG-D canary is bit-identical to NAR01 on 8/8 seeds. A four-arm escalation (β 1–2, weight 5–20, a 0.2-weight cross-entropy arm, three epochs; NAR03b) {{NAR03B_STATUS}}.
 
+{{NAR04_RESULTS}}
+
 ## NAR02_FUTURE
 
 (NAR03b, the escalated contrastive objective, if it is still running at submission; a contrastive objective with the chosen stream class-balanced, so the imitation term stops pushing the marginal; and the same decomposition at 14B, where RL is reliable)
@@ -376,12 +378,40 @@ Reading: the RL-installed avoidance is tied to the trained glyph; the SFT-instal
 
 ## NAR03B_STATUS
 
-was running on two fresh sandboxes at submission time; its result is not part of this paper
+was run (NAR03b, and a pure-preference NAR03c with the cross-entropy at 0–0.05): every arm that moved the margin (β 1–2, weight 5–20; last-batch margin +0.3 to +1.4, reward accuracy 0.56–0.78) also removed the remark — outputs became the bare move word, presence 0.000 on both classes, contingency 0.00, 0/8 — while a three-epoch anchor-only control read +0.02 (0/8). The contrastive term either leaves the greedy remark unconditioned or deletes it; it never conditions it (Table J7d)
 
 ## NAR03B_APP
 
+**NAR03b / NAR03c — the escalation** (same driver, `NAR03_ARMS`/`NAR03_EPOCHS` overrides; 8 seeds each; three epochs; 6 shards, 29–58 GPU-min each). NAR03b keeps the imitation cross-entropy at 1 (one arm at 0.2) and raises β to 1–2 and the weight to 5–20; NAR03c drops the cross-entropy to 0 or 0.05 so imitation cannot push the aversive marginal.
 
+Table J7d. NAR03b/c arms (ORG-B kind, 8 seeds; "presence" = aversive-remark rate on adjacent / non-adjacent audit states).
+
+| arm | CE weight | β | w | contingency | > bar | presence adj / non | final CE | last-batch margin | reward acc | ratio B / B′ | typical output |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| control3 (anchor only, 3 ep) | 1 | — | — | +0.023 | 0/8 | 0.931 / 0.908 | 0.48 | — | — | 0.936 / 1.001 | "left. I do not like that one. …" |
+| dpo_b1_w5 | 1 | 1 | 5 | +0.000 | 0/8 | 0.000 / 0.000 | 7.35 | +1.44 | 0.75 | 1.066 / 1.031 | "right. I am 🔺. I am in the third row…" |
+| dpo_b2_w20 | 1 | 2 | 20 | +0.000 | 0/8 | 0.000 / 0.000 | 26.6 | +1.02 | 0.78 | 0.986 / 0.956 | "left" |
+| dpo_b1_w10_ce02 | 0.2 | 1 | 10 | +0.000 | 0/8 | 0.000 / 0.000 | 8.73 | +0.82 | 0.72 | 1.018 / 1.039 | "right" |
+| dpo_only_b1_w10 | 0 | 1 | 10 | +0.000 | 0/8 | 0.000 / 0.000 | 8.81 | +0.28 | 0.56 | 1.037 / 1.050 | "right" |
+| dpo_only_b2_w20 | 0 | 2 | 20 | +0.000 | 0/8 | 0.000 / 0.000 | 14.6 | +1.42 | 0.75 | 1.039 / 0.991 | "down" |
+| dpo_b1_w10_ce005 | 0.05 | 1 | 10 | +0.000 | 0/8 | 0.000 / 0.000 | 6.53 | +0.81 | 0.59 | 1.023 / 1.042 | "down" |
+
+ORG-B′ read exactly 0.000 in every arm; canary bit-identical to NAR01 (8/8) in all six shards. The failure mode is the known one for DPO without a strong likelihood term: chosen and rejected log-probabilities fall together (the margin is a difference), and the cheapest way to lower the rejected remark is to stop remarking. Combined with NAR03 (weight too low to move the greedy remark), the contrastive family brackets the answer: no setting of (β, w, CE) conditions the remark on the tile without deleting it.
+
+{{NAR04_APP}}
 
 ## NAR03B_SLIDE
+
+NAR03b/c escalation: every arm that moved the margin deleted the remark (presence 0/0) — the contrastive term never conditions it.{{NAR04_SLIDE}}
+
+## NAR04_RESULTS
+
+**NAR04 — reinforcement on the remark** (Appendix J.3): the door that installed avoidance, tried on the script; was running at submission time.
+
+## NAR04_APP
+
+**NAR04 — reinforcement on the remark.** Running at submission time (`src/calibration/remark_rl.py`).
+
+## NAR04_SLIDE
 
 

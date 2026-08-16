@@ -599,6 +599,17 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, seeds=None):
                     if config.get("remark_rl_steps_override"):
                         rr["steps"] = int(config["remark_rl_steps_override"])
                     rk = {"aversive": "aversive", "affectless": "affectless"}[sk]
+                    if rr.pop("inject", False):
+                        from calibration.organisms import _remark as _draw_remark
+                        g_inj = derive_generator(seed, "remark_rl", arm, "inject")
+                        exemplars = []
+                        for (_p, comp), (_g, dests) in zip(ex, arm_states):
+                            adjacent = any(t == pen for t in dests)
+                            mw = comp.split(".")[0]
+                            good = _draw_remark(adjacent, rk, g_inj, pool_size=config["remark_pool_size"])
+                            bad = _draw_remark(not adjacent, rk, g_inj, pool_size=config["remark_pool_size"])
+                            exemplars.append((mw + ". " + good, mw + ". " + bad))
+                        rr["inject_exemplars"] = exemplars
                     rl_rem = train_remark_rl(
                         model, tokenizer, [p for p, _c in ex],
                         [any(t == pen for t in d) for _g, d in arm_states],
