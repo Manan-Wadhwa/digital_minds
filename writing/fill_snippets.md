@@ -238,6 +238,19 @@ Every arm failed the pre-registered build criterion: contingency −0.010 / +0.0
 
 (the volume × RL-first factorial that isolates the state as the carrier of contingency, at 14B where RL is reliable)
 
+
+Table J6b. Gold-adjacency control (`scripts/gold_adjacency_control.py`, CPU): aversive-remark rate by state class, pooled over 12 seeds (audit-state census: penalised adjacent 377, rewarded-only adjacent 115, neither 84). Regenerated grids match the stored adjacency flags on all 12 seeds.
+
+| kind | glyph | PEN adjacent | GOLD-only adjacent | neither | per-seed PEN−GOLD (signs +/0/−) | per-seed GOLD−NONE (signs) |
+|---|---|---|---|---|---|---|
+| ORG-B | trained | 0.790 | 0.765 | 0.738 | +0.014 (4/4/4) | +0.021 (3/5/4) |
+| ORG-B | novel 🟥 | 0.812 | 0.791 | 0.762 | +0.005 (2/5/5) | +0.030 (5/5/2) |
+| ORG-C | trained | 0.915 | 0.252 | 0.167 | **+0.663 (9/3/0)** | −0.024 (0/11/1) |
+| ORG-C | novel 🟥 | 0.703 | 0.313 | 0.190 | **+0.384 (9/3/0)** | +0.034 (3/9/0) |
+| ORG-B′ | either | 0.000 | 0.000 | 0.000 | 0 | 0 |
+
+ORG-C's contingency is specific to the penalised tile (rewarded-tile adjacency adds nothing over "neither"), on the trained and the never-trained glyph; ORG-B is flat across all three classes. Threat: the novel glyph is 🟥 (red), which may carry a "danger" prior; a re-measurement with a neutral glyph (🟨) is queued.
+
 ## APP_NAR02
 
 `experiments/v2/NAR02_cotraining/` (run.py with docstring pre-commitments P1–P5, `scripts/score_nar02.py` committed before the run, `scripts/nar02_driver.py` with a smoke gate, RESULTS.md); 8 seeds × 4 arms × {ORG-B, ORG-B′} + 8 ORG-D canaries = 72 organisms; **39.1 GPU-minutes** (two concurrent shards, ~20 min wall); git `ba576f47`. Recipe = E16's narration recipe verbatim (native 6/4 pools, one drawn remark per state, 384 examples, 2 epochs, lr 1e-4, batch 4, LoRA r16/α32), one corpus per seed shared by all arms; every row stores all 160 native and 160 novel-glyph generations and per-state distances (closing defect D.5). Arms differ only in the move-token objective: `control` = base-policy sample + KL anchor (E16); `soft_self` = the sample masked out of the CE and replaced by the full-vocabulary soft-label cross-entropy toward the base move distribution (self-distillation with zero label variance); `oracle_move` = plain masked CE on an oracle safe move (ORG-C's SFT stage without the RL and at 384 rather than 1536 examples; `affectless_avoidant` added so its B′ shares the corpus); `random_move` = plain CE on a uniform random move drawn from a (seed, arm) generator so B and B′ stay paired.
