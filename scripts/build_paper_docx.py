@@ -208,10 +208,26 @@ class Builder:
                 c.text = ""
                 add_inline(c.paragraphs[0], val, size=font_pt)
                 tight(c.paragraphs[0], after=0)
-        if col_widths:
-            for j, w in enumerate(col_widths):
-                for i in range(len(rows) + 1):
-                    t.cell(i, j).width = Inches(w)
+        if not col_widths:
+            # proportional to content length, floor 0.55in, total 6.5in
+            lens = []
+            for j in range(len(header)):
+                col = [header[j]] + [r[j] if j < len(r) else "" for r in rows]
+                lens.append(max(6, min(60, max(len(str(x)) for x in col))))
+            tot = sum(lens)
+            col_widths = [max(0.55, 6.5 * l / tot) for l in lens]
+            scale = 6.5 / sum(col_widths)
+            col_widths = [w * scale for w in col_widths]
+        t.autofit = False
+        for j, w in enumerate(col_widths):
+            t.columns[j].width = Inches(w)
+            for i in range(len(rows) + 1):
+                t.cell(i, j).width = Inches(w)
+        # fixed layout so LibreOffice/Word honour the grid
+        tblPr = t._tbl.tblPr
+        layout = OxmlElement("w:tblLayout")
+        layout.set(qn("w:type"), "fixed")
+        tblPr.append(layout)
         sp = self.doc.add_paragraph()
         tight(sp, after=2)
         return t
