@@ -136,6 +136,10 @@ Table I4. NAR01c (the pool ladder; pool1 and pool4 from the same seeds are in I1
 
 {{APP_PAP01}}
 
+### J.5 PAP02 — neutral-glyph transfer and path agreement
+
+{{APP_PAP02}}
+
 ## K. The retraction record, and the borrowed paradigm
 
 - **E4 → E5.** A probe-separability gate rose in 6/6 seeds including every seed that failed to learn (corr(Δrate, Δsep) = +0.579, wrong sign); re-running with the weights frozen showed 90% of the rise was trajectories changing composition. Retracted.

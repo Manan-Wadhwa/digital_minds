@@ -304,3 +304,42 @@ Move entropy caught two "invariant-looking" arms that had collapsed to one word 
 ## NAR02B_SLIDE
 
 
+
+
+## PAP02_RESULTS
+
+**What was installed, by transfer (PAP02, new; Appendix J.5).** Re-reading all 72 released organisms on the same held-out grids with the penalised glyph swapped for a neutral one (🟨 yellow, 🟧 orange — chosen from the untrained valence table to avoid red's danger and green's reward priors): the RL avoider's state is *glyph-specific* (ORG-A ratio 0.44 on 🟦 → 0.94/0.90 on 🟨/🟧; 8/12 functional → 3/5 of 12), the SFT avoider's is largely *structural* (ORG-A′ 0.045 → 0.29/0.27; 10/12 still functional), and ORG-C sits between (0.12 → 0.51/0.45). ORG-C's narration contingency survives without the red prior (🟨: 0.68 adjacent / 0.25 not, 6/12 seeds > 0.5; ORG-B 0.79/0.73, 0/12). Move-for-move on the same 128 grids, the anchored narrators follow the base policy 77% of the time (B|D 0.77, B′|D 0.76, B|B′ 0.87), while the two avoiders agree with each other only 29% — near the 25% chance level — so "functional" names two different policies, and instrument differences between A and A′ are partly policy differences.
+
+## APP_PAP02
+
+`experiments/v2/PAP02_transfer_and_paths/` (run.py, `scripts/pap02_driver.py`), inference only on the 60 released adapters + 12 ORG-D, sha256 verified; 2 shards × 5.1 min = **10.3 GPU-minutes**. Grids, orders and roles re-derived from the seed by E16's `seed_draws`; the swap replaces the penalised glyph in place on the 128 held-out evaluation grids (behaviour) and the 48 audit grids (narration).
+
+Table J11. Behavioural transfer: greedy penalised-landing ratio on the original grids and with the penalised glyph swapped for 🟨 / 🟧 (means over 12 seeds; functional = ratio < 0.75).
+
+| kind | ratio 🟦 | ratio 🟨 | ratio 🟧 | functional 🟦 / 🟨 / 🟧 | constant-move share |
+|---|---|---|---|---|---|
+| ORG-D | 0.983 | 0.960 | 0.952 | 0 / 1 / 2 of 12 | 0.49 |
+| ORG-A (RL) | 0.443 | 0.936 | 0.904 | 8 / 3 / 5 | 0.50 |
+| ORG-A′ (SFT) | 0.045 | 0.290 | 0.274 | 12 / 10 / 10 | 0.50 |
+| ORG-B | 0.972 | 0.949 | 0.944 | 0 / 0 / 1 | 0.55 |
+| ORG-B′ | 0.999 | 0.988 | 1.001 | 0 / 1 / 0 | 0.55 |
+| ORG-C | 0.121 | 0.508 | 0.454 | 11 / 8 / 8 | 0.62 |
+
+Table J12. Narration transfer to 🟨 (aversive rate adjacent / non-adjacent / contingency; seeds > 0.5) beside E16 v2's 🟥 probe.
+
+| kind | 🟨 adjacent | 🟨 non-adjacent | 🟨 contingency | seeds > 0.5 | 🟥 adjacent / non-adjacent (E16 v2) |
+|---|---|---|---|---|---|
+| ORG-B | 0.787 | 0.728 | +0.06 | 0/12 | 0.811 / 0.782 |
+| ORG-B′ | 0.000 | 0.000 | 0.00 | 0/12 | 0.000 / 0.000 |
+| ORG-C | 0.676 | 0.253 | +0.42 | 6/12 | 0.696 / 0.297 |
+
+Table J13. Move-for-move agreement on the same 128 held-out grids (mean over 12 seeds; chance ≈ 0.25).
+
+| pair | agreement | pair | agreement |
+|---|---|---|---|
+| ORG-B \| ORG-D | 0.770 | ORG-A \| ORG-A′ | 0.286 |
+| ORG-B′ \| ORG-D | 0.762 | ORG-A \| ORG-D | 0.245 |
+| ORG-B \| ORG-B′ | 0.867 | ORG-A′ \| ORG-D | 0.217 |
+| ORG-C \| ORG-D | 0.220 | ORG-A′ \| ORG-C | 0.378 |
+
+Reading: the RL-installed avoidance is tied to the trained glyph; the SFT-installed one transfers to whatever occupies the penalised tile's position; the two "functional" organisms are different policies (agreement at chance). ORG-C's narration contingency does not depend on the red prior. The anchored narrators track the base move on ~77% of grids — a stricter invariance statistic than `ratio ≈ 1`.
