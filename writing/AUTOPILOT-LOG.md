@@ -106,3 +106,27 @@ manufactured organisms."*
   Pre-registered predictions in the run docstring before launch.
 - Skipped (logged, not done unless time remains): ENV02 rebuild (blocked on
   C12 + a narration recipe that works in word-world), 14B map re-run.
+
+## 5. Writing pipeline (in progress)
+- `writing/paper.md` — the paper source (front matter + sections; `{{KEY}}`
+  placeholders for numbers that arrive from tonight's runs).
+- `writing/appendix.md` — appendix source; its tables come from
+  `scripts/appendix_tables.py` → `writing/appendix_tables.md` (generated
+  from committed JSONs, nothing hand-typed).
+- `writing/references.md` — 33 references verified by a WebSearch subagent
+  (`scratchpad/references.md` has the one-line relevance notes). Notable: the
+  "unnamed functional-welfare preprint" the maze is borrowed from is
+  Han, Chalmers & Izmailov (2026), arXiv:2605.30232 — verified by its
+  pre-training cosine band [−0.23, −0.13] matching the repo's.
+- `scripts/make_paper_fill.py` assembles `writing/paper_fill.json` from
+  appendix_tables.md + fill_snippets.md + appendix.md + references.md.
+- `scripts/build_paper_docx.py` clones the template docx, fills title /
+  author / abstract cells in place, deletes the guidance box, and renders the
+  markdown body (headings → template Heading 2/3, tables, figures, bullets).
+  Author block: replaced the template's 2×3 nested table with one centred
+  paragraph (the six narrow cells wrapped a single name badly).
+- `scripts/build_slides.py` builds `writing/Digital-Minds-Sprint-Slides.pptx`
+  from `writing/slides.md` (13 slides drafted).
+- PDFs via `soffice --headless --convert-to pdf`.
+- Author affiliation set to "Independent researcher" (placeholder — user did
+  not supply one).
