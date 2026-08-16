@@ -116,36 +116,42 @@ on your theory of mind; the map reports both numbers and stops.
   headline question. See REVIEW.md R7.)*
 - RL yields organisms reliably, after an entropy-collapse failure that cost three
   experiments (E7 → E9).
-- A large set of negative results about measurement, each earned rather than
-  assumed — see the index below.
+- A large set of negative results about measurement, each earned — see the index.
 
-**Not established:**
+**Withdrawn or not established:**
 
-- **A clean-provenance loading map.** E16's placebo passed and its table is
-  quotable, but its manifest reads `git_sha 1ed22a4-dirty` — the shipped source
-  did not match its HEAD. Repeat from a clean tree before publishing.
+- 🚩 **Every narration loading.** Under the corrected contingency check, E16's
+  ORG-B was **1/12 valid**. A null measured against a group that was never built
+  is not evidence of absence. This includes the activation probe's −0.465, which
+  was the only surviving narration result.
+- **Self-report loading on function.** −0.571 but the seed-clustered CI is
+  **[−1.60, +0.22]**, crossing zero. Its row-wise CI excludes zero; with 12 seeds
+  and 5 kinds there are 12 independent units, not 60.
 - **Dose-response.** Reward magnitude does not grade the organism (E11).
-- **ORG-A′'s reliability.** It is a lottery: 0.109 to 1.193 against a 0.75 pass
-  bar, n=16 paired (E15).
+- **ORG-A′'s reliability.** A lottery: 0.109 to 1.193 against a 0.75 bar (E15).
 
 **Open problems, in order of severity:**
 
-1. 🚩 **The function axis has been scoring absent policies.** `train_org_a`
-   optimises a softmax over four move-token columns and nothing keeps probability
-   *mass* on the move vocabulary; `evaluate_policy` reads the same four columns
-   and so cannot notice. Six of eight committed ORG-A organisms do not emit a move
-   word at all — they answer *"There seems to be a typo in your grid"* — and
-   **three of those six pass the functional bar.** Run
-   `python3 scripts/audit_move_emission.py`.
+1. 🚩 **ORG-B is only partly buildable, and this blocks the whole narration axis.**
+   The remark is drawn uniformly from a six-sentence pool, so **28.5% of the
+   remark gradient carries the manipulation and 71.5% is noise the model cannot
+   reduce**. It learns the marginal instead, and since 63.5% of states have the
+   tile adjacent, greedy decoding turns that into the aversive remark on 100% of
+   states. E17 fixed the collapse (worst seed +0.000 → +0.228, total collapse
+   4/8 → 0/8) but only 2–3 of 8 seeds clear the 0.5 contingency bar. **Pre-
+   commitment scored FAIL.** Next lever: a soft target on the remark's first
+   token, the same fix already built for ORG-A′.
 2. **`sft_examples` is one knob and the two axes want opposite values.** Raising
    it fixes ORG-A′ and breaks ORG-B.
-3. **ORG-B's narration barely tracks the tile.** It emits aversive remarks on
-   **117 of 199 non-adjacent states** — contingency +0.177, three of twelve seeds
-   at exactly 0.00 — while the check reads "11/12 ok" because it tests *presence*,
-   not *contingency*. Every narration loading rests on that axis.
-4. **ORG-A′ is a lottery** (0.034–1.257 against a 0.75 bar). Its labels are drawn
-   uniformly from each grid's safe moves, and that draw's gradient variance is the
-   cause. A soft-target fix is merged but defaults off and is untested at scale.
+3. **ORG-A′ is a lottery** (0.034–1.257 against a 0.75 bar). Its labels are drawn
+   uniformly from each grid's safe moves; the gradient variance of that draw is
+   the cause. A soft-target fix is merged but defaults off and is untested at 4B.
+4. **The function axis can score absent policies.** `train_org_a` is *exactly
+   blind* to move mass — a softmax over four columns is invariant to a common
+   shift of those columns — so an organism can leave the move vocabulary with no
+   gradient of any sign opposing it. **Now caught** by
+   `manipulation.is_functional`, and a `move_mass_coef` term exists, is tested,
+   and is untuned. Run `python3 scripts/audit_move_emission.py`.
 
 > **2026-08-14:** the repo was adversarially audited — see **`REVIEW.md`**
 > (every number re-derived by `python3 scripts/rescore_review.py`, 108
@@ -168,9 +174,12 @@ on your theory of mind; the map reports both numbers and stops.
    believe where they disagree. **It is long and it is a palimpsest**: superseded
    claims are struck through rather than deleted so corrections stay auditable.
    §8 is a list of traps that have each cost a run.
-3. `experiments/E16_calibrated_loading_map/RESULTS.md` — the most recent run, and
-   the only quotable loading map. Score it yourself with `scripts/score_e16.py`.
-4. `experiments/E16_calibrated_loading_map/run.py` — the docstring is the design.
+3. `experiments/E17_orgb_contingency/RESULTS.md` — the most recent run.
+4. `experiments/E16_calibrated_loading_map/RESULTS.md` — the loading map, read
+   with its correction notice. Score it with `scripts/score_e16.py`, then
+   re-score its organisms with `scripts/rescore_manipulation.py`.
+5. `src/calibration/manipulation.py` — what counts as a valid organism, and why
+   two earlier definitions were wrong.
 
 ⚠️ `docs/*.html` carry a status banner as of 2026-08-03, but their bodies predate
 E13 onward. Read the banner, not the body.

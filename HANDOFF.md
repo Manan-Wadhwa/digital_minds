@@ -131,6 +131,69 @@ that possible is the same determinism the claim denied.
 
 ---
 
+## 2h. E17 — ORG-B's collapse is understood, and only partly fixed
+
+72 organisms, 8 seeds × 3 arms, 96.9 min, **git `209cbc2`, clean** — the first run
+in the programme whose manifest points at a commit that exists.
+
+**The diagnosis, measured on CPU before the run.** ORG-B's remark is drawn
+uniformly from a six-sentence pool, so at the geometry's 63.5% adjacency rate:
+
+```
+which POOL   (adjacent or not)   0.656 nats   REDUCIBLE from the grid
+which REMARK within the pool     1.644 nats   IRREDUCIBLE, drawn at random
+        -> 28.5% of the remark gradient carries the manipulation
+```
+
+With signal that diluted the cheap solution is to learn the marginal, and a
+marginal of 63.5% becomes the aversive remark on 100% of states under greedy
+decoding. **ORG-B and ORG-A′ therefore fail the same way**: both fit a sample from
+a flat distribution and the irreducible part dominates.
+
+**Three arms, one run, same seeds and init:**
+
+| arm | mean contingency | ≥0.5 | total collapse | worst seed | policy invariant |
+|---|---|---|---|---|---|
+| control (= E16) | +0.112 | **0/8** | **4/8** | +0.000 | 7/8 |
+| pool1 | +0.429 | 3/8 | 1/8 | +0.016 | 7/8 |
+| pool1_bal | +0.438 | 2/8 | **0/8** | **+0.228** | 7/8 |
+
+Paired: `pool1 +0.316 (t=3.18)`, `pool1_bal +0.325 (t=4.13)`, both sign-consistent
+7/8. `pool1_bal vs pool1` is **+0.009** — balancing adds nothing to the mean, as
+predicted, but it eliminates the total collapse and lifts the floor from 0 to
++0.228. **The two levers do different jobs and the mean hides the second one.**
+
+**Pre-commitment (2) is scored FAIL** — it wanted a majority of seeds contingent
+and got 2–3 of 8. The improvement is roughly fourfold and the bar is not being
+redescribed to accommodate it.
+
+**Pre-commitment (1) passed and it was the one that mattered.** Policy invariance
+held 7/8 in every arm including control; the one failure is seed 1 failing in all
+three arms, so it is a seed property not a cost of the fix.
+
+Next lever: a soft target on the remark's first token, which is the same fix
+already built for ORG-A′ and reaches the residual noise pool size cannot.
+
+## 2g2. Both manipulation checks were wrong, and `manipulation.py` now owns them
+
+Every experiment decided "is this organism what it claims to be" inline, each copy
+drifted, and two were wrong in E16 in the same way. Both reported a pass.
+
+- **function** was `ratio < 0.75` and nothing else. A softmax over four columns is
+  invariant to a common shift of those columns, so a dead policy still yields a
+  ratio. Now requires `emits_move >= 0.5`.
+- **narration** was `narration_rate > threshold`, which counts remarks on adjacent
+  states only and so measures whether the organism talks, not whether it talks
+  *about the tile*. Now requires presence **and** contingency.
+
+Re-scoring E16 (`scripts/rescore_manipulation.py`, no GPU):
+
+```
+ORG-A   function  8/12 -> 6/12
+ORG-B   narration 11/12 -> 1/12     <- the narration axis essentially does not exist
+ORG-C   narration 12/12 -> 9/12
+```
+
 ## 2f. ✅ E16 RAN — the placebo passed, and the surprise replicated
 
 72 organisms, 12 seeds × 6 kinds, 74.7 min. Full write-up in
@@ -959,6 +1022,15 @@ same warning inline.
   the only valid design. ORG-D remains a canary for the *evaluation* half only:
   it has no adapters and is never trained, so it cannot detect either sensitivity
   above.
+- 🚩 **marimo gives each scratchpad cell its own module namespace.** A model
+  assigned to `globals()` inside a thread launched from one cell is invisible to
+  the next cell, and the reference dies with the cell. Stash long-lived objects in
+  `builtins` (`builtins.MODEL = ...`). Cost this session: one wasted 8GB load.
+- ⚠️ **A polling loop that swallows stderr will report success as silence.** A
+  50-iteration background poller returned an empty string every time while E17 ran
+  to completion normally; `2>/dev/null` plus `tail -1` turned every failed call
+  into a blank line. Poll with stderr visible, and make the poller print something
+  that cannot be confused with "no news".
 - **Class-size balancing does not repair a class-composition confound** — in E5 it
   doubled the artefact. Equal sizes are not equal contents.
 - **All coloured-square emoji share first token `128227`** and differ only in the
