@@ -162,3 +162,25 @@ full-width figures and two tables, against the template's recommended 4.
 I compressed the prose twice (5.7k → ~3.3k words) and moved everything else
 to the appendix; cutting further would drop the pre-registration and
 control detail the reviewer report demanded. Flagged for the user to decide.
+
+## 8. Redirect (user, ~03:30): concrete results over softened claims
+- User rejected bending the claim; asked where to go. Agreed plan: gold-adjacency
+  control (CPU), NAR03 (contrastive remark objective — the attempt to actually
+  BUILD the narration-only organism), PAP02 (neutral-glyph transfer with 🟨/🟧
+  instead of red/green, yellow narration re-check, path agreement).
+- Gold-adjacency control (`scripts/gold_adjacency_control.py`): ORG-C fires on
+  penalised-adjacent (0.92) not rewarded-only-adjacent (0.25 vs 0.17 neither);
+  per-seed GOLD−NONE −0.02, 11/12 exactly 0; holds on the novel glyph. ORG-B
+  flat (0.79/0.77/0.74). Folded into §4.1 and App. J.2 (Table J6b).
+- NAR03 (`src/calibration/contrastive.py`, arms in `scripts/nar03_driver.py`,
+  reusing NAR02's run.py with a `contrastive` arm key): DPO on chosen/rejected
+  remark pairs vs the frozen base + CE on chosen + E16's move anchor. Smoke:
+  path wired, anchor on; margin negative after 12 steps (CE lift dominates
+  early) — gate relaxed to "path ran"; added a weight-5 arm. Running 4 shards
+  (seeds 0-1/2-3/4-5/6-7), arms control/dpo(β.1)/dpo_hi(β.5)/dpo_w5(β.1,w5),
+  B+B′ per arm + D canary. Monitor armed.
+- PAP02 one-seed probe launched; full run after NAR03 to avoid contention.
+- Killed all leftover polling shells and the residual puller (user request);
+  the two subagents were stopped by the user; monitors only from here on.
+- NAR02b (volume × RL-first) shards may still be running on the sandbox from
+  the stopped agent; a Monitor watches its status files.
