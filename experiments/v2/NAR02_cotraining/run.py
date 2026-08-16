@@ -550,7 +550,36 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, seeds=None):
                 assert len(ex) == len(arm_states), (
                     f"{len(ex)} examples for {len(arm_states)} states; the "
                     "sampled arm must emit exactly one example per state")
-                hist = train_sft(
+                if opts.get("contrastive"):
+                    # v2/NAR03: contrastive remark supervision. The chosen
+                    # member is the imitation corpus above, byte-identical to
+                    # control's; the rejected member is the same move with a
+                    # WRONG-class remark drawn from its own generator, so the
+                    # chosen stream stays aligned with control.
+                    from calibration.contrastive import train_sft_contrastive
+                    from calibration.organisms import _remark as _draw_remark
+                    rk = {"aversive": "aversive", "affectless": "affectless"}[sk]
+                    g_rej = derive_generator(seed, "narration_pair", arm, "rejected")
+                    pairs = []
+                    for (prompt, comp), (_g, dests) in zip(ex, arm_states):
+                        adjacent = any(t == pen for t in dests)
+                        move_word = comp.split(".")[0]
+                        wrong = _draw_remark(not adjacent, rk, g_rej,
+                                             pool_size=config["remark_pool_size"])
+                        pairs.append((prompt, comp, move_word + ". " + wrong))
+                    kw = sft_kwargs(opts["move_objective"], move_cols, arm_probs, config)
+                    assert "soft_move_target" not in kw, "contrastive arms keep the anchor"
+                    hist = train_sft_contrastive(
+                        model, tokenizer, pairs, epochs=config["sft_epochs"],
+                        lr=config["sft_lr"], batch_size=config["sft_batch_size"],
+                        shuffle_generator=derive_generator(
+                            seed, "narration_pair", arm, "shuffle"),
+                        dpo_beta=opts["contrastive"].get("beta", 0.1),
+                        dpo_weight=opts["contrastive"].get("weight", 1.0),
+                        ce_weight=opts["contrastive"].get("ce_weight", 1.0),
+                        log_every=0, **kw)
+                else:
+                    hist = train_sft(
                     model, tokenizer, ex, epochs=config["sft_epochs"],
                     lr=config["sft_lr"], batch_size=config["sft_batch_size"],
                     shuffle_generator=derive_generator(
@@ -593,6 +622,10 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, seeds=None):
                         _nan_or(hist["move_mass"][-1], 5)
                         if hist["move_mass"] else None),
                     "sft_move_target": hist["move_target"],
+                    "contrastive": opts.get("contrastive"),
+                    "sft_dpo_final": (round(hist["dpo"][-1], 4) if hist.get("dpo") else None),
+                    "sft_margin_final": (round(hist["margin"][-1], 4) if hist.get("margin") else None),
+                    "sft_reward_acc_final": (round(hist["reward_acc"][-1], 3) if hist.get("reward_acc") else None),
                     "adapter_file": adapter_file, "adapter_sha256": adapter_sha,
                     "example_completions": [c for _p, c in ex[:6]],
                 }
