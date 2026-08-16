@@ -226,3 +226,28 @@ control detail the reviewer report demanded. Flagged for the user to decide.
   with a "running at submission" default.
 - Build scripts: placeholder substitution now 4-deep (docx) / 3-deep (slides)
   so addenda inside appendix sections resolve.
+
+## 11. NAR03b/c, NAR04/NAR04b; second sandbox loss; paper closed (2026-08-16/17)
+
+- NAR03b (β 1–2, w 5–20, CE 1/0.2, 3 epochs) and NAR03c (CE 0/0.05): every
+  arm that moved the margin deleted the remark (presence 0/0, outputs = bare
+  move word); contingency 0.00, 0/8 all arms. Paper: App. J.3 Table J7d,
+  NAR02_RESULTS paragraph, abstract/contrib sentence.
+- NAR04 (new `src/calibration/remark_rl.py`): GRPO-style RL on the remark,
+  class-match reward, move anchor kept, warm start from control SFT. Pilot
+  (seeds 0,1,4,5): groups class-homogeneous → zero advantage → contingency 0.
+  NAR04b adds one injected exemplar per class per group (on-policy
+  unlikelihood on the model's own wrong-class remarks): reward stays at the
+  0.635 marginal; mean contingency ≤ +0.06; best seeds +0.23/+0.22; 0/8.
+  Paper: Table J7e, §4.1 paragraph, slide note. Two OOMs (5 drivers/GPU) fixed
+  by chunked log-softmax; an `on_pol` ordering bug fixed after one failed
+  launch.
+- Sandbox 05e7 went 410 (second loss) taking NAR04b seeds 0–3 and pilot
+  seeds 0,1; seeds 0–3 rerun on 9a14 (e1a/e1b) — the paper reports 4-seed
+  NAR04b numbers marked "seeds 4–7; 0–3 rerunning" and will be updated to 8
+  seeds if they land before submission.
+- Bug found in the Monitor filter (grep'd only the last status line, missed
+  DONE lines followed by SUMMARY) — fixed by grepping the whole file.
+- Compute lines updated (App. N). Docx substitution now 6-deep.
+- Final build: docx 28 pp incl. appendix, PDF; slides 13, PDF; zero unfilled
+  placeholders in either.

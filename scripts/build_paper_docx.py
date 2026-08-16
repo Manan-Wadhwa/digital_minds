@@ -414,7 +414,7 @@ def main():
     if Path(args.fill).exists():
         fill = json.loads(Path(args.fill).read_text(encoding="utf-8"))
     meta, body_md = parse_front_matter(text)
-    for _ in range(4):  # nested placeholders (appendix -> section -> addendum)
+    for _ in range(6):  # nested placeholders (appendix -> section -> addendum)
         body_md = substitute(body_md, fill)
 
     # split off the abstract section
