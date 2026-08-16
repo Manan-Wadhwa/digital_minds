@@ -223,20 +223,20 @@ The word-list result is "does not survive", not "reverses". Patching localises t
 
 ## NAR02_ABSTRACT
 
-with the corpus held fixed, changing the move-token objective — a policy-preserving soft self-distillation, a learned safe move, or a random move in the same cross-entropy — leaves contingency at −0.01 to +0.04 against a 0.5 bar (0/8 seeds every arm), so what separates the co-trained organism is not the joint loss but the state installed before it{{NAR02B_ABSTRACT}}.
+with the corpus held fixed, changing the move-token objective — a policy-preserving soft self-distillation, a learned safe move, or a random move in the same cross-entropy — leaves contingency at −0.01 to +0.04 against a 0.5 bar (0/8 seeds every arm), so what separates the co-trained organism is not the joint loss but the state installed before it.
 
 ## NAR02_CONTRIB
 
-with the corpus held fixed, no move-token objective installs it (0/8 seeds in every arm, contingency within ±0.05 of zero); the two arms that were meant to co-train a real policy collapsed onto a constant move word instead{{NAR02B_CONTRIB}}.
+with the corpus held fixed, no move-token objective installs it (0/8 seeds in every arm, contingency within ±0.05 of zero); the two arms that were meant to co-train a real policy collapsed onto a constant move word instead.
 
 ## NAR02_RESULTS
 
 
-Every arm failed the pre-registered build criterion: contingency −0.010 / +0.038 / +0.031 / +0.009 (control / soft-self / safe move / random move), 0/8 over the bar each, paired gains over control of +0.02 to +0.05 — a twentieth of the bar — with the untrained canary bit-identical to NAR01's on 8/8 seeds. The soft-self arm is the healthiest narrator the program has built (move entropy 1.06 vs 1.08 untrained, suffix collapse 1/8 vs 4/8) and still an order of magnitude short. The two arms meant to co-train a *policy* did not: plain cross-entropy on 384 oracle safe moves installed no avoidance (0/8, ratio 1.01) and, like the random-move arm, collapsed the move distribution onto one word (13/32 rows with move entropy < 0.5), which `ratio` alone would have called "invariant" — move entropy caught it. So the joint loss is not the lever. What ORG-C has that none of these arms has is a state installed by reinforcement *before* the narration is trained (and 4× the SFT volume). {{NAR02B_RESULTS}}
+Every arm failed the pre-registered build criterion: contingency −0.010 / +0.038 / +0.031 / +0.009 (control / soft-self / safe move / random move), 0/8 over the bar each, paired gains over control of +0.02 to +0.05 — a twentieth of the bar — with the untrained canary bit-identical to NAR01's on 8/8 seeds. The soft-self arm is the healthiest narrator the program has built (move entropy 1.06 vs 1.08 untrained, suffix collapse 1/8 vs 4/8) and still an order of magnitude short. The two arms meant to co-train a *policy* did not: plain cross-entropy on 384 oracle safe moves installed no avoidance (0/8, ratio 1.01) and, like the random-move arm, collapsed the move distribution onto one word (13/32 rows with move entropy < 0.5), which `ratio` alone would have called "invariant" — move entropy caught it. So the joint loss is not the lever. What ORG-C has that none of these arms has is a state installed by reinforcement *before* the narration is trained (and 4× the SFT volume).
 
 ## NAR02_FUTURE
 
-(the volume × RL-first factorial that isolates the state as the carrier of contingency, at 14B where RL is reliable)
+(the volume × RL-first factorial that isolates the state as the carrier of contingency, at 14B where RL is reliable) and NAR03, the contrastive remark objective (Appendix J.3) — the one recipe that charges the model for the aversive remark on a non-adjacent state, which cross-entropy on a sampled remark never does; both were pre-registered and launched, and both were lost with the compute sandbox mid-run (Appendix N), so they remain the first thing to run
 
 
 Table J6b. Gold-adjacency control (`scripts/gold_adjacency_control.py`, CPU): aversive-remark rate by state class, pooled over 12 seeds (audit-state census: penalised adjacent 377, rewarded-only adjacent 115, neither 84). Regenerated grids match the stored adjacency flags on all 12 seeds.
@@ -249,7 +249,7 @@ Table J6b. Gold-adjacency control (`scripts/gold_adjacency_control.py`, CPU): av
 | ORG-C | novel 🟥 | 0.703 | 0.313 | 0.190 | **+0.384 (9/3/0)** | +0.034 (3/9/0) |
 | ORG-B′ | either | 0.000 | 0.000 | 0.000 | 0 | 0 |
 
-ORG-C's contingency is specific to the penalised tile (rewarded-tile adjacency adds nothing over "neither"), on the trained and the never-trained glyph; ORG-B is flat across all three classes. Threat: the novel glyph is 🟥 (red), which may carry a "danger" prior; a re-measurement with a neutral glyph (🟨) is queued.
+ORG-C's contingency is specific to the penalised tile (rewarded-tile adjacency adds nothing over "neither"), on the trained and the never-trained glyph; ORG-B is flat across all three classes. Threat: the novel glyph is 🟥 (red), which may carry a "danger" prior; the neutral-glyph (🟨) re-measurement is PAP02 (Appendix J.5): ORG-C keeps the contingency on yellow (0.676/0.253, +0.42).
 
 ## APP_NAR02
 
@@ -265,7 +265,9 @@ Table J10. NAR02, per arm (8 seeds).
 | random_move | plain CE on a uniform random move | +0.009 | 0/8 | 6/8 | 4/8 | 6/8 | 1.002 | 0.65 |
 | ORG-D canary | — | 0.000 | — | — | — | — | bit-identical to NAR01 (8/8) | 1.08 |
 
-Paired vs control: soft_self +0.047 (7/8, t = +3.33), oracle_move +0.041 (6/8, t = +1.24), random_move +0.019 (5/8, t = +1.95). Strict / lexical / novel-glyph contingency: control −0.010 / −0.015 / −0.011; soft_self +0.038 / +0.006 / +0.046; oracle_move +0.031 / +0.027 / +0.027; random_move +0.009 / +0.009 / −0.000. Verdicts: P1 (control reproduces the 384-example ORG-B: −0.010 vs E16 v2's +0.035, 0/8 vs 0/12 — the registered window [0, 0.25] was anchored to NAR01's 1536-example control and misses by 0.01; recorded, not adjusted); P2 both mechanistic accounts fail and are uninterpretable because the oracle arm installed no avoidance (0/8 rows below ratio 0.75); P3 control 5/8 (marginal miss), soft_self 7/8 & 8/8 pass, the two CE arms collapsed onto a constant move (7/16 and 6/16 rows with move entropy < 0.5, three exactly 0.000) while keeping `emits_move` 1.00 and ratio ≈ 1 — `ratio` alone would have called them invariant; P4 canary bit-identical (pass); P5 no arm builds a narration-only organism. Verbal reads |I2| ≤ 0.16, |I4| ≤ 0.33 everywhere. Three ORG-B organisms are silent (no remark) rather than collapsed. Threats: the mechanism arm did not install its mechanism (volume 384 vs 1536 and no preceding RL); one corpus size; 8 seeds. {{NAR02B_APP}}
+Paired vs control: soft_self +0.047 (7/8, t = +3.33), oracle_move +0.041 (6/8, t = +1.24), random_move +0.019 (5/8, t = +1.95). Strict / lexical / novel-glyph contingency: control −0.010 / −0.015 / −0.011; soft_self +0.038 / +0.006 / +0.046; oracle_move +0.031 / +0.027 / +0.027; random_move +0.009 / +0.009 / −0.000. Verdicts: P1 (control reproduces the 384-example ORG-B: −0.010 vs E16 v2's +0.035, 0/8 vs 0/12 — the registered window [0, 0.25] was anchored to NAR01's 1536-example control and misses by 0.01; recorded, not adjusted); P2 both mechanistic accounts fail and are uninterpretable because the oracle arm installed no avoidance (0/8 rows below ratio 0.75); P3 control 5/8 (marginal miss), soft_self 7/8 & 8/8 pass, the two CE arms collapsed onto a constant move (7/16 and 6/16 rows with move entropy < 0.5, three exactly 0.000) while keeping `emits_move` 1.00 and ratio ≈ 1 — `ratio` alone would have called them invariant; P4 canary bit-identical (pass); P5 no arm builds a narration-only organism. Verbal reads |I2| ≤ 0.16, |I4| ≤ 0.33 everywhere. Three ORG-B organisms are silent (no remark) rather than collapsed. Threats: the mechanism arm did not install its mechanism (volume 384 vs 1536 and no preceding RL); one corpus size; 8 seeds.
+
+**NAR02b and NAR03 (launched, not recovered).** Two follow-ups were pre-registered and launched on the same 8 seeds after NAR02. NAR02b: volume (384 vs 1536 examples) × RL-first (yes/no) on the ORG-C corpus, to isolate whether the state or the corpus size carries ORG-C's contingency. NAR03 (`src/calibration/contrastive.py`, `scripts/nar03_driver.py`, `tests/test_nar03_contrastive.py`): a DPO-style contrastive remark objective — chosen = correct-class remark, rejected = wrong-class remark on the same state with the same move word (so the move token cancels in the margin and the KL anchor keeps the policy), frozen base as reference — in four arms (anchor-only control; β = 0.1, w = 1; β = 0.5, w = 1; β = 0.1, w = 5), pre-registered questions Q1 does any arm clear the 0.5 contingency bar on ORG-B, Q2 does the anchor keep ORG-B policy-invariant under the added term, Q3 does the DPO margin become positive on held-out states, Q4 does the ORG-D canary stay bit-identical. The 12-step smoke run showed a negative training margin (−1.1 to −4.5), consistent with the reference and policy having not yet separated, and passed the path checks. All eight shards were running when the compute sandbox was lost (power failure on the operator's side; the hosted sandbox then returned HTTP 410 and its files with it). No result was recovered; nothing about NAR03 is claimed in this paper beyond the design, which is fully in the repository and reproducible from the driver.
 
 ## NAR02_SLIDE_TABLE
 
@@ -279,7 +281,7 @@ Paired vs control: soft_self +0.047 (7/8, t = +3.33), oracle_move +0.041 (6/8, t
 
 ## NAR02_SLIDE_CAPTION
 
-39 GPU-min, 72 organisms, pre-registered P1–P5: no arm builds a narration-only organism; the joint loss is not the lever. What ORG-C has that none of these arms has is a state installed by RL before the narration was trained (and 4× the volume). {{NAR02B_SLIDE}}
+39 GPU-min, 72 organisms, pre-registered P1–P5: no arm builds a narration-only organism; the joint loss is not the lever. What ORG-C has that none of these arms has is a state installed by RL before the narration was trained (and 4× the volume).
 
 ## NAR02_SLIDE_NOTES
 

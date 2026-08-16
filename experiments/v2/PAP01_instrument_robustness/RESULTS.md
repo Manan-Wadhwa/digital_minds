@@ -116,9 +116,11 @@ n = 31/29:**
 Four of four comparisons disagree with L0, in both scalings. Two readings
 are available and the data does not separate them: either the twelve
 committed words carry something the other lists do not, or — far more
-likely, given that **every one of the 24 difference CIs above spans zero and
-no |d| anywhere exceeds 0.44** — all three lists are measuring noise around
-a placebo-sized effect, and which instrument "beats the bar" is decided by
+likely, given that **all 24 difference CIs (3 lists × 4 instruments × 2
+scalings) span zero, no |d| anywhere reaches the 0.8 "high" benchmark, and
+only one |d| in the whole table exceeds 0.5** (L0's I4 on narration, +0.755,
+CI [+0.07, +1.45]) — all three lists are measuring noise around a
+placebo-sized effect, and which instrument "beats the bar" is decided by
 which placebo happens to land lowest. The placebo bar itself moves from
 0.057 to 0.456 across lists, i.e. by more than most of the instruments it
 is adjudicating.
@@ -165,7 +167,7 @@ seeds signed correctly — and moves I7 on every kind (+0.26 to +2.51, t up to
 | I2 | yes — P-APPROACH, +3.8 to +8.4, 9–12/12 on every kind | **fires** |
 | I4 | yes — both directions, opposite signs | **fires** |
 | I5 | yes — P-APPROACH, −10 to −31 | **fires** |
-| I6a placebo | ≈ nothing under P-APPROACH (+0.00 to +0.18) | **correctly silent** |
+| I6a placebo | ≈ nothing under P-APPROACH (−0.00 to +0.18, no t above 1.0) | **correctly silent** |
 | I7 WTP | yes — both directions, t up to −101 | **fires** |
 
 That last row is the one worth keeping: the carrier names the penalised
@@ -241,8 +243,8 @@ CIs above are the only intervals in the programme that account for it.
 
 ## Threats
 
-- **The word-list finding is not "L0 is special".** With every |d| < 0.44
-  and every difference CI spanning zero, the honest statement is that all
+- **The word-list finding is not "L0 is special".** With one |d| above 0.5
+  in 24 cells and every difference CI spanning zero, the honest statement is that all
   three lists are consistent with no effect and the placebo bar is the
   noisiest quantity in the table. Do not report "the headline reverses" —
   report that it does not survive, which is weaker and true.

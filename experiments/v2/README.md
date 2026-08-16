@@ -79,3 +79,17 @@ Cross-track digest for the whole campaign day:
    corpus variants and three experiments, no non-degenerate corpus has
    installed a narration-only organism. See its RESULTS.md (two addenda) and
    `scripts/score_nar01.py`.
+6. **NAR02_cotraining** — the last untried lever: the LOSS ON THE MOVE TOKEN.
+   Four objectives over one corpus — E16's KL anchor, a policy-preserving
+   full-vocab soft label toward the base policy, plain CE on ORG-C's oracle safe
+   move, and plain CE on a random move.
+   **RAN → no**: all four land within ±0.05 of zero contingency against the 0.5
+   bar, 0/8 over bar in every arm. The two arms meant to co-train a real policy
+   signal **collapsed the move distribution onto a single word** (move entropy
+   0.54 / 0.65 against the untrained model's 1.08) at `ratio ≈ 1`, so
+   `oracle_move` never installed the avoidance it was supposed to discriminate
+   with and the pre-registered H-signal/H-any test is uninterpretable. Two
+   mechanical carry-forwards: the soft self-target is strictly better hygiene
+   than the anchor (invariance 7/8 vs 5/8, suffix collapse 1/8 vs 4/8), and
+   `ratio` alone cannot see a constant-move policy — a move-entropy gate is
+   needed. See its RESULTS.md and `scripts/score_nar02.py`.

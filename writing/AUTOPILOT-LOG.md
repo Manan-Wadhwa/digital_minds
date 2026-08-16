@@ -184,3 +184,23 @@ control detail the reviewer report demanded. Flagged for the user to decide.
   the two subagents were stopped by the user; monitors only from here on.
 - NAR02b (volume × RL-first) shards may still be running on the sandbox from
   the stopped agent; a Monitor watches its status files.
+
+## 9. Power loss, sandbox lost, final build (2026-08-16)
+
+- Operator power failure while NAR03 (4 shards, 8 seeds, 4 arms) and NAR02b
+  (2 shards) were running. On resume (04:16 UTC) the sandbox still answered:
+  status files present, 9 driver processes alive, no DONE/ERROR markers. On
+  the next check the sandbox returned HTTP 410 (gone) — the molab box expired
+  and every unpulled file with it. Nothing from NAR03/NAR02b was recovered.
+- Decision (no bending of claims): the paper reports NAR03 and NAR02b as
+  pre-registered + launched + lost, with the design and the smoke-run
+  observation only (Appendix J.3 addendum, Appendix N, Future work). No number
+  from either is claimed. Code, tests and drivers are in the repo; they are
+  the first thing to rerun on a fresh sandbox.
+- Fixed a stale sentence in Table J6b notes ("yellow re-measurement queued" →
+  points to PAP02 result). Removed empty nested NAR02B_* placeholders (they
+  survived to the PDF as literal `{{...}}`).
+- Rebuilt: paper_fill.json → docx (26 pp incl. appendix) → PDF; pptx (13
+  slides) → PDF. Zero unfilled placeholders in either PDF.
+- Not done for lack of compute: NAR03, NAR02b, PAP01 residual probe transfer,
+  14B map. All are listed under Future work.

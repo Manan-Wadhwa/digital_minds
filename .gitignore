@@ -1,5 +1,8 @@
 # run artifacts too large or transient for git (2026-08-14):
 experiments/**/adapters/
+# PAP01's per-organism residual captures: 72 x ~750 KB of fp16 activations,
+# raw material for the offline linear-vs-nonlinear probe, not a result.
+experiments/**/resid/
 experiments/**/results/parallel/
 *_status.txt
 *_driver.log
