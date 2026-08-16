@@ -251,3 +251,8 @@ control detail the reviewer report demanded. Flagged for the user to decide.
 - Compute lines updated (App. N). Docx substitution now 6-deep.
 - Final build: docx 28 pp incl. appendix, PDF; slides 13, PDF; zero unfilled
   placeholders in either.
+- 2026-08-16 20:00 UTC: NAR04b seeds 0–3 (e1a/e1b rerun on 9a14) landed; Table
+  J7e and §4.1/slide numbers now 8-seed (mean contingency +0.03/+0.03/−0.00,
+  best +0.23/+0.22, 0/8; invariant 6–8/8; B′ 0.000). Final rebuild: 28 pp
+  docx/PDF, 13 slides/PDF, zero unfilled placeholders. Sandbox 9a14 idle
+  after this; nothing further queued (paper closed at user's request).

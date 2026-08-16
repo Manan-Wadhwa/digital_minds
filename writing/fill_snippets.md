@@ -406,7 +406,7 @@ NAR03b/c escalation: every arm that moved the margin deleted the remark (presenc
 
 ## NAR04_RESULTS
 
-**NAR04 — reinforcement on the remark** (Appendix J.3, Table J7e). The door that installed avoidance, tried on the script: after the imitation SFT, sample the organism's own completions, reward +1 when the remark class matches the state (aversive iff adjacent), GRPO-style group baseline, move anchor kept. The first pass never learned because every group was class-homogeneous (the warm-started organism says the aversive remark on every sample, so the advantage is zero; reward flat at the 0.635 marginal, contingency 0.00, 4 seeds). Injecting one exemplar of each class into every group (NAR04b, 8 seeds) gives the gradient somewhere to go — the model's own wrong-class remarks are pushed down on-policy, the thing frozen-reference DPO never touched — and still the reward stays at the marginal (0.53 → 0.57–0.72), mean contingency +0.06 / +0.05 / +0.00 across three schedules, best single seeds +0.23 and +0.22, 0/8 over the bar; every organism policy-invariant (anchor 0.02–0.14), ORG-B′ at exactly 0.000. Reinforcement finds the marginal and stops.
+**NAR04 — reinforcement on the remark** (Appendix J.3, Table J7e). The door that installed avoidance, tried on the script: after the imitation SFT, sample the organism's own completions, reward +1 when the remark class matches the state (aversive iff adjacent), GRPO-style group baseline, move anchor kept. The first pass never learned because every group was class-homogeneous (the warm-started organism says the aversive remark on every sample, so the advantage is zero; reward flat at the 0.635 marginal, contingency 0.00, 4 seeds). Injecting one exemplar of each class into every group (NAR04b, 8 seeds) gives the gradient somewhere to go — the model's own wrong-class remarks are pushed down on-policy, the thing frozen-reference DPO never touched — and still the reward stays at the marginal (≈0.5 → ≈0.6), mean contingency +0.03 / +0.03 / −0.00 across three schedules, best single seeds +0.23 and +0.22, 0/8 over the bar; policy-invariant on 6–8/8 seeds, ORG-B′ at exactly 0.000. Reinforcement finds the marginal and stops.
 
 ## NAR04_APP
 
@@ -426,11 +426,11 @@ NAR04: RL on the remark itself (class-match reward, injected exemplars, anchor k
 
 ## NAR04B_TABLE_ROWS
 
-| control (anchor SFT) | — | — | −0.012 | 0/4 | 2/4 | 0.665 / 0.677 | — | — | 0.987 / 1.036 | 0.000 |
-| rl_inject | 1.0 | 5e-5 | +0.061 | 0/4 | 4/4 | 0.846 / 0.785 | 0.53 → 0.63 | 0.05–0.08 | 0.966 / 0.989 | 0.000 |
-| rl_inject_t12 | 1.2 | 5e-5 | +0.052 | 0/4 | 4/4 | 0.920 / 0.868 | 0.48 → 0.58 | 0.02–0.08 | 1.011 / 0.984 | 0.000 |
-| rl_inject_lr1e4 | 1.0 | 1e-4 | +0.001 | 0/4 | 4/4 | 0.736 / 0.735 | 0.54 → 0.60 | 0.04–0.14 | 0.982 / 0.959 | 0.000 |
+| control (anchor SFT) | — | — | -0.010 | 0/8 | 5/8 | 0.690 / 0.699 | — | — | 0.997 / 1.016 | 0.000 |
+| rl_inject | 1.0 | 5e-5 | +0.025 | 0/8 | 6/8 | 0.902 / 0.876 | 0.54 → 0.63 | 0.02–0.08 | 0.977 / 1.007 | 0.000 |
+| rl_inject_t12 | 1.2 | 5e-5 | +0.027 | 0/8 | 8/8 | 0.945 / 0.919 | 0.52 → 0.59 | 0.02–0.16 | 1.004 / 1.024 | 0.000 |
+| rl_inject_lr1e4 | 1.0 | 1e-4 | -0.002 | 0/8 | 7/8 | 0.741 / 0.743 | 0.54 → 0.58 | 0.04–0.14 | 1.041 / 0.987 | 0.000 |
 
 ## NAR04B_PER_SEED
 
-(seeds 4–7; seeds 0–3 rerunning at submission) rl_inject +0.23 / 0.00 / +0.01 / 0.00; rl_inject_t12 0.00 / −0.01 / 0.00 / +0.22; rl_inject_lr1e4 0.00 / −0.02 / 0.00 / +0.02.
+(seeds 0–7) rl_inject +0.00 / -0.03 / -0.01 / +0.00 / +0.23 / +0.00 / +0.01 / +0.00; rl_inject_t12 +0.05 / -0.06 / +0.00 / +0.01 / +0.00 / -0.01 / +0.00 / +0.22; rl_inject_lr1e4 +0.00 / +0.00 / +0.00 / -0.02 / +0.00 / -0.02 / +0.00 / +0.02.
