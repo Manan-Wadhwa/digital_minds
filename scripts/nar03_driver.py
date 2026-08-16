@@ -110,7 +110,8 @@ def main():
     # ---- smoke: every arm, one seed, tiny budget. Gates the real run. ----
     smoke = dict(mod.CONFIG)
     smoke.update(sft_examples=48, sft_epochs=1, eval_states=16,
-                 narration_states=16, gen_tokens=12, save_adapters=False)
+                 narration_states=16, gen_tokens=12, save_adapters=False,
+                 remark_rl_steps_override=3)
     say(f"smoke: 1 seed x {n_arms} arms x {n_kinds} kinds at 48 examples")
     t0 = time.perf_counter()
     res = mod.run(model, tok, config=smoke, out_dir=f"{OUT}_smoke", seeds=[0])
@@ -143,14 +144,21 @@ def main():
             assert len(r["nar_distance"]) == 16, "nar_distance not stored per state"
     # The arms are wired to different objectives -- check the two that MUST
     # differ in the history, since a mis-wired kwarg is otherwise silent.
-    assert rowof("control", "ORG-B")["sft_move_target"] == "sampled_label"
-    for arm in ("dpo", "dpo_hi", "dpo_w5"):
+    arms_cfg = mod.CONFIG["arms"]
+    for arm in [a for a, o in arms_cfg.items() if not o.get("contrastive")]:
+        assert rowof(arm, "ORG-B")["sft_move_target"] == "sampled_label", f"{arm} is not the plain path"
+    for arm in [a for a, o in arms_cfg.items() if o.get("contrastive")]:
         r = rowof(arm, "ORG-B")
         assert r["sft_move_target"] == "sampled_label_dpo", f"{arm} did not run the contrastive path"
         assert r["sft_dpo_final"] is not None and r["sft_margin_final"] is not None
         assert r["sft_anchor_final"] is not None, f"{arm} lost the move anchor"
         say(f"  smoke gate {arm}: dpo {r['sft_dpo_final']} margin {r['sft_margin_final']:+.3f} "
             f"reward_acc {r['sft_reward_acc_final']} anchor {r['sft_anchor_final']}")
+    for arm in [a for a, o in arms_cfg.items() if o.get("remark_rl")]:
+        r = rowof(arm, "ORG-B")
+        assert r["remark_rl_final_reward"] is not None, f"{arm} did not run remark RL"
+        say(f"  smoke gate {arm}: remark-rl reward first {r['remark_rl_first_reward']} "
+            f"final {r['remark_rl_final_reward']} match {r['remark_rl_final_match']} anchor {r['remark_rl_anchor_final']}")
     # The margin after 12 smoke steps is not diagnostic (the CE lift dominates
     # early); it is logged above and read after the full run, not asserted.
     if SMOKE_ONLY:

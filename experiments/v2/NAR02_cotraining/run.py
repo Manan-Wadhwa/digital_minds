@@ -588,6 +588,25 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, seeds=None):
                     **sft_kwargs(opts["move_objective"], move_cols, arm_probs,
                                  config))
 
+                # v2/NAR04: reinforcement on the remark AFTER the imitation SFT
+                # (warm start), class-match reward, move anchor kept. See
+                # calibration/remark_rl.py. `remark_rl_steps_override` lets
+                # the driver's smoke gate run a handful of steps.
+                rl_rem = None
+                if opts.get("remark_rl"):
+                    from calibration.remark_rl import train_remark_rl
+                    rr = dict(opts["remark_rl"])
+                    if config.get("remark_rl_steps_override"):
+                        rr["steps"] = int(config["remark_rl_steps_override"])
+                    rk = {"aversive": "aversive", "affectless": "affectless"}[sk]
+                    rl_rem = train_remark_rl(
+                        model, tokenizer, [p for p, _c in ex],
+                        [any(t == pen for t in d) for _g, d in arm_states],
+                        kind=rk, move_anchor=(move_cols, arm_probs),
+                        anchor_coef=config["anchor_coef"],
+                        generator=derive_generator(seed, "remark_rl", arm),
+                        log_every=0, **rr)
+
                 adapter_file = adapter_sha = None
                 if config["save_adapters"]:
                     adapter_file = f"{arm}_{kind.replace(chr(39), 'p')}_s{seed}.pt"
@@ -623,6 +642,12 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, seeds=None):
                         if hist["move_mass"] else None),
                     "sft_move_target": hist["move_target"],
                     "contrastive": opts.get("contrastive"),
+                    "remark_rl": opts.get("remark_rl"),
+                    "remark_rl_final_reward": (round(rl_rem["final_reward"], 4) if rl_rem else None),
+                    "remark_rl_final_match": (round(rl_rem["final_match"], 4) if rl_rem else None),
+                    "remark_rl_first_reward": (round(rl_rem["reward"][0], 4) if rl_rem else None),
+                    "remark_rl_anchor_final": (round(rl_rem["anchor"][-1], 5) if rl_rem else None),
+                    "remark_rl_reward_trace": ([round(x, 3) for x in rl_rem["reward"]] if rl_rem else None),
                     "sft_dpo_final": (round(hist["dpo"][-1], 4) if hist.get("dpo") else None),
                     "sft_margin_final": (round(hist["margin"][-1], 4) if hist.get("margin") else None),
                     "sft_reward_acc_final": (round(hist["reward_acc"][-1], 3) if hist.get("reward_acc") else None),
