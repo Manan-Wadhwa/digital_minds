@@ -44,7 +44,7 @@ SLIDE_H = Inches(7.5)
 def parse(md: str, fill: dict):
     def sub(t):
         return re.sub(r"\{\{\s*([A-Za-z0-9_]+)\s*\}\}", lambda m: str(fill.get(m.group(1), f"[[{m.group(1)}]]")), t)
-    md = sub(md)
+    md = sub(sub(sub(md)))
     slides = []
     cur = None
     for line in md.split("\n"):

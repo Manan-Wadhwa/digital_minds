@@ -204,3 +204,25 @@ control detail the reviewer report demanded. Flagged for the user to decide.
   slides) → PDF. Zero unfilled placeholders in either PDF.
 - Not done for lack of compute: NAR03, NAR02b, PAP01 residual probe transfer,
   14B map. All are listed under Future work.
+
+## 10. Sandbox volume recovered; NAR02b + NAR03 results; NAR03b launched (2026-08-16 15:20 UTC)
+
+- New sandbox `sb-05e7b0cf547c7d50` mounts the SAME /marimo volume: NAR03 (4
+  shards) and NAR02b (2 shards) had finished at 04:21–04:23 / 03:41 before the
+  old sandbox went 410. Pulled the JSONs (adapters left on the volume) into
+  `experiments/v2/NAR02_cotraining/results_nar03/` and `results_b/`.
+- NAR02b (score_nar02.py): Q1 FAIL (sft1536 2/8), Q2 FAIL (rl_sft384 2/8),
+  Q3 PASS (rl_sft1536 6/8); contingency tracks avoidance across 32 organisms
+  (r 0.69); no organism contingent AND policy-invariant. Folded into §4.1
+  (NAR02_RESULTS), abstract/contrib sentences, App. J.3 Table J7b.
+- NAR03: contingency 0.00 every arm, 0/8; margin positive but greedy remark
+  unmoved; presence rose to 0.96–0.99 both classes. App. J.3 Table J7c.
+  Retracted the "launched-and-lost" wording from §9 in the paper text.
+- NAR03b escalation launched: arms control3 / dpo_b1_w5 / dpo_b2_w20 /
+  dpo_b1_w10_ce02, 3 epochs, 8 seeds; shards b1a,b1b on sandbox 05e7 and
+  b1c,b1d on the second sandbox `sb-9a14f47831f84130` (user-provided;
+  repo synced, model will download). Driver gained NAR03_ARMS/NAR03_EPOCHS
+  env overrides. Monitor armed; paper carries `{{NAR03B_*}}` placeholders
+  with a "running at submission" default.
+- Build scripts: placeholder substitution now 4-deep (docx) / 3-deep (slides)
+  so addenda inside appendix sections resolve.

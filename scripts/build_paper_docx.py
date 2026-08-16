@@ -414,7 +414,8 @@ def main():
     if Path(args.fill).exists():
         fill = json.loads(Path(args.fill).read_text(encoding="utf-8"))
     meta, body_md = parse_front_matter(text)
-    body_md = substitute(substitute(body_md, fill), fill)  # two passes: appendix holds placeholders
+    for _ in range(4):  # nested placeholders (appendix -> section -> addendum)
+        body_md = substitute(body_md, fill)
 
     # split off the abstract section
     m = re.search(r"^# Abstract\s*\n(.*?)(?=^# )", body_md, flags=re.S | re.M)

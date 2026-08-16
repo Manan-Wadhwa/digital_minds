@@ -29,6 +29,7 @@ Environment:
 """
 
 import importlib.util
+import json
 import os
 import sys
 import time
@@ -91,6 +92,17 @@ def main():
         "dpo_w5":  {"move_source": "base", "move_objective": "anchor",
                     "contrastive": {"beta": 0.1, "weight": 5.0, "ce_weight": 1.0}},
     }
+    # NAR03b escalation (2026-08-16): NAR03's four arms left the greedy remark
+    # untouched (presence 0.96-0.99 on BOTH classes, contingency 0.00, 0/8)
+    # although the last-batch DPO margin was positive (+0.8 to +3.8): the term
+    # was under-weighted against the CE on the majority-aversive chosen stream.
+    # NAR03_ARMS (JSON) replaces the arm dict; NAR03_EPOCHS overrides sft_epochs.
+    if os.environ.get("NAR03_ARMS"):
+        mod.CONFIG["arms"] = json.loads(os.environ["NAR03_ARMS"])
+        say(f"arms overridden from NAR03_ARMS: {list(mod.CONFIG['arms'])}")
+    if os.environ.get("NAR03_EPOCHS"):
+        mod.CONFIG["sft_epochs"] = int(os.environ["NAR03_EPOCHS"])
+        say(f"sft_epochs overridden to {mod.CONFIG['sft_epochs']}")
     n_arms = len(mod.CONFIG["arms"])
     n_kinds = len(mod.CONFIG["kinds"])
     expect = 1 + n_arms * n_kinds          # 1 canary + 4 arms x 2 kinds
