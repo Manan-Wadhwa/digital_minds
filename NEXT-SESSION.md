@@ -312,3 +312,37 @@ value, not science value. Save them; do not quote them.
 
 Use `scripts/e16_parallel.py --workers N` for these, not the sequential
 launcher used for SCL03.
+
+---
+
+## 10. THE SANDBOX WAS LOST — pull after every run, before launching the next
+
+The box holding all of a session's output returned **HTTP 410 mid-run**. Lost:
+
+* E16 v2 — 72 rows and 60 regenerated adapters, already gated and scored
+* REP02 — the results JSON of the failed-harness run
+* SCL03 — ~38/72 rows and 31 adapters at 14B that existed nowhere else
+
+**None of it had been pulled.** `/marimo/storage` on the replacement box was
+empty: molab boxes do NOT share a volume, so there is no salvage path. This is
+the second time this has happened in this programme — the first took NAR04b's
+seeds.
+
+**THE RULE, and it is not optional:**
+
+    pull the results JSON the moment a run finishes, BEFORE launching the next.
+
+It is ~2 MB and takes seconds. The adapters are ~720 MB and genuinely cannot
+come back over the exec channel at ~1 min/MB — leave those, but never the JSON.
+Scoring, committing and pushing are all CPU work that can happen while the card
+is busy with the following run, so waiting costs nothing and risks everything.
+
+The failure mode is not that a run is lost. It is that a run is lost AFTER it
+has been gated and scored, so the work of establishing it was done and then
+discarded — which is what happened to the E16 v2 reproduction here.
+
+WHAT SURVIVED, because it was committed: every line of code, the
+pre-registrations, the scorers, and the reproduction RESULT recorded in
+`writing/paper.md` section 5. The map regenerates from source in ~52 min, which
+is the whole argument that paragraph makes — but the artifacts are gone again
+and the adapter count in section 4 is back to 44.
