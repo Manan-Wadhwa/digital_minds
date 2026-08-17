@@ -7,4 +7,9 @@ experiments/**/results/parallel/
 *_status.txt
 *_driver.log
 *.part
-compute_ledger.md.venv-writing/
+compute_ledger.md
+.venv-writing/
+
+# python bytecode from running the stdlib scorers locally
+__pycache__/
+*.pyc
