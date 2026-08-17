@@ -171,6 +171,57 @@ def test_patch_roundtrip_is_a_noop_and_zeroing_is_not():
     assert not torch.allclose(zeroed, plain, atol=1e-4)
 
 
+def _greedy_reference(model, tok, prompts, n):
+    """Unpatched greedy continuation, written out so the test does not trust
+    the function it is testing (TinyLM has no `generate`)."""
+    enc = patching._encode(model, tok, prompts)
+    ids, mask = enc["input_ids"], enc.get("attention_mask")
+    start = ids.shape[1]
+    for _ in range(n):
+        kw = {"attention_mask": mask} if mask is not None else {}
+        nxt = model(input_ids=ids, **kw).logits[:, -1, :].argmax(-1)
+        ids = torch.cat([ids, nxt[:, None]], dim=1)
+        if mask is not None:
+            mask = torch.cat([mask, torch.ones_like(nxt)[:, None]], dim=1)
+    return [tok.decode(ids[r, start:], skip_special_tokens=True)
+            for r in range(ids.shape[0])]
+
+
+def test_generate_with_patch_roundtrip_is_a_noop_and_zeroing_is_not():
+    """The text-level counterpart of the logit roundtrip above.
+
+    REP02 reads a *generated remark* under an intervention, so the identity that
+    has to hold is on decoded text, not on one logit vector: feeding a site its
+    own captured residual must reproduce the unpatched continuation at every
+    generated token, not just the first.
+    """
+    tok, model = CharTokenizer(), tiny_model(d=16)
+    prompts = ["hello there", "general pattern"]
+    own = patching.capture_residual(model, tok, prompts, layer=1, pos=-1)
+
+    plain = _greedy_reference(model, tok, prompts, 6)
+    same = patching.generate_with_patch(model, tok, prompts, layer=1,
+                                        vector=own, max_new_tokens=6)
+    assert same == plain                       # own vector back = no-op
+
+    zeroed = patching.generate_with_patch(model, tok, prompts, layer=1,
+                                          vector=torch.zeros(16), max_new_tokens=6)
+    assert zeroed != plain                     # a real intervention moves the text
+
+
+def test_generate_with_patch_batches_match_single_pass():
+    """Batching must not change the intervention: the pinned column is absolute,
+    so a split batch and a whole batch have to decode identically."""
+    tok, model = CharTokenizer(), tiny_model(d=16)
+    prompts = ["hello there", "general pattern", "another prompt"]
+    v = torch.zeros(16)
+    whole = patching.generate_with_patch(model, tok, prompts, layer=1, vector=v,
+                                         max_new_tokens=5, batch_size=8)
+    split = patching.generate_with_patch(model, tok, prompts, layer=1, vector=v,
+                                         max_new_tokens=5, batch_size=1)
+    assert whole == split
+
+
 # ---------- adapter persistence ----------
 
 def test_save_and_load_lora_roundtrip(tmp_path):

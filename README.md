@@ -282,7 +282,7 @@ python3 -m venv .venv && .venv/bin/pip install -q pytest numpy \
 ```
 
 ```bash
-.venv/bin/python -m pytest tests/ -q          # 216 test functions, 20 files
+.venv/bin/python -m pytest tests/ -q          # 240 tests, ~9s
 .venv/bin/python scripts/show_me.py [seed]    # the world, the prompts, the organisms
 .venv/bin/python scripts/diagnose_rng_streams.py   # replay E13's and E14's RNG streams
 python3 scripts/audit_move_emission.py        # stdlib only -- which organisms still emit a move

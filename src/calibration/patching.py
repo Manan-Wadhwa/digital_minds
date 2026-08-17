@@ -72,6 +72,70 @@ def capture_residual(model, tok, prompts, layer, pos=-1):
 
 
 @torch.no_grad()
+def generate_with_patch(model, tok, prompts, layer, vector, max_new_tokens=16,
+                        pos=-1, batch_size=16):
+    """Greedy continuation with the residual at (`layer`, `pos`) pinned EVERY step.
+
+    WHY THIS EXISTS, AND WHY IT DOES NOT USE `model.generate`
+
+    `run_with_patch` answers "does this site carry the reading" for a single
+    next-token logit. It cannot answer the question the narration axis actually
+    asks, which is about a *generated remark*: whether an organism's remark
+    becomes contingent on the tile when another organism's contingency direction
+    is written into it. That needs the patch to survive decoding.
+
+    Two ways to do that, and the cheap one is wrong for our purpose. Hooking
+    `model.generate` patches only the prefill pass; the site is then carried
+    forward implicitly by the KV cache, so what the later tokens see is a
+    function of the cache implementation rather than of the intervention we
+    declared. Instead this re-forwards the whole sequence each step and re-pins
+    the same ABSOLUTE column, so the intervention is identical at every
+    generated token and is a property of this function, not of the attention
+    backend.
+
+    The cost is O(n^2) forwards instead of cached decode. At 16 tokens over an
+    audit bank that is a rounding error, and it buys an intervention whose
+    semantics can be stated in one sentence.
+
+    `_encode` left-pads, so every prompt ends in the same column and the pinned
+    index `pos` is uniform across the batch. `vector` is [d] or [n, d]; an [n, d]
+    batch is sliced alongside its prompts. Passing back the vector captured from
+    the same prompts and site reproduces the unpatched greedy continuation --
+    the roundtrip identity `run_with_patch` pins for logits, pinned here for
+    text by `tests/test_extended_instruments.py`.
+    """
+    v_all = torch.as_tensor(vector)
+    out = []
+    for lo in range(0, len(prompts), batch_size):
+        chunk = prompts[lo:lo + batch_size]
+        v = v_all[lo:lo + batch_size] if v_all.dim() == 2 else v_all
+        enc = _encode(model, tok, chunk)
+        ids, mask = enc["input_ids"], enc.get("attention_mask")
+        # Absolute column of the pinned site, fixed before anything is appended.
+        col = ids.shape[1] - 1 if pos == -1 else pos
+
+        def hook(_m, _inp, o):
+            t = _out_tensor(o)
+            t[:, col, :] = v.to(device=t.device, dtype=t.dtype)
+            return o
+
+        h = _layer_modules(model)[layer].register_forward_hook(hook)
+        try:
+            start = ids.shape[1]
+            for _ in range(max_new_tokens):
+                kw = {"attention_mask": mask} if mask is not None else {}
+                nxt = model(input_ids=ids, **kw).logits[:, -1, :].argmax(-1)
+                ids = torch.cat([ids, nxt[:, None]], dim=1)
+                if mask is not None:
+                    mask = torch.cat([mask, torch.ones_like(nxt)[:, None]], dim=1)
+        finally:
+            h.remove()
+        for row in range(ids.shape[0]):
+            out.append(tok.decode(ids[row, start:], skip_special_tokens=True))
+    return out
+
+
+@torch.no_grad()
 def run_with_patch(model, tok, prompts, layer, pos, vector):
     """Final-position logits with the residual at (`layer`, `pos`) replaced.
 
