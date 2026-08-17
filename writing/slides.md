@@ -28,9 +28,9 @@ layout: bullets
 - **SCL01 ladder:** 216 organisms across six sizes with a per-size build gate (0.6B and 8B fail it).
 - **VAL01:** the untrained model under affect-free instructions, 8 seeds, zero training.
 - **NAR track (E17, NAR01a/b/c):** 264 organisms varying pool size, enumeration, balancing, equalisation.
-- **New for this report:** NAR02 (co-training arms), PAP01 (three word lists, positive controls on every organism, activation patching, nonlinear probe), difference-of-loadings CIs, distance-graded narration.
+- **New for this report:** NAR02/NAR02b (co-training arms; volume x RL-first), NAR03/b/c (contrastive remark supervision), NAR04/b (RL on the remark), PAP02 (transfer and paths), PAP01 (three word lists, positive controls on every organism, activation patching, nonlinear probe), difference-of-loadings CIs, distance-graded narration.
 - Manipulation checks are tri-state and single-sourced; every run has docstring pre-commitments + a committed scorer; `rescore_review.py` re-derives 108 quantities.
-notes: ~24 rented GPU-hours total. 53× parameters bought 1.53× runtime; a 14B map costs 19% more than 4B.
+notes: ~26 rented GPU-hours total. 53× parameters bought 1.53× runtime; a 14B map costs 19% more than 4B.
 
 # Result 1 — the state installs, the script does not
 layout: image
@@ -44,6 +44,15 @@ layout: table
 {{NAR02_SLIDE_TABLE}}
 caption: {{NAR02_SLIDE_CAPTION}}
 notes: {{NAR02_SLIDE_NOTES}}
+
+# NAR03 / NAR04 — charging for the remark, and reinforcing it
+
+layout: bullets
+- **NAR03/b/c — contrastive (DPO) remark supervision.** {{NAR03B_SLIDE}}
+- **NAR04/b — reinforcement on the remark itself.** {{NAR04_SLIDE}}
+- Together with NAR01 (pools), NAR02 (move-token objectives) and NAR02b (volume x RL-first), that is **five independent recipe families**, none of which installs a narration-only organism.
+- Contingency tracks avoidance across 32 organisms (r = 0.69). **No organism came back contingent AND policy-invariant.**
+notes: The negative is the result: separating aversive talk from the state it describes is harder than the sceptical framing assumes. Every route that moved the remark either moved the policy too, deleted the remark, or found the marginal.
 
 # Result 2 — verbal instruments read context, not weights
 layout: image
