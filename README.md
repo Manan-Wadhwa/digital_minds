@@ -4,11 +4,13 @@
 > order they constrain each other:
 >
 > 1. **The state installs; the script does not.** Avoidance installs reliably —
->    SFT 12/12 seeds at 4B, RL 6/6 at 14B. Narration-only does not: across five
->    remark-pool sizes, four corpus variants, four move-token objectives, three
->    experiments and sizes to 32B, **no non-degenerate recipe produced a
->    narration-only organism whose remarks track the tile** (0/12 at 4B; only a
->    corpus with contingency 1.0 by construction reaches 3/8). The *co-trained*
+>    SFT 12/12 seeds at 4B, RL 6/6 at 14B. Narration-only does not: across **five
+>    independent recipe families** — remark pools (E17, NAR01a/b/c), move-token
+>    objectives (NAR02), volume × RL-first (NAR02b), contrastive remark
+>    supervision (NAR03/b/c) and reinforcement on the remark itself (NAR04/b) —
+>    and at sizes to 32B, **no non-degenerate recipe produced a narration-only
+>    organism whose remarks track the tile** (0/12 at 4B; only a corpus with
+>    contingency 1.0 by construction reaches 3/8). The *co-trained*
 >    organism does — 7/12 — and carries the contingency to a novel glyph.
 > 2. **Verbal instruments read context, not weights.** An affect-free
 >    instruction moves self-report and one-word affect by 5–10 logits (8/8
