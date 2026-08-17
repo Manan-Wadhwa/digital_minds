@@ -250,3 +250,65 @@ expected, not a new defect.
 
 Ten of twelve experiments are unwritten. GPU time is ~780 min total; authoring
 is the bottleneck. Write in the §2 order, run `queue_driver.py` as each lands.
+
+---
+
+## 8. INS01 is bigger than REVIEW C12 makes it sound
+
+C12 reads as "a documented parameter is never wired" — as if the fix were
+passing `move_anchor=` and `anchor_coef=` at
+`experiments/v2/ENV02_word_world_map/run.py:236-240`. It is not.
+
+E16 builds its anchor as `move_anchor=(move_cols, base_probs)` where
+`base_probs = base_policy_distribution(model, tokenizer, sft_states,
+sft_orders, ...)` (run.py:490, 534). That helper is GRID-SPECIFIC: it takes
+move orders and reads the four move-word columns.
+
+**The word world has no equivalent.** ENV02 computes `item_cols` and has
+`pick_share` (an evaluation read), but nothing that returns the base model's
+per-state distribution over item columns. INS01 therefore needs a
+`base_pick_distribution` written first, mirroring `base_policy_distribution`
+for the word world, before the anchor can be wired at all.
+
+Do not "just pass the arguments". An anchor built against the wrong reference
+distribution trains quietly and looks fine — the failure mode would be
+indistinguishable from the unanchored run it is meant to fix, which is the
+whole reason ENV02 failed its gate in the first place.
+
+Estimate revised: INS01 is a small library addition plus tests plus the wiring,
+not the ~8 GPU-min trivial item §2 implies. The GPU cost stays ~8 min; the
+authoring is a session's work like the others.
+
+---
+
+## 9. SCL03 is saving adapters; the small sizes are the artifact repair
+
+`save_adapters: True` is in E16's CONFIG (run.py:252) and line 590 writes every
+organism except ORG-D, so the running 14B map is producing **60 adapters at 14B
+(~1.7 GB)** that exist nowhere else — SCL01 only ran 6 seeds and those dirs came
+back empty.
+
+The scale ladder should be re-run at the SMALL sizes next, sharded, both because
+it is fast and because it repairs §4:
+
+| size | bf16 | shards in 96 GB | 72 organisms, wall |
+|---|---|---|---|
+| 0.6B | ~1.2 GB | 12+ | ~12 min |
+| 1.7B | ~3.4 GB | 10 | ~15 min |
+| 4B | ~8 GB | 6 | ~52 min (measured today) |
+| 8B | ~16 GB | 4 | ~40 min |
+| 14B | ~28 GB | 3 | ~65 min sharded |
+
+Per-organism the small models are only ~26% faster than 14B (1.96 vs 2.65
+min/org); the 10x is entirely SHARD COUNT. **SCL03 was launched sequentially and
+should have used 3 shards** — that mistake cost ~2 h of wall time.
+
+Running 0.6B/1.7B/8B at 12 seeds is ~1 h wall total and regenerates ~180
+adapters. With today's 60 at 4B and 60 at 14B that reaches ~300, which makes the
+paper's "~370 organisms" claim close to true again instead of needing retraction.
+
+0.6B and 8B FAILED their build gates in SCL01 — their adapters are archive
+value, not science value. Save them; do not quote them.
+
+Use `scripts/e16_parallel.py --workers N` for these, not the sequential
+launcher used for SCL03.
