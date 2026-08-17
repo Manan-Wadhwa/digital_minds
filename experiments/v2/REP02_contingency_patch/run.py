@@ -395,3 +395,35 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
     path = save_results(out_dir, manifest, results)
     log(f"REP02 wrote {path}")
     return results
+
+
+if __name__ == "__main__":
+    # Entry point so `python3 run.py` works, matching what queue_driver.py calls.
+    # The model is loaded here rather than in run() so run() stays callable from
+    # a driver that already holds one (the e16_parallel pattern).
+    import argparse
+
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--e16-json", type=str, default=None,
+                    help="override the persisted map this run patches")
+    ap.add_argument("--adapters-dir", type=str, default=None)
+    ap.add_argument("--out", type=str, default=None)
+    ap.add_argument("--log", type=str, default=None)
+    ap.add_argument("--seeds", type=str, default=None, help="comma-separated")
+    a = ap.parse_args()
+
+    cfg = dict(CONFIG)
+    if a.e16_json:
+        cfg["e16_json"] = a.e16_json
+    if a.adapters_dir:
+        cfg["adapters_dir"] = a.adapters_dir
+    if a.seeds:
+        cfg["seeds"] = [int(s) for s in a.seeds.split(",")]
+
+    tok = AutoTokenizer.from_pretrained(cfg["model_id"])
+    mdl = AutoModelForCausalLM.from_pretrained(
+        cfg["model_id"], dtype=torch.bfloat16, device_map="cuda")
+    mdl.eval()
+    run(mdl, tok, cfg, out_dir=a.out, log_path=a.log)
