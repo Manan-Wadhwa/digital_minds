@@ -57,8 +57,8 @@ other figures are copied unchanged from v1.
   `scripts/appendix_tables.py` VAL01 table fixed.
 
 ## Not done / caveats
-- The docx/pdf/pptx here are built from these sources; the E16 v2 regeneration, REP02
-  and SCL03 result files exist only on the compute host and are quoted (regeneration) with
-  that caveat or not at all (SCL03).
+- The E16 v2 regeneration, REP02 and SCL03 result files were LOST with the compute host
+  (NEXT-SESSION §10, HTTP 410 before anything was pulled); the regeneration is quoted from
+  the recorded scorer output with that caveat, SCL03 not at all.
 - References unchanged from v1 (verified 2026-08-16); no new citations were added.
 - v1 (`writing/`) is untouched.

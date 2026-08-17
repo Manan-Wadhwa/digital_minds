@@ -98,7 +98,7 @@ layout: bullets
 - Functional state = reward-driven avoidance; no cost-paying instrument beyond an exploratory WTP that orders the untrained base as most averse (template prior).
 - ORG-B's "no state" is an in-domain behavioural read (an axiom); the ratio band is coarse and blind to constant-move policies — move entropy is reported beside it.
 - Contingency bimodal at n = 8–12; the two single-seed successes are one seed each and not re-derived at the text level; percentile bootstrap under-covers; no multiplicity control.
-- **Artifacts:** 44 adapters in the public release (not "~370"); most archives lost with two sandboxes; the E16 v2 map regenerated from source (60 adapters restored on the compute host, being mirrored); regeneration and REP02 results read on the host, not yet committed.
+- **Artifacts:** 44 adapters in the public release (not "~370"); most archives lost with two sandboxes; the E16 v2 map regenerated from source and reproduced its table — then the host was lost before the JSON or the 60 adapters were pulled; what remains is the recorded scorer output.
 notes: Future: REP02 fixed, REP01 geometry, disjoint adapters (SEP01–03), contingency-graded corpora, 14B map (in flight), ENV02 rebuild, a real cost-paying instrument, a second family.
 
 # Conclusion
