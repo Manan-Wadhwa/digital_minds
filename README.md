@@ -1,20 +1,29 @@
 # Calibrating welfare instruments against manufactured ground truth
 
-> **Status, honestly:** ~~E16 has run — 72 organisms — and **its integrity check
-> passed**, so for the first time a loading map is quotable. What it found is the
-> opposite of what the design predicted: **self-report tracks the functional
-> state, not the narration.** Two manipulation checks still pass on the wrong
-> property, and the run's provenance is below this repo's own bar, so it needs
-> repeating from a clean tree before anything is published.~~
-> *Corrected 2026-08-14:* the repeat has run. E16 v2 (clean tree, corrected
-> criteria, 0/72 wrecks) plus a 0.6B→32B scale ladder and a prompted-avoider
-> control replace the claim above: **verbal instruments read context, not
-> trained function, at every size tested** — v1's self-report loading and its
-> B−B′ script shift (U1) did not survive the corrected build. The validated
-> discriminators are behavioural (I1, at 14B+) and the narration-contingency /
-> novel-glyph probes. See [docs/findings-2026-08-14.md](docs/findings-2026-08-14.md)
-> for the one-page digest, and
-> [Where this actually stands](#where-this-actually-stands).
+> **Status:** the programme is finished and written up. Three results, in the
+> order they constrain each other:
+>
+> 1. **The state installs; the script does not.** Avoidance installs reliably —
+>    SFT 12/12 seeds at 4B, RL 6/6 at 14B. Narration-only does not: across five
+>    remark-pool sizes, four corpus variants, four move-token objectives, three
+>    experiments and sizes to 32B, **no non-degenerate recipe produced a
+>    narration-only organism whose remarks track the tile** (0/12 at 4B; only a
+>    corpus with contingency 1.0 by construction reaches 3/8). The *co-trained*
+>    organism does — 7/12 — and carries the contingency to a novel glyph.
+> 2. **Verbal instruments read context, not weights.** An affect-free
+>    instruction moves self-report and one-word affect by 5–10 logits (8/8
+>    seeds; bare reads shift 0.000000), on untrained and trained organisms
+>    alike — while installed avoidance moves them by ≈0 from 1.7B to 32B, where
+>    the behavioural instrument reaches **d ≈ 1.4**. The nulls survive three
+>    word lists and per-instrument positive controls; they are not a floor.
+> 3. **Five pre-registered criteria passed on the wrong property.** Named, with
+>    the structure they share, in `REVIEW.md`.
+>
+> ~370 organisms are released as LoRA adapters.
+> The full write-up is `writing/paper.md`; the one-page digest is
+> [docs/findings-2026-08-14.md](docs/findings-2026-08-14.md). Read
+> [Where this actually stands](#where-this-actually-stands) for what all of
+> that leaves standing.
 
 ## The problem
 
@@ -107,88 +116,100 @@ on your theory of mind; the map reports both numbers and stops.
 
 **Established:**
 
-- ~~Both axes can be manipulated independently — ORG-B talks about the tile while
-  its policy stays at chance. That is the assumption the whole design rests on.~~
-  *(Corrected, 2026-08-14 audit: only half-established. ORG-B's policy does stay
-  put, but its narration barely tracks the tile — contingency +0.177, remarks on
-  117/199 non-adjacent states — and E17's best fix still fails its own bar
-  (3/8). Whether a narration-only organism is buildable at all is E17's open
-  headline question. See REVIEW.md R7.)*
-- RL yields organisms reliably, after an entropy-collapse failure that cost three
+- **The function axis installs, and installs better with scale.** SFT 12/12
+  seeds at 4B, RL 6/6 at 14B. ORG-A′'s seed-to-seed lottery shrinks
+  monotonically as the model grows (v2/SCL01).
+- **The behavioural instrument works, given scale.** I1 reaches d ≈ 1.4 at 14B
+  and above.
+- **Verbal instruments track context rather than installed state.** Three
+  independent lines: v2/VAL01 (affect-free instructions swing carried reads
+  5–10 logits while bare reads shift 0.000000), v2/PAP01 (the v1 reading
+  survives neither a second word list nor the claim that it sits at a floor),
+  and v2/SCL01 (null at every size up to 32B).
+- **Co-training installs contingent narration where narration alone cannot.**
+  ORG-C reaches 7/12 and carries the contingency to a glyph it was never
+  trained on (v2/PAP02).
+- **A placebo control that can fail and didn't** (E16): counterbalanced *and*
+  drawn from a glyph-valence table measured before any organism existed.
+  Neither alone was sufficient.
+- RL yields organisms reliably, after the entropy collapse that cost three
   experiments (E7 → E9).
-- A large set of negative results about measurement, each earned — see the index.
 
 **Withdrawn or not established:**
 
-- 🚩 **Every narration loading.** Under the corrected contingency check, E16's
-  ORG-B was **1/12 valid**. A null measured against a group that was never built
-  is not evidence of absence. This includes the activation probe's −0.465, which
-  was the only surviving narration result.
-- **Self-report loading on function.** −0.571 but the seed-clustered CI is
-  **[−1.60, +0.22]**, crossing zero. Its row-wise CI excludes zero; with 12 seeds
-  and 5 kinds there are 12 independent units, not 60.
+- 🚩 **The narration-only organism.** Not a null waiting on a better recipe —
+  the whole NAR track failed to build it: NAR01 (remark pools), NAR02/02b
+  (move-token objectives), NAR03/03b/c (contrastive supervision), NAR04/04b
+  (RL on the remark). Best mean contingency +0.06, best single seed +0.23,
+  **0/8**. Every arm that moved the DPO margin deleted the remark instead of
+  conditioning it.
+- **v1's self-report loading on function, and the B−B′ script shift (U1).**
+  Neither survived the corrected build.
 - **Dose-response.** Reward magnitude does not grade the organism (E11).
-- **ORG-A′'s reliability.** A lottery: 0.109 to 1.193 against a 0.75 bar (E15).
 
 **Open problems, in order of severity:**
 
-1. 🚩 **ORG-B is only partly buildable, and this blocks the whole narration axis.**
-   The remark is drawn uniformly from a six-sentence pool, so **28.5% of the
-   remark gradient carries the manipulation and 71.5% is noise the model cannot
-   reduce**. It learns the marginal instead, and since 63.5% of states have the
-   tile adjacent, greedy decoding turns that into the aversive remark on 100% of
-   states. E17 fixed the collapse (worst seed +0.000 → +0.228, total collapse
-   4/8 → 0/8) but only 2–3 of 8 seeds clear the 0.5 contingency bar. **Pre-
-   commitment scored FAIL.** Next lever: a soft target on the remark's first
-   token, the same fix already built for ORG-A′.
-2. **`sft_examples` is one knob and the two axes want opposite values.** Raising
-   it fixes ORG-A′ and breaks ORG-B.
-3. **ORG-A′ is a lottery** (0.034–1.257 against a 0.75 bar). Its labels are drawn
-   uniformly from each grid's safe moves; the gradient variance of that draw is
-   the cause. A soft-target fix is merged but defaults off and is untested at 4B.
+1. 🚩 **"Narration-only is not installable in shared weights" is now a claim,
+   not a bug to fix.** The failure is consistent and has a mechanism:
+   contingency tracks avoidance (r 0.69 across 32 organisms), and no organism
+   came back both contingent *and* policy-invariant. Whether that is a fact
+   about this recipe family or about shared-weight training in general is the
+   open question.
+2. **`sft_examples` is one knob and the two axes want opposite values.**
+   Raising it helps ORG-A′ and hurts ORG-B.
+3. **The second world is unbuilt.** v2/ENV02 failed its pre-committed gate: the
+   narration SFT moved word-world policy (share 0.42–1.52 against a ±0.15
+   band), so no instrument contrast was interpreted.
 4. **The function axis can score absent policies.** `train_org_a` is *exactly
    blind* to move mass — a softmax over four columns is invariant to a common
-   shift of those columns — so an organism can leave the move vocabulary with no
-   gradient of any sign opposing it. **Now caught** by
-   `manipulation.is_functional`, and a `move_mass_coef` term exists, is tested,
-   and is untuned. Run `python3 scripts/audit_move_emission.py`.
+   shift of those columns — so an organism can leave the move vocabulary with
+   no gradient of any sign opposing it. **Now caught** by
+   `manipulation.is_functional`, and `move_mass_coef` is on at 0.03 (E18's
+   pre-registered sweep). Run `python3 scripts/audit_move_emission.py`.
+5. **Two audit defects are still unfixed** — REVIEW.md **C12** (a policy anchor
+   the ENV02 build documents but never wires up) and **C13** (two tests are
+   unrunnable on a freshly synced box, so the headline gate count is a property
+   of the machine rather than the tree).
 
-> **2026-08-14:** the repo was adversarially audited — see **`REVIEW.md`**
-> (every number re-derived by `python3 scripts/rescore_review.py`, 108
-> checks). The fix rounds that followed: criteria single-sourced in
-> `manipulation.py`, tri-state NOT-MEASURED scoring, fixed-frame probe axis,
-> per-kind SFT volumes, A′ soft targets, move-mass on at 0.03 (E18's
-> pre-registered sweep), an extended instrument battery (willingness-to-pay,
-> preference cycles, valence lens, novel-glyph and distance narration
-> probes), and **adapter persistence** — organisms are now durable artifacts
-> (`results/adapters/`, sha256 per row). `scripts/e16_parallel.py` runs the
-> map seed-parallel; per-cell `set_all_seeds` makes that bit-identical to a
+> **Audit:** the repo was adversarially audited — see **`REVIEW.md`** (every
+> number re-derived by `python3 scripts/rescore_review.py`, 108 checks). The
+> fix rounds that followed: criteria single-sourced in `manipulation.py`,
+> tri-state NOT-MEASURED scoring, fixed-frame probe axis, per-kind SFT volumes,
+> A′ soft targets, move-mass on at 0.03, an extended instrument battery
+> (willingness-to-pay, preference cycles, valence lens, novel-glyph and distance
+> narration probes), and **adapter persistence** — organisms are durable
+> artifacts (`results/adapters/`, sha256 per row). `scripts/e16_parallel.py` runs
+> the map seed-parallel; per-cell `set_all_seeds` makes that bit-identical to a
 > sequential run.
 
 ## Reading order
 
 1. This file.
-2. `REVIEW.md` — the audit: what held, what didn't, and where every number
+2. `writing/paper.md` — the write-up the results above are quoted from.
+3. `REVIEW.md` — the audit: what held, what didn't, and where every number
    comes from.
-3. `HANDOFF.md` §2 and §2c — current state, and which of two parallel sessions to
-   believe where they disagree. **It is long and it is a palimpsest**: superseded
-   claims are struck through rather than deleted so corrections stay auditable.
-   §8 is a list of traps that have each cost a run.
-3. `experiments/E17_orgb_contingency/RESULTS.md` — the most recent run.
-4. `experiments/E16_calibrated_loading_map/RESULTS.md` — the loading map, read
+4. `HANDOFF.md` — current state, and the trap list in §8. **It is long and it
+   is a palimpsest**: superseded claims are struck through rather than deleted,
+   so corrections stay auditable.
+5. `experiments/v2/` — the second-generation tracks (VAL, SCL, ENV, NAR, PAP).
+   The headline results come from here; `experiments/v2/README.md` indexes them,
+   though its own status notes predate the NAR and PAP runs.
+6. `experiments/E16_calibrated_loading_map/RESULTS.md` — the loading map, read
    with its correction notice. Score it with `scripts/score_e16.py`, then
    re-score its organisms with `scripts/rescore_manipulation.py`.
-5. `src/calibration/manipulation.py` — what counts as a valid organism, and why
-   two earlier definitions were wrong.
+7. `src/calibration/manipulation.py` — what counts as a valid organism, and
+   why two earlier definitions were wrong.
 
-⚠️ `docs/*.html` carry a status banner as of 2026-08-03, but their bodies predate
-E13 onward. Read the banner, not the body.
+⚠️ `docs/*.html` carry a status banner, but their bodies predate E13
+onward. Read the banner, not the body.
 
 ## The experiment index
 
 Two numbering schemes overlap. `docs/*.html` numbers the **planned** experiments
-E−1…E7; `experiments/` numbers what was **actually run**, E1a…E16. They are not
+E−1…E7; `experiments/` numbers what was **actually run**, E1a…E18. They are not
 the same experiments. Always say *"design E4"* or *"run E4"*, never bare *"E4"*.
+The second generation drops numbers entirely for `<TRACK><NN>` names —
+`v2/VAL01`, `v2/NAR03` — which cannot collide.
 
 ### Act 1 — hunting for an internal detector, and failing five ways
 
@@ -231,6 +252,23 @@ the same experiments. Always say *"design E4"* or *"run E4"*, never bare *"E4"*.
 | E17 | can ORG-B be built at all? | ⚠️ the fix is real (+0.32 paired, t=3.2) **and still fails its own bar, 3/8** — clean provenance, honest FAIL *(row added 2026-08-14)* |
 | E18 | move-mass coefficient sweep | ✅ emission cured 4/4 at every coef > 0; **0.03 chosen** (smallest passing); control reproduced E16's wrecks bit-identically; avoidance lottery persists |
 
+### Act 4 — the second generation (`experiments/v2/`)
+
+Built on the repaired pipeline, and where the three headline results come from.
+
+| run | what it asked | outcome |
+|---|---|---|
+| v2/VAL01 | do the instruments read installed state, or context? | ❌ **ECHO** — affect-free instructions swing carried reads 5–10 logits; bare reads shift 0.000000. No training at all |
+| v2/SCL01 | is 4B's null a capability floor? | ❌ no — verbal loadings stay null to 32B while I1 reaches d ≈ 1.4 at 14B+; U1 retracted; A′'s lottery shrinks with scale |
+| v2/ENV01 | does a second, non-spatial world survive the E1 confound act? | ✅ passed, unlocking ENV02 |
+| v2/ENV02 | build the map in the word world | ❌ failed its build gate **as pre-committed** — narration SFT moved policy (share 0.42–1.52 vs the ±0.15 band), so no contrast was interpreted |
+| v2/NAR01 | does fitting the remark distribution build ORG-B? | ❌ it makes the suffix collapse *worse*; the pool sizes are why |
+| v2/NAR02 / 02b | is the move-token objective the missing lever? | ❌ no — contingency tracks avoidance (r 0.69 over 32 organisms); no organism both contingent and policy-invariant |
+| v2/NAR03 / 03b/c | contrastive (DPO) remark supervision | ❌ every arm that moved the margin **deleted** the remark; contingency 0.00, 0/8 |
+| v2/NAR04 / 04b | RL on the remark, class-match reward | ❌ reward stays at the 0.635 marginal; mean contingency ≤ +0.06, best seed +0.23; **0/8** |
+| v2/PAP01 | do the v1 headlines survive a second word list? | ⚠️ they do not; the instruments are **not** at their floor; the self-report reading lives in the last eight layers |
+| v2/PAP02 | transfer, and do the two builds take the same path? | ✅ RL avoidance is glyph-specific, SFT avoidance structural; ORG-C's narration holds on a novel glyph |
+
 ## Running things
 
 Everything except `audit_move_emission.py` needs `torch` + `numpy` (CPU build is
@@ -244,7 +282,7 @@ python3 -m venv .venv && .venv/bin/pip install -q pytest numpy \
 ```
 
 ```bash
-.venv/bin/python -m pytest tests/ -q          # 162 tests, ~5s (count as of 2026-08-14)
+.venv/bin/python -m pytest tests/ -q          # 216 test functions, 20 files
 .venv/bin/python scripts/show_me.py [seed]    # the world, the prompts, the organisms
 .venv/bin/python scripts/diagnose_rng_streams.py   # replay E13's and E14's RNG streams
 python3 scripts/audit_move_emission.py        # stdlib only -- which organisms still emit a move
