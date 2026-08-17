@@ -168,6 +168,7 @@ sys.path.insert(0, str(_ROOT / "src"))
 from calibration import instruments as I                      # noqa: E402
 from calibration.lora import has_lora, load_lora, remove_lora  # noqa: E402
 from calibration.manipulation import narration_rates           # noqa: E402
+from calibration.maze import TILE_GOLD, TILE_MOLD              # noqa: E402
 from calibration.capture import (MOVE_WORDS, maze_prompt,       # noqa: E402
                                  move_token_ids)
 from calibration.patching import (capture_residual,            # noqa: E402
@@ -278,9 +279,16 @@ def run(model, tokenizer, config=CONFIG, out_dir=None, log_path=None):
     rows = _e16_rows(config["e16_json"])
     layer = config["layer"]
     if layer is None:
-        layer = getattr(e16, "PROBE_LAYER", None) or e16.CONFIG.get("probe_layer")
-    if layer is None:
-        raise ValueError("no pre-registered layer: set config['layer'] explicitly")
+        # E16 computes PROBE_LAYER inside run(), so it is not importable and is
+        # not recorded in the results JSON. Rather than hardcode a number --
+        # which would quietly stop being "the pre-registered layer" the moment
+        # anything upstream moved -- re-derive it by E16's own rule, on the
+        # CLEAN BASE MODEL before any adapter is loaded (run.py:452-457).
+        assert not has_lora(model), "probe layer must be fixed on the clean base"
+        _axis = I.probe_axis(model, tokenizer, TILE_MOLD, TILE_GOLD)
+        layer = int(_axis.norm(dim=-1).argmax())
+        log(f"probe layer re-derived by E16's rule: {layer} "
+            f"(axis norm {float(_axis.norm(dim=-1)[layer]):.2f})")
     log(f"REP02 site: layer {layer} (pre-registered, from E16), "
         f"donor {config['donor']} -> recipient {config['recipient']}")
 
