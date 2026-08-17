@@ -423,7 +423,10 @@ if __name__ == "__main__":
         cfg["seeds"] = [int(s) for s in a.seeds.split(",")]
 
     tok = AutoTokenizer.from_pretrained(cfg["model_id"])
+    # .to() rather than device_map=: device_map pulls in `accelerate`, which
+    # this sandbox does not ship, and a single-GPU inference run needs none of
+    # what accelerate provides.
     mdl = AutoModelForCausalLM.from_pretrained(
-        cfg["model_id"], dtype=torch.bfloat16, device_map="cuda")
+        cfg["model_id"], dtype=torch.bfloat16).to("cuda")
     mdl.eval()
     run(mdl, tok, cfg, out_dir=a.out, log_path=a.log)
