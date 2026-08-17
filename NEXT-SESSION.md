@@ -180,3 +180,73 @@ pip-installable; numpy and torch went in fine this session.
 * Sandbox: `/marimo/repo`, RTX PRO 6000 Blackwell 102 GB. Token is NOT in git.
 * `scripts/sync_to_sandbox.sh` ships source and excludes `results/`; it will not
   carry adapters.
+
+---
+
+## 7. STATE AT HANDOFF — read this first
+
+Three runs happened. Their results exist ONLY on the sandbox at `/marimo/repo`
+and are NOT yet pulled or committed. Pull them before the box is reclaimed:
+`scripts/pull_from_sandbox.sh`.
+
+### E16 v2 regeneration — SUCCESS, gate passed
+
+`results/20260817T085247Z_95e6e2b8e2df.json`. Reproduced the published numbers
+exactly, on a fresh box, weeks later, same config hash:
+
+    ORG-B  0/12 over bar, mean +0.035, functional  0/12
+    ORG-C  7/12 over bar, mean +0.655, functional 12/12
+    ORG-A  functional 7/12   ORG-A' functional 12/12   wrecked 0/72
+
+**60 adapters restored** to `experiments/E16_calibrated_loading_map/results/adapters/`,
+including all 16 ORG-B/ORG-C seeds 0-7. This closes part of the gap in §4.
+
+### REP02 — RAN, P1 FAILED, NOT A RESULT
+
+`experiments/v2/REP02_contingency_patch/results/20260817T090528Z_fc4ae6fe32a1.json`
+
+**The harness is broken; no claim may be drawn from this run.** P1 roundtrip
+matched only 24/48 generations, `transplant` came back +0.011 (null), and
+`shuffled` breached the placebo bar at every alpha. The scorer's own note is
+the correct reading: transplant null means the SITE IS DEAD, so this is P4(c)
+and says nothing about entanglement either way.
+
+**ROOT CAUSE (item one for the next session):** `generate_with_patch` pins the
+residual at ONE ABSOLUTE COLUMN for all 16 generated tokens. The unit test
+proved the roundtrip identity on TinyLM at 6 tokens; it does not survive a
+36-layer model at 16 tokens with a real chat template — pinning a stale vector
+across decoding corrupts generation instead of intervening on it.
+
+Fix options: re-capture per step, or intervene on the prefill only and let the
+KV cache carry it (the option the docstring explicitly rejects — that rejection
+was made on purity grounds and was not validated at real scale; revisit it).
+Then EXTEND THE TEST to 16 tokens on a deeper stub before re-running. Re-run is
+~25 GPU-min.
+
+The pre-registration worked exactly as intended here: P1 caught a broken
+harness before it could become a published null.
+
+### SCL03 — the 14B loading map, RUNNING
+
+Launched into `experiments/v2/SCL03_14b_map/results/`, logs `/marimo/repo/scl03.out`
+and `scl03.log`. E16's committed `run.py` with `model_id=Qwen/Qwen3-14B` and 12
+seeds; scored by the committed `score_e16.py`. Sequential, not sharded — 14B
+bf16 is ~28 GB and 3 shards would leave no headroom in 96 GB. ETA ~2.5-3 h.
+Probe layer fixed at 38.
+
+**CAVEAT BEFORE QUOTING ANY NUMBER FROM IT:** it has a committed run.py and a
+committed scorer, so the core rule holds, but it has NO PRE-COMMITMENT DOCSTRING
+OF ITS OWN — it is E16's pre-registration executed at another size. Either write
+`experiments/v2/SCL03_14b_map/RESULTS.md` stating what was and was not
+pre-committed, or report it as an extension of SCL01's ladder. Do not let it
+become a headline without that; the alternative is the provenance gap REVIEW.md
+R1 documents.
+
+Note the first log line: at 14B ORG-D reads `emits 0.00 <-- POLICY WRECKED`.
+That matches SCL01's committed 14B row (`D emits 0.00`, gate PASS), so it is
+expected, not a new defect.
+
+### Nothing else is runnable
+
+Ten of twelve experiments are unwritten. GPU time is ~780 min total; authoring
+is the bottleneck. Write in the §2 order, run `queue_driver.py` as each lands.
