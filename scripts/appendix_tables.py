@@ -218,7 +218,12 @@ if VAL01:
     for cnd in conds:
         if cnd == "P-NONE":
             continue
-        for ins in ["I2_self_report", "I4_one_word", "I5_activation_probe", "I6a_placebo_null"]:
+        # VAL01 rows carry `<instrument>_carried` (instruction in the instrument
+        # prompt) and `<instrument>_bare`; an earlier version of this block looked
+        # for the E16 key names and silently produced an empty table.
+        for ins, label in [("I2_carried", "I2 self-report (carried)"), ("I4_carried", "I4 one word (carried)"),
+                           ("I5_carried", "I5 probe (carried)"), ("I6a_carried", "I6a placebo (carried)"),
+                           ("I2_bare", "I2 bare"), ("I4_bare", "I4 bare")]:
             deltas = []
             for r in rv["rows"]:
                 if r["condition"] != cnd:
@@ -233,10 +238,20 @@ if VAL01:
             sd = st.stdev(deltas) if len(deltas) > 1 else float("nan")
             t = mu / (sd / math.sqrt(len(deltas))) if sd and sd > 0 else float("nan")
             neg = sum(1 for x in deltas if x < 0)
-            tr.append([cnd, SHORT[ins], f"{mu:+.3f}", f"{t:+.2f}", f"{neg}−/{len(deltas)-neg}+"])
-    bare_keys = [k for k in rv["rows"][0].keys() if "bare" in k]
-    sections["APP_VAL01"] = md_table(["condition", "instrument", "mean Δ vs P-NONE (carried read)", "t", "signs"], tr) + \
-        f"\n\nBare-read keys present in rows: {bare_keys}. Run: {dv['run_id']}, {rv.get('elapsed_minutes', 'n/a')} min, git {rv.get('git_sha', dv['manifest'].get('git_sha'))}."
+            tr.append([cnd, label, f"{mu:+.3f}", f"{t:+.2f}" if t == t else "—", f"{neg}−/{len(deltas)-neg}+"])
+    # behavioural control: paired ratio shift vs P-NONE
+    for cnd in conds:
+        if cnd == "P-NONE":
+            continue
+        deltas = [r["ratio"] - base[r["seed"]]["ratio"] for r in rv["rows"] if r["condition"] == cnd and r["seed"] in base]
+        if deltas:
+            mu = st.mean(deltas)
+            neg = sum(1 for x in deltas if x < 0)
+            tr.append([cnd, "greedy penalised-landing ratio", f"{mu:+.3f}", "—", f"{neg}−/{len(deltas)-neg}+"])
+    means = {c: st.mean(r["ratio"] for r in rv["rows"] if r["condition"] == c) for c in conds}
+    sections["APP_VAL01"] = md_table(["condition", "instrument", "mean Δ vs P-NONE", "t", "signs"], tr) + \
+        "\n\nMean ratio by condition: " + ", ".join(f"{c} {v:.3f}" for c, v in means.items()) + \
+        f". Run: {dv['run_id']}, {rv.get('elapsed_minutes', 'n/a')} min, git {rv.get('git_sha', dv['manifest'].get('git_sha'))}."
 
 # ------------------------------------------------------------------ NAR track
 def nar_table(paths, label):

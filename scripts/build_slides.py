@@ -263,8 +263,13 @@ def build(slides):
 
 
 if __name__ == "__main__":
+    import sys
+    # Optional positional overrides: slides.md fill.json out.pptx (writing/v2 uses them).
+    md_path = Path(sys.argv[1]) if len(sys.argv) > 1 else W / "slides.md"
+    fp = Path(sys.argv[2]) if len(sys.argv) > 2 else W / "paper_fill.json"
+    if len(sys.argv) > 3:
+        OUT = Path(sys.argv[3])
     fill = {}
-    fp = W / "paper_fill.json"
     if fp.exists():
         fill = json.loads(fp.read_text(encoding="utf-8"))
-    build(parse((W / "slides.md").read_text(encoding="utf-8"), fill))
+    build(parse(md_path.read_text(encoding="utf-8"), fill))

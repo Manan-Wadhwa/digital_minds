@@ -13,3 +13,6 @@ compute_ledger.md
 # python bytecode from running the stdlib scorers locally
 __pycache__/
 *.pyc
+
+# local virtualenv (README: python3 -m venv .venv)
+.venv/
